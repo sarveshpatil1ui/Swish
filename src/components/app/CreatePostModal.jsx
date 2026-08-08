@@ -8,6 +8,7 @@ export default function CreatePostModal({ onClose, onPublish }) {
   const [image, setImage] = useState(null)
   const [caption, setCaption] = useState('')
   const [dragging, setDragging] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const fileRef = useRef(null)
 
@@ -27,32 +28,38 @@ export default function CreatePostModal({ onClose, onPublish }) {
   const handlePublish = (e) => {
     e.preventDefault()
     if (!image && !caption.trim()) return
-    // Build a new post object and hand it to the feed via callback
-    if (onPublish) {
-      const newPost = {
-        id:              `post-new-${Date.now()}`,
-        userId:          currentUser?.id          || 'user-1',
-        userName:        currentUser?.name        || 'You',
-        userInitials:    currentUser?.initials    || 'U',
-        userAvatarColor: currentUser?.avatarColor || '#6366f1',
-        userDept:        `${currentUser?.dept || 'Student'} · ${currentUser?.year || ''}`.trim().replace(/·\s*$/, ''),
-        imageUrl:        image || null,
-        emoji:           '📸',
-        gradientFrom:    '#eef2ff',
-        gradientTo:      '#ede9fe',
-        label:           'New Post',
-        caption:         caption.trim(),
-        tags:            [],
-        likes:           0,
-        liked:           false,
-        saved:           false,
-        comments:        [],
-        createdAt:       'Just now',
+    
+    setPublishing(true)
+    
+    // Simulate network delay
+    setTimeout(() => {
+      if (onPublish) {
+        const newPost = {
+          id:              `post-new-${Date.now()}`,
+          userId:          currentUser?.id          || 'user-1',
+          userName:        currentUser?.name        || 'You',
+          userInitials:    currentUser?.initials    || 'U',
+          userAvatarColor: currentUser?.avatarColor || '#6366f1',
+          userDept:        `${currentUser?.dept || 'Student'} · ${currentUser?.year || ''}`.trim().replace(/·\s*$/, ''),
+          imageUrl:        image || null,
+          emoji:           '📸',
+          gradientFrom:    '#eef2ff',
+          gradientTo:      '#ede9fe',
+          label:           'New Post',
+          caption:         caption.trim(),
+          tags:            [],
+          likes:           0,
+          liked:           false,
+          saved:           false,
+          comments:        [],
+          createdAt:       'Just now',
+        }
+        onPublish(newPost)
       }
-      onPublish(newPost)
-    }
-    setPublished(true)
-    setTimeout(onClose, 1200)
+      setPublishing(false)
+      setPublished(true)
+      setTimeout(onClose, 800)
+    }, 600)
   }
 
   return (
@@ -156,7 +163,11 @@ export default function CreatePostModal({ onClose, onPublish }) {
                 className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 resize-none transition-all"
                 aria-label="Post caption"
               />
-              <p className="text-slate-300 dark:text-gray-700 text-xs text-right mt-1">{caption.length}/300</p>
+              <p className={`text-xs text-right mt-1 transition-colors ${
+                caption.length > 280 ? 'text-rose-500 font-semibold' : 'text-slate-400 dark:text-gray-500'
+              }`}>
+                {caption.length}/300
+              </p>
             </div>
 
             {/* Actions */}
@@ -169,10 +180,16 @@ export default function CreatePostModal({ onClose, onPublish }) {
               </button>
               <button
                 onClick={handlePublish}
-                disabled={!image && !caption.trim()}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+                disabled={(!image && !caption.trim()) || publishing || published || caption.length > 300}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
               >
-                {published ? '✓ Published!' : 'Publish'}
+                {publishing ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : published ? (
+                  '✓ Published!'
+                ) : (
+                  'Publish'
+                )}
               </button>
             </div>
           </div>
