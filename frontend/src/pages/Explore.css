@@ -1,0 +1,38 @@
+.explore {
+  padding: 40px 20px;
+}
+
+.explore h1 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.explore p {
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  margin-bottom: 2rem;
+}
+
+.explore-content {
+  margin-top: 40px;
+}
+
+.placeholder-card {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.placeholder-card h3 {
+  font-size: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.placeholder-card p {
+  color: #7f8c8d;
+  line-height: 1.6;
+}
