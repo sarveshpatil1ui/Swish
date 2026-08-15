@@ -1,0 +1,84 @@
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+}
+
+/* Padding variants */
+.card--padding-small {
+  padding: var(--spacing-sm);
+}
+
+.card--padding-medium {
+  padding: var(--spacing-md);
+}
+
+.card--padding-large {
+  padding: var(--spacing-lg);
+}
+
+.card--padding-none {
+  padding: 0;
+}
+
+/* Shadow variants */
+.card--shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.card--shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.card--shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.card--shadow-none {
+  box-shadow: none;
+}
+
+/* Border radius variants */
+.card--rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.card--rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.card--rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.card--rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+.card--rounded-full {
+  border-radius: var(--radius-full);
+}
+
+/* Hover effect */
+.card--hover {
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.card--hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Clickable */
+.card--clickable {
+  cursor: pointer;
+}
+
+.card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card--clickable:active {
+  transform: translateY(0);
+}

@@ -1,0 +1,125 @@
+.event-card {
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.event-card__image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.event-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-card__date-badge {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.event-card__date-month {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+}
+
+.event-card__date-day {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-gray-900);
+  line-height: 1;
+}
+
+.event-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.event-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.event-card__location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+}
+
+.event-card__location svg {
+  flex-shrink: 0;
+}
+
+.event-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.event-card__attendees {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.event-card__avatars {
+  display: flex;
+  margin-left: calc(var(--spacing-xs) * -1);
+}
+
+.event-card__avatars .avatar {
+  border: 2px solid var(--color-white);
+  margin-left: calc(var(--spacing-xs) * -1);
+}
+
+.event-card__attendee-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.event-card__time {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  font-weight: var(--font-weight-medium);
+}
+
+.event-card__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .event-card {
+    max-width: 100%;
+  }
+
+  .event-card__actions {
+    flex-direction: column;
+  }
+
+  .event-card__actions .button {
+    width: 100%;
+  }
+}

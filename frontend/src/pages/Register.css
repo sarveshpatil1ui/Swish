@@ -1,4 +1,4 @@
-.login {
+.register {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -7,79 +7,89 @@
   padding: var(--spacing-lg);
 }
 
-.login__container {
+.register__container {
   width: 100%;
-  max-width: 450px;
+  max-width: 500px;
 }
 
-.login__header {
+.register__header {
   text-align: center;
   margin-bottom: var(--spacing-xl);
 }
 
-.login__logo {
-  margin-bottom: var(--spacing-md);
-}
-
-.login__logo-text {
+.register__title {
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  letter-spacing: -0.5px;
-}
-
-.login__title {
-  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-gray-900);
   margin-bottom: var(--spacing-sm);
 }
 
-.login__subtitle {
+.register__subtitle {
   font-size: var(--font-size-base);
   color: var(--color-gray-600);
 }
 
-.login__card {
+.register__card {
   margin-bottom: var(--spacing-lg);
 }
 
-.login__form {
+.register__form {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.login__form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--font-size-sm);
+.register__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
 }
 
-.login__remember {
+.register__form-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--spacing-xs);
-  cursor: pointer;
-  color: var(--color-gray-600);
 }
 
-.login__remember input {
-  cursor: pointer;
-}
-
-.login__forgot {
-  color: var(--color-primary);
-  text-decoration: none;
+.register__label {
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  color: var(--color-gray-700);
 }
 
-.login__forgot:hover {
-  text-decoration: underline;
+.register__select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-gray-900);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
 }
 
-.login__divider {
+.register__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.register__select--error {
+  border-color: var(--color-error);
+}
+
+.register__select--error:focus {
+  box-shadow: 0 0 0 3px var(--color-error-light);
+}
+
+.register__error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+}
+
+.register__divider {
   display: flex;
   align-items: center;
   text-align: center;
@@ -88,36 +98,36 @@
   font-size: var(--font-size-sm);
 }
 
-.login__divider::before,
-.login__divider::after {
+.register__divider::before,
+.register__divider::after {
   content: '';
   flex: 1;
   border-bottom: 1px solid var(--color-gray-200);
 }
 
-.login__divider span {
+.register__divider span {
   padding: 0 var(--spacing-md);
 }
 
-.login__register {
+.register__login {
   text-align: center;
 }
 
-.login__register p {
+.register__login p {
   margin-bottom: var(--spacing-md);
   color: var(--color-gray-600);
   font-size: var(--font-size-sm);
 }
 
-.login__register a {
+.register__login a {
   text-decoration: none;
 }
 
-.login__footer {
+.register__footer {
   text-align: center;
 }
 
-.login__back {
+.register__back {
   color: var(--color-gray-600);
   text-decoration: none;
   font-size: var(--font-size-sm);
@@ -127,25 +137,29 @@
   transition: color var(--transition-fast);
 }
 
-.login__back:hover {
+.register__back:hover {
   color: var(--color-primary);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .login {
+  .register {
     padding: var(--spacing-md);
   }
 
-  .login__container {
+  .register__container {
     max-width: 100%;
   }
 
-  .login__title {
+  .register__title {
     font-size: var(--font-size-2xl);
   }
 
-  .login__subtitle {
+  .register__subtitle {
     font-size: var(--font-size-sm);
+  }
+
+  .register__form-row {
+    grid-template-columns: 1fr;
   }
 }
