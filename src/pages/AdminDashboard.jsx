@@ -1,0 +1,11 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import { useSwish } from "../context/SwishContext";
+export default function AdminDashboard() {
+  const { users, posts, colleges, logout } = useSwish();
+  const students = users.filter(u => u.role === "student").length;
+  const faculty = users.filter(u => u.role === "faculty").length;
+  return <div className="admin-shell"><aside className="admin-sidebar"><div className="brand">✦ SWISH ADMIN</div><nav><Link to="/admin">Dashboard</Link><Link to="/admin/colleges">Colleges</Link><Link to="/admin/moderation">Moderation</Link><a>Analytics</a><a>Settings</a></nav><button onClick={logout}>Logout</button></aside><main className="admin-main"><div className="admin-header"><div><span className="eyebrow">SYSTEM ADMINISTRATION</span><h1>Platform overview</h1></div><span className="admin-pill">● LIVE</span></div><div className="admin-stats">{[
+    ["Registered Colleges", colleges.length],["Total Users", users.length],["Live Users", Math.min(1284, users.length * 100)],["Total Posts", posts.length],["Total Students", students],["Total Faculty", faculty]
+  ].map(x => <div className="admin-stat" key={x[0]}><span>{x[0]}</span><b>{x[1].toLocaleString()}</b><small>+12.4% this month</small></div>)}</div><div className="admin-grid"><div className="admin-panel"><h2>User activity</h2><div className="fake-chart">{[32,54,48,76,61,88,72,96,81,110,92,125].map((h,i)=><i key={i} style={{height:`${h}px`}}/>)}</div></div><div className="admin-panel"><h2>LIVE NOW</h2>{users.slice(0,5).map(u=><div className="live-user" key={u.id}><span className="avatar small">{u.avatar}</span><div><b>{u.name}</b><small>{u.college} • {u.role}</small></div><i>●</i></div>)}</div></div><div className="admin-panel"><div className="panel-title"><h2>Quick management</h2><div><Link className="secondary" to="/admin/colleges">Manage Colleges</Link> <Link className="secondary" to="/admin/moderation">Moderation</Link></div></div><p className="muted">Manage approved institutional domains, monitor live platform activity and review moderation reports.</p></div></main></div>;
+}
