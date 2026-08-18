@@ -125,3 +125,21 @@ export const loadReports       = () => _ls.get(STORAGE_KEYS.REPORTS)
 export const saveReports       = (v) => _ls.set(STORAGE_KEYS.REPORTS, v)
 export const loadNotifications = () => _ls.get(STORAGE_KEYS.NOTIFICATIONS)
 export const saveNotifications = (v) => _ls.set(STORAGE_KEYS.NOTIFICATIONS, v)
+
+// ── Admin / Faculty API calls ─────────────────────────────────────────────────
+
+/**
+ * Fetch all users for Admin/Faculty dashboards.
+ * On success: { ok: true, users: Array }
+ */
+export async function apiGetUsers() {
+  return apiFetch('/api/users')
+}
+
+/**
+ * Toggle user suspended status (Admin/Faculty).
+ * On success: { ok: true, user: Object }
+ */
+export async function apiToggleUserStatus(userId) {
+  return apiFetch(`/api/users/${userId}/status`, { method: 'PATCH' })
+}

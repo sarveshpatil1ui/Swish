@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
-import { posts as initialPosts, users } from '../../data/mockData'
 import PostCard from '../../components/app/PostCard'
 import Stories from '../../components/app/Stories'
 import RightPanel from '../../components/app/RightPanel'
@@ -47,60 +46,11 @@ function NoResults({ query }) {
   )
 }
 
-// ── People results card ───────────────────────────────────────────────────────
-function PeopleResults({ users: matchedUsers }) {
-  const [followed, setFollowed] = useState({})
-  const toggle = (id) => setFollowed(f => ({ ...f, [id]: !f[id] }))
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-4"
-    >
-      <p className="text-slate-400 dark:text-gray-500 text-[11px] font-semibold uppercase tracking-wider mb-3">
-        People
-      </p>
-      <div className="space-y-3">
-        {matchedUsers.map(u => (
-          <div key={u.id} className="flex items-center gap-3">
-            <Link to={`/profile/${u.id}`} className="flex-shrink-0">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: u.avatarColor }}
-              >
-                {u.initials}
-              </div>
-            </Link>
-            <Link to={`/profile/${u.id}`} className="flex-1 min-w-0 group">
-              <p className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                {u.name}
-              </p>
-              <p className="text-slate-400 dark:text-gray-500 text-xs truncate">
-                {u.dept} · {u.year}
-              </p>
-            </Link>
-            <button
-              onClick={() => toggle(u.id)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${
-                followed[u.id]
-                  ? 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
-                  : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
-              }`}
-            >
-              {followed[u.id] ? 'Following' : 'Follow'}
-            </button>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  )
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const { currentUser: user } = useSwish()
-  const [posts,       setPosts]       = useState(initialPosts)
+  const [posts,       setPosts]       = useState([])
   const [showCreate,  setShowCreate]  = useState(false)
   const [searchParams]               = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '')
@@ -117,7 +67,6 @@ export default function HomePage() {
   // ── Search logic ─────────────────────────────────────────────────────────
   const hasSearch = searchQuery.trim().length > 0
   const rawQ      = searchQuery.trim().toLowerCase()
-  const isTagSearch = rawQ.startsWith('#')
   // Strip leading # so we can match against both caption text and tag words
   const wordQ     = rawQ.replace(/^#/, '')
 
@@ -133,16 +82,7 @@ export default function HomePage() {
       )
     : posts
 
-  // Don't show People results for hashtag searches — user wants posts, not profiles
-  const matchingUsers = hasSearch && !isTagSearch
-    ? users.filter(u =>
-        u.name.toLowerCase().includes(rawQ)     ||
-        u.username.toLowerCase().includes(rawQ) ||
-        u.dept.toLowerCase().includes(rawQ)
-      ).slice(0, 5)
-    : []
-
-  const noResults = hasSearch && filteredPosts.length === 0 && matchingUsers.length === 0
+  const noResults = hasSearch && filteredPosts.length === 0
 
   return (
     <>
@@ -228,13 +168,6 @@ export default function HomePage() {
               >
                 <Stories />
               </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ── Search results — people ───────────────────────────────── */}
-          <AnimatePresence>
-            {hasSearch && matchingUsers.length > 0 && (
-              <PeopleResults key="people" users={matchingUsers} />
             )}
           </AnimatePresence>
 

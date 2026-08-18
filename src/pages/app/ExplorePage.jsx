@@ -2,15 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Hash, TrendingUp, X, UserX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { users, trendingTopics, posts } from '../../data/mockData'
 
-const exploreGrid = posts.map(p => ({
-  id: p.id, emoji: p.emoji, label: p.label,
-  gradientFrom: p.gradientFrom, gradientTo: p.gradientTo,
-  gradientFromDark: p.gradientFromDark, gradientToDark: p.gradientToDark,
-  imageUrl: p.imageUrl,
-  likes: p.likes,
-}))
 
 function UserCard({ user }) {
   const [followed, setFollowed] = useState(false)
@@ -90,12 +82,12 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState('posts')
   const navigate = useNavigate()
 
-  const filteredUsers = users.filter(u =>
-    !u.isCurrentUser && (
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.dept.toLowerCase().includes(query.toLowerCase())
-    )
-  )
+  // No backend API yet for user search — show empty state
+  const filteredUsers = []
+  // No backend API yet for trending topics
+  const trendingTopics = []
+  // No posts API yet — posts created in the session are in-memory on HomePage
+  const exploreGrid = []
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -152,11 +144,18 @@ export default function ExplorePage() {
             <TrendingUp size={15} className="text-indigo-500" />
             <h2 className="text-slate-900 dark:text-white font-semibold text-sm">Trending Posts</h2>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[...exploreGrid, ...exploreGrid].slice(0, 9).map((item, i) => (
-              <ExploreGridItem key={`${item.id}-${i}`} item={item} />
-            ))}
-          </div>
+          {exploreGrid.length === 0 ? (
+            <div className="text-center py-12 px-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl">
+              <p className="text-slate-900 dark:text-white font-semibold text-sm">No posts yet</p>
+              <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">There are no trending posts to show right now.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {[...exploreGrid, ...exploreGrid].slice(0, 9).map((item, i) => (
+                <ExploreGridItem key={`${item.id}-${i}`} item={item} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -182,24 +181,31 @@ export default function ExplorePage() {
       {activeTab === 'topics' && (
         <div>
           <h2 className="text-slate-900 dark:text-white font-semibold text-sm mb-4">Trending Topics</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {trendingTopics.map((t, i) => (
-              <motion.button
-                key={t.tag}
-                onClick={() => navigate(`/home?q=${encodeURIComponent(t.tag)}`)}
-                whileHover={{ y: -2 }}
-                className="w-full text-left bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/60 rounded-lg flex items-center justify-center">
-                    <Hash size={14} className="text-indigo-600 dark:text-indigo-400" />
+          {trendingTopics.length === 0 ? (
+            <div className="text-center py-12 px-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl">
+              <p className="text-slate-900 dark:text-white font-semibold text-sm">No topics found</p>
+              <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Check back later for trending conversations.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {trendingTopics.map((t, i) => (
+                <motion.button
+                  key={t.tag}
+                  onClick={() => navigate(`/home?q=${encodeURIComponent(t.tag)}`)}
+                  whileHover={{ y: -2 }}
+                  className="w-full text-left bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/60 rounded-lg flex items-center justify-center">
+                      <Hash size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{t.tag}</p>
                   </div>
-                  <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{t.tag}</p>
-                </div>
-                <p className="text-slate-400 dark:text-gray-500 text-xs">{t.posts} posts this week</p>
-              </motion.button>
-            ))}
-          </div>
+                  <p className="text-slate-400 dark:text-gray-500 text-xs">{t.posts} posts this week</p>
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

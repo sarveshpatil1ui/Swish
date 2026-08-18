@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { stories } from '../../data/mockData'
 import StoryViewer from './StoryViewer'
-
-// Viewable stories (all except "Your Story") used by the viewer
-const viewableStories = stories.filter(s => !s.isYours)
+import CreateStoryModal from './CreateStoryModal'
 
 // ── Story bubble ──────────────────────────────────────────────────────────────
 function StoryBubble({ story, onClick }) {
   if (story.isYours) {
     return (
       <div
+        onClick={onClick}
         className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
         aria-label="Add your story"
       >
@@ -77,10 +75,32 @@ function StoryBubble({ story, onClick }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Stories() {
   const [viewerIndex, setViewerIndex] = useState(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [editingStory, setEditingStory] = useState(null)
+  
+  // Temporary local state for stories until API is built
+  const [storiesList, setStoriesList] = useState([{ id: 'story-your', isYours: true }])
+  const viewableStories = storiesList.filter(s => !s.isYours)
 
   const openViewer = (storyId) => {
     const idx = viewableStories.findIndex(s => s.id === storyId)
     if (idx !== -1) setViewerIndex(idx)
+  }
+
+  const handleDeleteStory = (storyId) => {
+    setStoriesList(prev => prev.filter(s => s.id !== storyId))
+    setViewerIndex(null)
+  }
+
+  const handleEditStory = (story) => {
+    setEditingStory(story)
+    setShowCreate(true)
+    setViewerIndex(null)
+  }
+
+  const openCreate = () => {
+    setEditingStory(null)
+    setShowCreate(true)
   }
 
   return (
@@ -92,11 +112,11 @@ export default function Stories() {
           .stories-scroll { scrollbar-width: none; -ms-overflow-style: none; }
         `}</style>
         <div className="stories-scroll flex gap-4 overflow-x-auto pb-1">
-          {stories.map(s => (
+          {storiesList.map(s => (
             <StoryBubble
               key={s.id}
               story={s}
-              onClick={s.isYours ? undefined : () => openViewer(s.id)}
+              onClick={s.isYours ? openCreate : () => openViewer(s.id)}
             />
           ))}
         </div>
@@ -109,6 +129,27 @@ export default function Stories() {
             stories={viewableStories}
             startIndex={viewerIndex}
             onClose={() => setViewerIndex(null)}
+            onDelete={handleDeleteStory}
+            onEdit={handleEditStory}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Create story modal */}
+      <AnimatePresence>
+        {showCreate && (
+          <CreateStoryModal
+            initialStory={editingStory}
+            onClose={() => setShowCreate(false)}
+            onPublish={(newStory) => {
+              if (editingStory) {
+                // Update existing story
+                setStoriesList(prev => prev.map(s => s.id === newStory.id ? newStory : s))
+              } else {
+                // Insert the new story right after the 'Your Story' bubble
+                setStoriesList(prev => [prev[0], newStory, ...prev.slice(1)])
+              }
+            }}
           />
         )}
       </AnimatePresence>

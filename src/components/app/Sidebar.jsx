@@ -5,7 +5,8 @@ import { useTheme } from '../../context/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import CreatePostModal from './CreatePostModal'
-import { notifications } from '../../data/mockData'
+
+const notifications = []
 
 const baseNavItems = [
   { to: '/home',          icon: Home,     label: 'Home' },

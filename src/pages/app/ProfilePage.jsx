@@ -2,73 +2,22 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Grid3X3, Bookmark, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { users, posts } from '../../data/mockData'
 import { useSwish } from '../../context/SwishContext'
 
-const gridGradients = [
-  ['#eef2ff','#ede9fe','#1e1b4b','#2e1065'],
-  ['#fdf4ff','#fce7f3','#2d1b69','#4a1942'],
-  ['#e0f2fe','#e0f7fa','#0c4a6e','#164e63'],
-  ['#ecfdf5','#d1fae5','#064e3b','#0f3460'],
-  ['#fefce8','#fef9c3','#422006','#3f3106'],
-  ['#fff1f2','#ffe4e6','#4c0519','#3b0f1e'],
-  ['#f0fdf4','#dcfce7','#052e16','#14532d'],
-  ['#fef3c7','#fde68a','#451a03','#3c1a00'],
-  ['#f5f3ff','#ede9fe','#2e1065','#1e1b4b'],
-]
-const emojis = ['🏆','🎉','🚀','📚','⚽','🎨','🤖','💡','🎓']
-
-function ProfileGridItem({ item, index }) {
-  const [loaded, setLoaded] = useState(false)
-  const [error, setError] = useState(false)
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3, delay: index * 0.03 }}
-      whileHover={{ scale: 1.03 }}
-      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-slate-100 dark:bg-gray-800"
-    >
-      {/* Background Image / Fallback */}
-      {item.imageUrl && !error ? (
-        <>
-          <img
-            src={item.imageUrl}
-            alt=""
-            onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          />
-          {!loaded && <div className="absolute inset-0 bg-slate-200 dark:bg-gray-800 animate-pulse" />}
-        </>
-      ) : (
-        <div 
-          className="absolute inset-0 flex flex-col items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${item.gradientFromDark || item.gradientFrom}, ${item.gradientToDark || item.gradientTo})` }}
-        >
-          <span className="text-4xl">{item.emoji}</span>
-        </div>
-      )}
-      
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all" />
-    </motion.div>
-  )
-}
 
 export default function ProfilePage() {
   const { userId } = useParams()
   const { currentUser } = useSwish()
   const [activeTab, setActiveTab] = useState('posts')
 
-  const profileUser = userId === 'user-1'
-    ? { ...users[0], ...currentUser }
-    : users.find(u => u.id === userId) || users[1]
+  // Determine if this is the logged-in user's own profile
+  const isOwnProfile = !userId || userId === 'me' || userId === currentUser?.id
 
-  const isOwnProfile = userId === 'user-1' || userId === currentUser?.id
+  // Use real user data from context (own profile) or show not-found for others
+  const profileUser = isOwnProfile ? currentUser : null
 
   const [followed, setFollowed] = useState(false)
-  const [followerCount, setFollowerCount] = useState(profileUser.followers)
+  const [followerCount, setFollowerCount] = useState(profileUser?.followers ?? 0)
 
   const handleFollow = () => {
     setFollowed(f => {
@@ -78,20 +27,26 @@ export default function ProfilePage() {
     })
   }
 
-  // Generate post grid for this user
-  const userPostCount = profileUser.posts || 9
-  const gridItems = Array.from({ length: userPostCount }, (_, i) => {
-    const realPost = posts[i % posts.length]
-    return {
-      id: `${profileUser.id}-grid-${i}`,
-      emoji: emojis[i % emojis.length],
-      imageUrl: realPost.imageUrl,
-      ...(() => {
-        const [f, t, fd, td] = gridGradients[i % gridGradients.length]
-        return { gradientFrom: f, gradientTo: t, gradientFromDark: fd, gradientToDark: td }
-      })(),
-    }
-  })
+  // No posts API yet — grid is empty
+  const gridItems = []
+
+  // If visiting another user's profile with no API, show not-found
+  if (!profileUser) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <Grid3X3 size={40} className="text-slate-200 dark:text-gray-700 mx-auto mb-4" />
+        <h2
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          className="text-slate-900 dark:text-white font-bold text-lg mb-2"
+        >
+          User not found
+        </h2>
+        <p className="text-slate-400 dark:text-gray-500 text-sm">
+          This profile doesn't exist or isn't available yet.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -159,7 +114,7 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-gray-800 bg-slate-50 dark:bg-gray-800/50 rounded-xl py-3">
           {[
-            { label: 'Posts', value: userPostCount },
+          { label: 'Posts', value: gridItems.length },
             { label: 'Followers', value: followerCount },
             { label: 'Following', value: profileUser.following },
           ].map(stat => (
@@ -199,16 +154,13 @@ export default function ProfilePage() {
 
       {/* Post grid */}
       {activeTab === 'posts' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35 }}
-          className="grid grid-cols-3 gap-1.5"
-        >
-          {gridItems.map((item, i) => (
-            <ProfileGridItem key={item.id} item={item} index={i} />
-          ))}
-        </motion.div>
+        <div className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl mt-2">
+          <Grid3X3 size={32} className="text-slate-200 dark:text-gray-700 mx-auto mb-3" />
+          <p className="text-slate-900 dark:text-white font-semibold text-sm">No posts yet</p>
+          <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
+            {isOwnProfile ? "You haven't posted anything yet." : "This user hasn't posted anything."}
+          </p>
+        </div>
       )}
 
       {activeTab === 'saved' && (

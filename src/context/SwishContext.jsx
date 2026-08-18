@@ -14,9 +14,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createContext, useContext, useState, useEffect } from 'react'
-import { posts as mockPosts, adminReports, notifications as mockNotifications } from '../data/mockData'
+
 import {
   apiLogin, apiRegister, apiLogout, apiMe,
+  apiGetUsers, apiToggleUserStatus,
   loadColleges, saveColleges,
   loadPosts, savePosts,
   loadReports, saveReports,
@@ -101,20 +102,22 @@ export function SwishProvider({ children }) {
 
   // ── Posts ──────────────────────────────────────────────────────────────────
   const [posts, setPosts] = useState(() => {
-    const saved = loadPosts()
-    return saved ?? mockPosts
+    // Force clear any old mockData stuck in localStorage
+    savePosts([])
+    return []
   })
 
   // ── Reports ────────────────────────────────────────────────────────────────
   const [reports, setReports] = useState(() => {
-    const saved = loadReports()
-    return saved ?? adminReports
+    // Force clear any old mockData stuck in localStorage
+    saveReports([])
+    return []
   })
 
   // ── Notifications ──────────────────────────────────────────────────────────
   const [notifications, setNotifications] = useState(() => {
-    const saved = loadNotifications()
-    return saved ?? mockNotifications
+    saveNotifications([])
+    return []
   })
 
   // ── Rehydrate session on mount (replaces loadCurrentUser from localStorage) ─
@@ -140,6 +143,18 @@ export function SwishProvider({ children }) {
       })
     return () => { cancelled = true }
   }, [])
+
+  // ── Fetch users for Admin / Faculty ─────────────────────────────────────────
+  const [users, setUsers] = useState([])
+  useEffect(() => {
+    if (isAuthenticated && (currentUser?.role === 'admin' || currentUser?.role === 'faculty')) {
+      apiGetUsers().then(res => {
+        if (res.ok) setUsers(res.users)
+      })
+    } else {
+      setUsers([]) // Clear if logged out or student
+    }
+  }, [isAuthenticated, currentUser])
 
   // ── login ─────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
@@ -317,11 +332,15 @@ export function SwishProvider({ children }) {
     saveReports(updated)
   }
 
-  // ── User Management (admin) ───────────────────────────────────────────────
-  // TODO: replace with PATCH /api/admin/users/:id when admin API is built
-  const users = [] // placeholder — will be populated from API
-  const toggleUserStatus = (_id) => {
-    console.warn('[toggleUserStatus] Backend API not yet implemented.')
+  // ── User Management (admin / faculty) ─────────────────────────────────────
+  const toggleUserStatus = async (id) => {
+    const res = await apiToggleUserStatus(id)
+    if (res.ok) {
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, suspended: res.user.suspended } : u))
+    } else {
+      console.error('[toggleUserStatus] failed:', res.error)
+      alert(res.error || 'Failed to update user status.')
+    }
   }
 
   return (

@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Trash2, Edit2 } from 'lucide-react'
+import { useSwish } from '../../context/SwishContext'
 
 const DURATION = 5000 // ms per story
 
-export default function StoryViewer({ stories, startIndex = 0, onClose }) {
+export default function StoryViewer({ stories, startIndex = 0, onClose, onDelete, onEdit }) {
+  const { currentUser } = useSwish()
   const [index,    setIndex]    = useState(startIndex)
   const [progress, setProgress] = useState(0)
 
   const story = stories[index]
+  const isOwnStory = story?.userId === currentUser?.id
 
   const goNext = useCallback(() => {
     if (index < stories.length - 1) {
@@ -173,6 +176,30 @@ export default function StoryViewer({ stories, startIndex = 0, onClose }) {
               className="absolute right-0 top-0 bottom-0 w-2/3 z-10"
               aria-label="Next"
             />
+
+            {/* Owner Actions Overlay (Edit / Delete) */}
+            {isOwnStory && (
+              <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4 z-30">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit?.(story)
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl text-white text-sm font-semibold hover:bg-white/30 transition-all shadow-sm"
+                >
+                  <Edit2 size={15} /> Edit
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete?.(story.id)
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-rose-500/80 backdrop-blur-md rounded-xl text-white text-sm font-semibold hover:bg-rose-500 transition-all shadow-sm"
+                >
+                  <Trash2 size={15} /> Delete
+                </button>
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
 

@@ -499,7 +499,12 @@ export default function AdminPage() {
           <p className="text-slate-500 dark:text-gray-400 text-sm">{filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''} found</p>
 
           <div className="space-y-4">
-            {filteredPosts.map(p => (
+            {filteredPosts.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl">
+                <FileText size={28} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">No posts found.</p>
+              </div>
+            ) : filteredPosts.map(p => (
               <div key={p.id} className={`bg-white dark:bg-gray-900 border rounded-2xl p-5 ${p.hidden ? 'border-amber-200 bg-amber-50/30 dark:border-amber-900/50 dark:bg-amber-900/20' : 'border-slate-200 dark:border-gray-800'}`}>
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex items-center gap-3">

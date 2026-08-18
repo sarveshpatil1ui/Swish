@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
 import { useSwish } from '../../context/SwishContext'
-import { notifications } from '../../data/mockData'
+
+const notifications = []
 
 export default function BottomNav() {
   const [showCreate, setShowCreate] = useState(false)
