@@ -1,29 +1,33 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Compass, PlusCircle, Bell, User, Settings, LogOut, Zap, Shield } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { Home, Compass, PlusCircle, Bell, User, Settings, LogOut, Zap, Shield, MessageSquare, Sun, Moon, GraduationCap } from 'lucide-react'
+import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
-import { Sun, Moon } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import CreatePostModal from './CreatePostModal'
 import { notifications } from '../../data/mockData'
 
-const navItems = [
-  { to: '/home', icon: Home, label: 'Home' },
-  { to: '/explore', icon: Compass, label: 'Explore' },
-  { to: '/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/profile/user-1', icon: User, label: 'Profile' },
+const baseNavItems = [
+  { to: '/home',          icon: Home,     label: 'Home' },
+  { to: '/explore',       icon: Compass,  label: 'Explore' },
+  { to: '/notifications', icon: Bell,     label: 'Notifications' },
+  { to: '/settings',      icon: Settings, label: 'Settings' },
 ]
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
+  const { currentUser: user, logout } = useSwish()
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
 
-  // Live unread count from mock data
   const unreadCount = notifications.filter(n => !n.read).length
   const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
+
+  const navItems = [
+    ...baseNavItems.slice(0, 3),
+    { to: `/profile/${user?.id || 'user-1'}`, icon: User, label: 'Profile' },
+    baseNavItems[3],
+  ]
 
   const handleLogout = () => {
     logout()
@@ -62,13 +66,11 @@ export default function Sidebar() {
                 <>
                   <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
                   <span className="hidden lg:block text-sm">{label}</span>
-                  {/* Desktop badge (expanded) */}
                   {label === 'Notifications' && unreadCount > 0 && (
                     <span className="hidden lg:flex ml-auto w-5 h-5 bg-rose-500 rounded-full text-white text-[10px] font-bold items-center justify-center">
                       {badgeLabel}
                     </span>
                   )}
-                  {/* Icon-only dot badge (collapsed sidebar) */}
                   {label === 'Notifications' && unreadCount > 0 && (
                     <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
                   )}
@@ -86,6 +88,22 @@ export default function Sidebar() {
             <span className="hidden lg:block text-sm font-medium">Create</span>
           </button>
 
+          {/* Messages link */}
+          <NavLink
+            to="/messages"
+            title="Messages"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            <MessageSquare size={20} className="flex-shrink-0" />
+            <span className="hidden lg:block text-sm">Messages</span>
+          </NavLink>
+
           {/* Admin link */}
           {user?.role === 'admin' && (
             <NavLink
@@ -102,13 +120,30 @@ export default function Sidebar() {
               <span className="hidden lg:block text-sm">Admin</span>
             </NavLink>
           )}
+
+          {/* Faculty link */}
+          {user?.role === 'faculty' && (
+            <NavLink
+              to="/faculty"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                  isActive
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-semibold'
+                    : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'
+                }`
+              }
+            >
+              <GraduationCap size={20} className="flex-shrink-0" />
+              <span className="hidden lg:block text-sm">Faculty</span>
+            </NavLink>
+          )}
+
         </nav>
 
         {/* Bottom actions */}
         <div className="space-y-0.5 border-t border-slate-100 dark:border-gray-800 pt-4">
-          {/* Current user chip */}
           {user && (
-            <NavLink to="/profile/user-1" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
+            <NavLink to={`/profile/${user?.id || 'user-1'}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: user.avatarColor }}>
                 {user.initials}
               </div>
@@ -119,7 +154,6 @@ export default function Sidebar() {
             </NavLink>
           )}
 
-          {/* Theme toggle */}
           <button
             onClick={toggle}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -139,7 +173,6 @@ export default function Sidebar() {
             <span className="hidden lg:block text-sm">{dark ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
 
-          {/* Logout */}
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-all"

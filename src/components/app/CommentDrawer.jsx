@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X, Send } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useSwish } from '../../context/SwishContext'
 
 export default function CommentDrawer({ post, onClose, onAddComment }) {
-  const { user: currentUser } = useAuth()
+  const { currentUser } = useSwish()
   const [text, setText] = useState('')
   const inputRef = useRef(null)
 

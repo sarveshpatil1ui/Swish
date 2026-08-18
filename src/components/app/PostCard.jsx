@@ -5,7 +5,7 @@ import {
   Heart, MessageCircle, Share2, Bookmark,
   MoreHorizontal, Check, ImageOff,
 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
 
 // ── Tiny avatar ───────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ function GradientCard({ emoji, label, gradientFrom, gradientTo }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PostCard({ post: initialPost }) {
-  const { user: currentUser } = useAuth()
+  const { currentUser } = useSwish()
 
   const [post,         setPost]         = useState(initialPost)
   const [showComments, setShowComments] = useState(false)

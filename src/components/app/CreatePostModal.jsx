@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X, ImagePlus, Trash2 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useSwish } from '../../context/SwishContext'
 
 export default function CreatePostModal({ onClose, onPublish }) {
-  const { user: currentUser } = useAuth()
+  const { currentUser } = useSwish()
   const [image, setImage] = useState(null)
   const [caption, setCaption] = useState('')
   const [dragging, setDragging] = useState(false)

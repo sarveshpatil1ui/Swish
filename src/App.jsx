@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
-import { AuthProvider } from './context/AuthContext'
+import { SwishProvider } from './context/SwishContext'
 
 // ── Public pages ──────────────────────────────────────────────────────────────
 import LandingPage from './pages/LandingPage'
@@ -17,11 +17,14 @@ import ExplorePage from './pages/app/ExplorePage'
 import ProfilePage from './pages/app/ProfilePage'
 import NotificationsPage from './pages/app/NotificationsPage'
 import AdminPage from './pages/app/AdminPage'
+import SettingsPage from './pages/app/SettingsPage'
+import FacultyPage from './pages/app/FacultyPage'
+import MessagesPage from './pages/app/MessagesPage'
 
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <SwishProvider>
         <BrowserRouter>
           <Routes>
             {/* ── Public ─────────────────────────────────────────────── */}
@@ -41,13 +44,15 @@ export default function App() {
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
             </Route>
 
             {/* ── Admin (requires admin role) ─────────────────────────── */}
             <Route
               path="/admin"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute dashboardOnly>
                   <AppLayout />
                 </ProtectedRoute>
               }
@@ -55,11 +60,27 @@ export default function App() {
               <Route index element={<AdminPage />} />
             </Route>
 
+            {/* ── Faculty (accessible by faculty and admin) ───────────── */}
+            <Route
+              path="/faculty"
+              element={
+                <ProtectedRoute allowedRoles={['faculty', 'admin']}>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<FacultyPage />} />
+              <Route path="students" element={<FacultyPage defaultTab="Students" />} />
+              <Route path="reports" element={<FacultyPage defaultTab="Reports" />} />
+              <Route path="moderation" element={<FacultyPage defaultTab="Moderation" />} />
+              <Route path="posts" element={<FacultyPage defaultTab="Posts" />} />
+            </Route>
+
             {/* ── Fallback ────────────────────────────────────────────── */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
+      </SwishProvider>
     </ThemeProvider>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { notifications as initialNotifications } from '../../data/mockData'
+import { useSwish } from '../../context/SwishContext'
 
 const iconMap = {
   like:    { icon: Heart,         bg: 'bg-rose-50 dark:bg-rose-950/40',    color: 'text-rose-500'    },
@@ -62,7 +62,7 @@ function NotificationItem({ notification: n, index, onRead }) {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications)
+  const { notifications, setNotifications } = useSwish()
 
   const markAllRead = () =>
     setNotifications(ns => ns.map(n => ({ ...n, read: true })))

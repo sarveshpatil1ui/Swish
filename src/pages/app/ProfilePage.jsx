@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { Grid3X3, Bookmark, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { users, posts } from '../../data/mockData'
-import { useAuth } from '../../context/AuthContext'
+import { useSwish } from '../../context/SwishContext'
 
 const gridGradients = [
   ['#eef2ff','#ede9fe','#1e1b4b','#2e1065'],
@@ -58,7 +58,7 @@ function ProfileGridItem({ item, index }) {
 
 export default function ProfilePage() {
   const { userId } = useParams()
-  const { user: currentUser } = useAuth()
+  const { currentUser } = useSwish()
   const [activeTab, setActiveTab] = useState('posts')
 
   const profileUser = userId === 'user-1'

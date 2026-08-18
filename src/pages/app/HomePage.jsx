@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../../context/AuthContext'
+import { useSwish } from '../../context/SwishContext'
 import { posts as initialPosts, users } from '../../data/mockData'
 import PostCard from '../../components/app/PostCard'
 import Stories from '../../components/app/Stories'
@@ -99,7 +99,7 @@ function PeopleResults({ users: matchedUsers }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { user } = useAuth()
+  const { currentUser: user } = useSwish()
   const [posts,       setPosts]       = useState(initialPosts)
   const [showCreate,  setShowCreate]  = useState(false)
   const [searchParams]               = useSearchParams()

@@ -1,21 +1,27 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Compass, PlusCircle, Bell, User } from 'lucide-react'
+import { Home, Compass, PlusCircle, Bell, Settings, Shield, GraduationCap, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
+import { useSwish } from '../../context/SwishContext'
 import { notifications } from '../../data/mockData'
-
-const tabs = [
-  { to: '/home',          icon: Home,    label: 'Home' },
-  { to: '/explore',       icon: Compass, label: 'Explore' },
-  { create: true },
-  { to: '/notifications', icon: Bell,    label: 'Alerts', badge: true },
-  { to: '/profile/user-1',icon: User,    label: 'Profile' },
-]
 
 export default function BottomNav() {
   const [showCreate, setShowCreate] = useState(false)
+  const { currentUser } = useSwish()
   const unreadCount = notifications.filter(n => !n.read).length
+
+  const tabs = [
+    { to: '/home',          icon: Home,           label: 'Home' },
+    { to: '/explore',       icon: Compass,        label: 'Explore' },
+    { create: true },
+    { to: '/messages',      icon: MessageSquare,  label: 'Messages' },
+    ...(currentUser?.role === 'faculty'
+      ? [{ to: '/faculty', icon: GraduationCap, label: 'Faculty' }]
+      : currentUser?.role === 'admin'
+      ? [{ to: '/admin',   icon: Shield,         label: 'Admin' }]
+      : [{ to: '/notifications', icon: Bell,     label: 'Alerts', badge: true }]),
+  ]
 
   return (
     <>
@@ -55,7 +61,6 @@ export default function BottomNav() {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Top active bar */}
                     <AnimatePresence>
                       {isActive && (
                         <motion.span
@@ -69,13 +74,11 @@ export default function BottomNav() {
                       )}
                     </AnimatePresence>
 
-                    {/* Icon */}
                     <Icon
                       size={22}
                       className={`transition-transform ${isActive ? 'stroke-[2.5] scale-110' : 'stroke-2'}`}
                     />
 
-                    {/* Label — only when active */}
                     <span
                       className={`text-[10px] font-semibold leading-none transition-all ${
                         isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
@@ -84,7 +87,6 @@ export default function BottomNav() {
                       {tab.label}
                     </span>
 
-                    {/* Notification dot */}
                     {tab.badge && unreadCount > 0 && (
                       <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
                     )}
