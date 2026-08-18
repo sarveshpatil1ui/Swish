@@ -1,156 +1,127 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// utils/auth.js  —  Swish frontend-only auth utilities
+// src/utils/auth.js  —  Swish API client utilities (replaces mock auth)
 //
-// ⚠️  SECURITY NOTICE — READ BEFORE PRODUCTION:
-//   This file implements a MOCK / DEMO authentication system using localStorage.
-//   Passwords are stored in plain text. Sessions are managed client-side.
-//   This is intentional for the current frontend-only prototype stage.
-//
-//   Before production, replace every function marked
-//   "// TODO: replace with real API call" with proper backend calls:
-//     • Real backend API  (Express / FastAPI / Django / etc.)
-//     • Proper password hashing  (bcrypt, argon2) on the server
-//     • JWT or session-based auth
-//     • HTTPS-only secure cookies
-//     • Server-side role validation on every protected request
+// All auth now goes through the real Express backend at /api/auth.
+// JWT is stored as an httpOnly cookie — the browser sends it automatically.
+// We never touch the token directly from JS; the server sets/clears the cookie.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// TODO: Replace localStorage with API call when backend is connected.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-// ── localStorage key constants ────────────────────────────────────────────────
-export const STORAGE_KEYS = {
-  USERS: 'swish_users',        // array of registered (non-demo) users
-  COLLEGES: 'swish_colleges',     // array of colleges managed by admin
-  CURRENT_USER: 'swish_current_user', // currently logged-in user object
-  POSTS: 'swish_posts',
-  REPORTS: 'swish_reports',
-  NOTIFICATIONS: 'swish_notifications',
-}
-
-// ── Registered-users helpers ──────────────────────────────────────────────────
+// ── Internal fetch wrapper ────────────────────────────────────────────────────
 
 /**
- * Loads registered users from localStorage.
- * Returns [] if nothing stored yet.
- * TODO: replace with GET /api/users
+ * Thin wrapper around fetch for JSON API calls.
+ * Always includes credentials (so the httpOnly cookie is sent).
+ *
+ * @param {string} path    - e.g. '/api/auth/login'
+ * @param {object} options - fetch options (method, body, etc.)
+ * @returns {Promise<object>} parsed JSON response body
  */
-export function loadUsers() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.USERS)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'include', // send httpOnly cookie on every request
+    ...options,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+
+  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+  // Attach HTTP status to the result for callers to inspect if needed
+  data._status = res.status
+  return data
 }
 
-/**
- * Persists the registered-users array to localStorage.
- * TODO: individual user writes should be POST/PATCH /api/users
- */
-export function saveUsers(users) {
-  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
-}
-
-// ── College helpers ────────────────────────────────────────────────────────────
+// ── Auth API calls ────────────────────────────────────────────────────────────
 
 /**
- * Loads the colleges array from localStorage.
- * Returns null if nothing stored (caller should use seed data instead).
- * TODO: replace with GET /api/colleges
+ * Register a new student or faculty account.
+ * On success: { ok: true, pendingVerification: true, email }
+ * On error:   { ok: false, error: string }
  */
-export function loadColleges() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.COLLEGES)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
+export async function apiRegister(userData) {
+  return apiFetch('/api/auth/register', { method: 'POST', body: userData })
 }
 
 /**
- * Persists the colleges array to localStorage.
- * TODO: individual college writes should be POST/PATCH /api/colleges
+ * Verify the OTP sent to email after registration (or after login with unverified account).
+ * On success: { ok: true, user, redirectTo }  — backend also sets httpOnly cookie
+ * On error:   { ok: false, error, expired? }
  */
-export function saveColleges(colleges) {
-  localStorage.setItem(STORAGE_KEYS.COLLEGES, JSON.stringify(colleges))
-}
-
-// ── Post, Report, and Notification helpers ────────────────────────────────────
-
-export function loadPosts() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.POSTS)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-export function savePosts(posts) {
-  localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts))
-}
-
-export function loadReports() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.REPORTS)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-export function saveReports(reports) {
-  localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(reports))
-}
-
-export function loadNotifications() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)
-    return raw ? JSON.parse(raw) : null
-  } catch { return null }
-}
-export function saveNotifications(notifications) {
-  localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications))
-}
-
-// ── Current-session helpers ───────────────────────────────────────────────────
-
-/**
- * Restores the logged-in user from localStorage (handles F5 / page refresh).
- * Returns null if no active session.
- * TODO: replace with GET /api/auth/me  (validates JWT / cookie server-side)
- */
-export function loadCurrentUser() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
+export async function apiVerifyOtp(email, otp) {
+  return apiFetch('/api/auth/verify-otp', { method: 'POST', body: { email, otp } })
 }
 
 /**
- * Saves the logged-in user to localStorage (never stores password).
- * TODO: this persistence will be handled by a secure HttpOnly cookie in production
+ * Resend a fresh OTP to the given email.
+ * On success: { ok: true, message }
+ * On error:   { ok: false, error }
  */
-export function saveCurrentUser(user) {
-  const { password: _pw, ...safeUser } = user
-  localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(safeUser))
+export async function apiResendOtp(email) {
+  return apiFetch('/api/auth/resend-otp', { method: 'POST', body: { email } })
 }
 
 /**
- * Removes the current session (logout).
- * Does NOT touch the registered-users list.
- * TODO: also call POST /api/auth/logout to invalidate server-side session
+ * Log in with email + password.
+ * On success: { ok: true, user, redirectTo }    — backend sets httpOnly cookie
+ * If unverified: { ok: false, pendingVerification: true, email, error }
+ * On error:   { ok: false, error }
  */
-export function clearCurrentUser() {
-  localStorage.removeItem(STORAGE_KEYS.CURRENT_USER)
+export async function apiLogin(email, password) {
+  return apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
 }
 
-// ── Role → redirect path ──────────────────────────────────────────────────────
+/**
+ * Fetch the currently authenticated user (rehydrates session on page refresh).
+ * Relies on the httpOnly cookie being sent automatically.
+ * On success: { ok: true, user }
+ * If not logged in: { ok: false, error } with status 401
+ */
+export async function apiMe() {
+  return apiFetch('/api/auth/me')
+}
+
+/**
+ * Log out — tells the server to clear the httpOnly cookie.
+ */
+export async function apiLogout() {
+  return apiFetch('/api/auth/logout', { method: 'POST' })
+}
+
+// ── Role → redirect path (mirrors backend logic) ──────────────────────────────
 
 /**
  * Returns the correct post-login path for a given role.
- * TODO: roles should come from a JWT claim verified on the server.
  * @param {'student'|'faculty'|'admin'} role
  * @returns {string}
  */
 export function redirectPathForRole(role) {
-  if (role === 'admin') return '/admin'
+  if (role === 'admin')   return '/admin'
   if (role === 'faculty') return '/faculty'
   return '/home'
 }
+
+// ── localStorage helpers for non-auth data (posts, reports, etc.) ─────────────
+// These are kept for compatibility with the existing frontend store logic.
+// When the backend is extended with post/report APIs, replace these too.
+
+export const STORAGE_KEYS = {
+  COLLEGES:      'swish_colleges',
+  POSTS:         'swish_posts',
+  REPORTS:       'swish_reports',
+  NOTIFICATIONS: 'swish_notifications',
+}
+
+const _ls = {
+  get: (key) => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null } catch { return null } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)) } catch {} },
+}
+
+export const loadColleges      = () => _ls.get(STORAGE_KEYS.COLLEGES)
+export const saveColleges      = (v) => _ls.set(STORAGE_KEYS.COLLEGES, v)
+export const loadPosts         = () => _ls.get(STORAGE_KEYS.POSTS)
+export const savePosts         = (v) => _ls.set(STORAGE_KEYS.POSTS, v)
+export const loadReports       = () => _ls.get(STORAGE_KEYS.REPORTS)
+export const saveReports       = (v) => _ls.set(STORAGE_KEYS.REPORTS, v)
+export const loadNotifications = () => _ls.get(STORAGE_KEYS.NOTIFICATIONS)
+export const saveNotifications = (v) => _ls.set(STORAGE_KEYS.NOTIFICATIONS, v)

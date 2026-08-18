@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, Shield, CheckCircle, Check, Mail, User,
   BookOpen, ChevronDown, Lock, Eye, EyeOff, ArrowRight,
   ArrowLeft, AlertCircle, GraduationCap, Briefcase,
-  BadgeCheck, XCircle,
+  BadgeCheck, XCircle, RefreshCw,
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
+import { apiVerifyOtp, apiResendOtp } from '../utils/auth'
 
 // ── Password strength helpers ─────────────────────────────────────────────────
 const getStrength = (pass) => {
@@ -89,7 +90,7 @@ const blankForm = (role) => ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function JoinPage() {
-  const { register, domainApproved } = useSwish()
+  const { register, domainApproved, onVerified } = useSwish()
   const navigate = useNavigate()
 
   // Role toggle
@@ -102,6 +103,15 @@ export default function JoinPage() {
   const [errors,         setErrors]         = useState({})
   const [submitError,    setSubmitError]    = useState('')
   const [loading,        setLoading]        = useState(false)
+
+  // ── OTP verification step ─────────────────────────────────────────────────
+  const [otpStep,        setOtpStep]        = useState(false)  // show OTP form?
+  const [pendingEmail,   setPendingEmail]   = useState('')     // email waiting for OTP
+  const [otp,            setOtp]            = useState('')
+  const [otpError,       setOtpError]       = useState('')
+  const [otpLoading,     setOtpLoading]     = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)      // seconds until resend allowed
+  const cooldownRef = useRef(null)
 
   // Switch role → reset form fields
   const switchRole = (newRole) => {
@@ -158,9 +168,8 @@ export default function JoinPage() {
     }
 
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800)) // brief UX delay
 
-    const result = register({
+    const result = await register({
       name:        form.fullName,
       email:       form.email,
       password:    form.password,
@@ -174,10 +183,59 @@ export default function JoinPage() {
 
     setLoading(false)
 
-    if (result.ok) {
-      navigate(result.redirectTo) // auto-logged in → /home
-    } else {
+    if (result.ok && result.pendingVerification) {
+      // Show OTP step — do NOT navigate yet
+      setPendingEmail(result.email || form.email.trim().toLowerCase())
+      setOtpStep(true)
+      startResendCooldown()
+    } else if (!result.ok) {
       setSubmitError(result.error)
+    }
+  }
+
+  // ── Resend cooldown timer ─────────────────────────────────────────────────
+  const startResendCooldown = (seconds = 60) => {
+    setResendCooldown(seconds)
+    clearInterval(cooldownRef.current)
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  useEffect(() => () => clearInterval(cooldownRef.current), [])
+
+  // ── OTP submit ─────────────────────────────────────────────────────────────
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault()
+    setOtpError('')
+    if (otp.trim().length !== 6 || !/^\d{6}$/.test(otp.trim())) {
+      setOtpError('Please enter the 6-digit code from your email.')
+      return
+    }
+    setOtpLoading(true)
+    const result = await apiVerifyOtp(pendingEmail, otp.trim())
+    setOtpLoading(false)
+    if (result.ok) {
+      onVerified(result.user)
+      navigate(result.redirectTo)
+    } else {
+      setOtpError(result.error || 'Invalid or expired code.')
+      if (result.expired) startResendCooldown(0) // allow immediate resend
+    }
+  }
+
+  // ── OTP resend ────────────────────────────────────────────────────────────
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return
+    setOtpError('')
+    const result = await apiResendOtp(pendingEmail)
+    if (result.ok) {
+      startResendCooldown()
+    } else {
+      setOtpError(result.error || 'Failed to resend code.')
     }
   }
 
@@ -349,10 +407,142 @@ export default function JoinPage() {
 
       {/* ── RIGHT — form panel ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white dark:bg-gray-950 overflow-y-auto">
+        <AnimatePresence mode="wait">
+
+        {/* ═══════════════ OTP VERIFICATION STEP ═══════════════════════════ */}
+        {otpStep ? (
+          <motion.div
+            key="otp-step"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-[420px]"
+          >
+            {/* Back to form */}
+            <button
+              type="button"
+              onClick={() => { setOtpStep(false); setOtp(''); setOtpError('') }}
+              className="inline-flex items-center gap-1.5 text-slate-400 dark:text-gray-600 hover:text-slate-600 dark:hover:text-gray-400 text-sm mb-8 transition-colors group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+              Back
+            </button>
+
+            {/* Mobile logo */}
+            <div className="flex lg:hidden items-center gap-2 mb-8">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center">
+                <Zap size={15} className="text-white fill-white" />
+              </div>
+              <span className="font-extrabold text-xl text-slate-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Swish</span>
+            </div>
+
+            {/* Header */}
+            <div className="mb-7">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center mb-4">
+                <Mail size={22} className="text-indigo-500 dark:text-indigo-400" />
+              </div>
+              <h1 className="text-slate-900 dark:text-white font-bold text-[26px] mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Check your email
+              </h1>
+              <p className="text-slate-500 dark:text-gray-500 text-sm leading-relaxed">
+                We sent a 6-digit verification code to{' '}
+                <span className="font-semibold text-slate-700 dark:text-gray-300">{pendingEmail}</span>.
+                Enter it below to activate your account.
+              </p>
+            </div>
+
+            {/* OTP error banner */}
+            <AnimatePresence mode="wait">
+              {otpError && (
+                <motion.div
+                  key="otp-error"
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl px-4 py-3 mb-4"
+                >
+                  <AlertCircle size={15} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-rose-600 dark:text-rose-400 text-sm leading-snug">{otpError}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* OTP form */}
+            <form onSubmit={handleOtpSubmit} className="space-y-4" noValidate>
+              <div>
+                <label htmlFor="otp-code" className="block text-slate-700 dark:text-gray-300 text-sm font-medium mb-1.5">
+                  Verification Code
+                </label>
+                <input
+                  id="otp-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={otp}
+                  onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError('') }}
+                  className={`w-full bg-slate-50 dark:bg-gray-900 border ${otpError ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-gray-700 rounded-xl px-4 py-4 text-3xl font-mono font-bold tracking-[0.5em] text-center focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                  autoFocus
+                />
+              </div>
+
+              <button
+                id="otp-submit"
+                type="submit"
+                disabled={otpLoading || otp.length < 6}
+                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-sm flex items-center justify-center gap-2"
+              >
+                {otpLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Verifying…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Verify & Continue
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Resend OTP */}
+            <div className="mt-5 text-center">
+              <p className="text-slate-500 dark:text-gray-500 text-sm">
+                Didn't receive the code?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0}
+                  className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  {resendCooldown > 0 ? (
+                    <>
+                      <RefreshCw size={12} />
+                      Resend in {resendCooldown}s
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={12} />
+                      Resend code
+                    </>
+                  )}
+                </button>
+              </p>
+            </div>
+          </motion.div>
+
+        ) : (
+
+        /* ═══════════════ REGISTRATION FORM ══════════════════════════════ */
         <motion.div
           key="form"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-[420px]"
         >
@@ -790,6 +980,9 @@ export default function JoinPage() {
             </Link>
           </p>
         </motion.div>
+
+        )} {/* end ternary — otpStep ? ... : registrationForm */}
+        </AnimatePresence>
       </div>
     </div>
   )
