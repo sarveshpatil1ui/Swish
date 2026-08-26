@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 import usersRoutes from './routes/users.routes.js'
+import collegesRoutes from './routes/colleges.routes.js'
 
 const app  = express()
 const PORT = process.env.PORT || 3001
@@ -33,6 +34,9 @@ app.use('/api/auth', authRoutes)
 
 // ── User routes ───────────────────────────────────────────────────────────────
 app.use('/api/users', usersRoutes)
+
+// ── College routes ────────────────────────────────────────────────────────────
+app.use('/api/colleges', collegesRoutes)
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

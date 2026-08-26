@@ -106,7 +106,6 @@ export function redirectPathForRole(role) {
 // When the backend is extended with post/report APIs, replace these too.
 
 export const STORAGE_KEYS = {
-  COLLEGES:      'swish_colleges',
   POSTS:         'swish_posts',
   REPORTS:       'swish_reports',
   NOTIFICATIONS: 'swish_notifications',
@@ -117,8 +116,6 @@ const _ls = {
   set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)) } catch {} },
 }
 
-export const loadColleges      = () => _ls.get(STORAGE_KEYS.COLLEGES)
-export const saveColleges      = (v) => _ls.set(STORAGE_KEYS.COLLEGES, v)
 export const loadPosts         = () => _ls.get(STORAGE_KEYS.POSTS)
 export const savePosts         = (v) => _ls.set(STORAGE_KEYS.POSTS, v)
 export const loadReports       = () => _ls.get(STORAGE_KEYS.REPORTS)
@@ -142,4 +139,38 @@ export async function apiGetUsers() {
  */
 export async function apiToggleUserStatus(userId) {
   return apiFetch(`/api/users/${userId}/status`, { method: 'PATCH' })
+}
+
+// ── College API calls ─────────────────────────────────────────────────────────
+
+/**
+ * Fetch all colleges.
+ * On success: { ok: true, colleges: Array }
+ */
+export async function apiGetColleges() {
+  return apiFetch('/api/colleges')
+}
+
+/**
+ * Add a new college (admin only).
+ * On success: { ok: true, college: Object }
+ */
+export async function apiAddCollege(data) {
+  return apiFetch('/api/colleges', { method: 'POST', body: data })
+}
+
+/**
+ * Toggle college active/inactive (admin only).
+ * On success: { ok: true, college: Object }
+ */
+export async function apiToggleCollege(collegeId) {
+  return apiFetch(`/api/colleges/${collegeId}/toggle`, { method: 'PATCH' })
+}
+
+/**
+ * Check if an email domain is registered & active.
+ * On success: { ok: true, approved: boolean, college?: string }
+ */
+export async function apiCheckDomain(domain) {
+  return apiFetch(`/api/colleges/check-domain?domain=${encodeURIComponent(domain)}`)
 }

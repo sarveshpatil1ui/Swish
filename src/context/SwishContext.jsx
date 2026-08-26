@@ -18,7 +18,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import {
   apiLogin, apiRegister, apiLogout, apiMe,
   apiGetUsers, apiToggleUserStatus,
-  loadColleges, saveColleges,
+  apiGetColleges, apiAddCollege, apiToggleCollege,
   loadPosts, savePosts,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
@@ -47,25 +47,6 @@ export const DEFAULT_PREFERENCES = {
   },
 }
 
-// ── Seed colleges (demo data — will be replaced by Admin College API later) ───
-const SEED_COLLEGES = [
-  {
-    id: 'col-1',
-    name: 'KJSCE Mumbai',
-    code: 'KJSCE',
-    domain: 'campus.edu',
-    location: 'Mumbai, Maharashtra',
-    active: true,
-  },
-  {
-    id: 'col-2',
-    name: 'Demo College',
-    code: 'DEMO',
-    domain: 'abc.edu.in',
-    location: 'Pune, Maharashtra',
-    active: true,
-  },
-]
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -94,11 +75,8 @@ export function SwishProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading]       = useState(true) // true until /me check done
 
-  // ── Colleges (still localStorage — pending Admin College API) ───────────────
-  const [colleges, setColleges] = useState(() => {
-    const saved = loadColleges()
-    return saved ?? SEED_COLLEGES
-  })
+  // ── Colleges (fetched from MongoDB via API) ────────────────────────────────
+  const [colleges, setColleges] = useState([])
 
   // ── Posts ──────────────────────────────────────────────────────────────────
   const [posts, setPosts] = useState(() => {
@@ -142,6 +120,20 @@ export function SwishProvider({ children }) {
         if (!cancelled) setAuthLoading(false)
       })
     return () => { cancelled = true }
+  }, [])
+
+  // ── Fetch colleges from API on mount ──────────────────────────────────────
+  const fetchColleges = async () => {
+    try {
+      const res = await apiGetColleges()
+      if (res.ok) setColleges(res.colleges)
+    } catch (err) {
+      console.error('[fetchColleges] Failed:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchColleges()
   }, [])
 
   // ── Fetch users for Admin / Faculty ─────────────────────────────────────────
@@ -224,7 +216,8 @@ export function SwishProvider({ children }) {
   }
 
   // ── domainApproved ────────────────────────────────────────────────────────
-  // Still uses frontend colleges list — will be replaced by Admin College API.
+  // Uses the fetched colleges array for instant UI feedback.
+  // The backend also enforces domain validation during registration.
   const domainApproved = (email) => {
     if (!email || !email.includes('@')) return false
     const domain = email.trim().toLowerCase().split('@')[1]
@@ -283,27 +276,25 @@ export function SwishProvider({ children }) {
     await logout()
   }
 
-  // ── College management (still in-memory — pending Admin College API) ───────
-  const addCollege = ({ name, code, domain, location }) => {
-    const newCollege = {
-      id: `col-${Date.now()}`,
-      name:     name.trim(),
-      code:     code.trim().toUpperCase(),
-      domain:   domain.trim().toLowerCase(),
-      location: location.trim(),
-      active:   true,
+  // ── College management (MongoDB-backed via API) ────────────────────────────
+  const addCollege = async ({ name, code, domain, location }) => {
+    const res = await apiAddCollege({ name, code, domain, location })
+    if (res.ok) {
+      await fetchColleges() // refresh from DB
+    } else {
+      console.error('[addCollege] failed:', res.error)
+      alert(res.error || 'Failed to add college.')
     }
-    const updated = [...colleges, newCollege]
-    setColleges(updated)
-    saveColleges(updated)
   }
 
-  const toggleCollege = (id) => {
-    const updated = colleges.map(c =>
-      c.id === id ? { ...c, active: !c.active } : c
-    )
-    setColleges(updated)
-    saveColleges(updated)
+  const toggleCollege = async (id) => {
+    const res = await apiToggleCollege(id)
+    if (res.ok) {
+      await fetchColleges() // refresh from DB
+    } else {
+      console.error('[toggleCollege] failed:', res.error)
+      alert(res.error || 'Failed to toggle college status.')
+    }
   }
 
   // ── Post Management ───────────────────────────────────────────────────────

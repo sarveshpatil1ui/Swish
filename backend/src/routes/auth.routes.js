@@ -16,6 +16,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 import User from '../models/User.js'
+import College from '../models/College.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { sendOtpEmail } from '../services/email.service.js'
 import {
@@ -146,6 +147,19 @@ router.post(
           ok: false,
           error: 'An account with this email already exists.',
         })
+      }
+
+      // ── Domain verification — check MongoDB for active college ────────────────
+      const emailDomain = normalizedEmail.split('@')[1]
+      const isAdminEmail = normalizedEmail === 'admin@swish.com'
+      if (!isAdminEmail) {
+        const college = await College.findOne({ domain: emailDomain, active: true })
+        if (!college) {
+          return res.status(403).json({
+            ok: false,
+            error: 'This email domain is not registered with Swish. Contact your campus admin.',
+          })
+        }
       }
 
       // ── Build username (name → lowercase dot-separated) ─────────────────────

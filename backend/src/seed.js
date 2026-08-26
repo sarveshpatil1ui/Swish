@@ -18,8 +18,27 @@ import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import { connectDB } from './config/db.js'
 import User from './models/User.js'
+import College from './models/College.js'
 
 const BCRYPT_ROUNDS = 12
+
+// ── Seed colleges ─────────────────────────────────────────────────────────────
+const SEED_COLLEGES = [
+  {
+    name:     'KJSCE Mumbai',
+    code:     'KJSCE',
+    domain:   'campus.edu',
+    location: 'Mumbai, Maharashtra',
+    active:   true,
+  },
+  {
+    name:     'Demo College',
+    code:     'DEMO',
+    domain:   'abc.edu.in',
+    location: 'Pune, Maharashtra',
+    active:   true,
+  },
+]
 
 const DEMO_ACCOUNTS = [
   {
@@ -101,6 +120,20 @@ const DEMO_ACCOUNTS = [
 async function seed() {
   await connectDB()
   console.log('\n🌱  Starting seed...\n')
+
+  // ── Seed colleges ──────────────────────────────────────────────────────────
+  console.log('  📚  Seeding colleges...')
+  for (const col of SEED_COLLEGES) {
+    const result = await College.findOneAndUpdate(
+      { domain: col.domain },
+      { $set: col },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+    console.log(`  ✅  college  ${result.name} (domain: ${result.domain}, id: ${result._id})`)
+  }
+  console.log('')
+
+  // ── Seed demo accounts ─────────────────────────────────────────────────────
 
   for (const account of DEMO_ACCOUNTS) {
     const { password, ...rest } = account
