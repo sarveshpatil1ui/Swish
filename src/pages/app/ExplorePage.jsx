@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, TrendingUp, X, UserX, Loader2, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -106,8 +105,6 @@ function UserCard({ user: initialUser }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 export default function ExplorePage() {
-  const { currentUser } = useSwish()
-  const navigate = useNavigate()
 
   const [query,       setQuery]       = useState('')
   const [activeTab,   setActiveTab]   = useState('people')
