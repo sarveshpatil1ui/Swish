@@ -1,0 +1,235 @@
+{
+  "info": {
+    "name": "Swish — FR-02/05/06/07",
+    "description": "Profile, Likes, Comments, and Follow endpoints. Uses cookie-based JWT auth (httpOnly cookie set on login) — enable 'Automatically follow redirects' and cookie jar in Postman, or run requests in order within a single Postman session so the cookie persists.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "userId", "value": "" },
+    { "key": "otherUserId", "value": "" },
+    { "key": "postId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "Login (demo student — rahul@campus.edu)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul@campus.edu\",\n  \"password\": \"swish123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (demo student 2 — student@campus.edu)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@campus.edu\",\n  \"password\": \"student123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get current user (/api/auth/me)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "1. Profile (FR-02)",
+      "item": [
+        {
+          "name": "GET profile — valid user",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/{{userId}}" }
+        },
+        {
+          "name": "GET profile — non-existing user (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/000000000000000000000000" }
+        },
+        {
+          "name": "GET profile — missing JWT (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "swish_token=" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "PUT profile — valid (own profile)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rahul Patil\",\n  \"bio\": \"Computer Engineering Student\"\n}" }
+          }
+        },
+        {
+          "name": "PUT profile — unauthorized (another user's id, expect 403)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/{{otherUserId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Hacked Name\"\n}" }
+          }
+        },
+        {
+          "name": "PUT profile — invalid (empty name, expect 422)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"   \"\n}" }
+          }
+        },
+        {
+          "name": "POST upload-photo — valid image",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/users/upload-photo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "photo", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "POST upload-photo — invalid file type (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/users/upload-photo",
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "photo", "type": "file", "src": "" }]
+            },
+            "description": "Attach a non-image file (e.g. .txt) to verify rejection."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Likes (FR-05)",
+      "item": [
+        {
+          "name": "POST like — valid",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/posts/{{postId}}/like" }
+        },
+        {
+          "name": "POST like — duplicate (expect 409)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/posts/{{postId}}/like" }
+        },
+        {
+          "name": "POST like — non-existing post (expect 404)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/posts/000000000000000000000000/like" }
+        },
+        {
+          "name": "DELETE like — valid (unlike)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/posts/{{postId}}/like" }
+        },
+        {
+          "name": "POST like — missing JWT (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Cookie", "value": "swish_token=" }],
+            "url": "{{baseUrl}}/api/posts/{{postId}}/like"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Comments (FR-06)",
+      "item": [
+        {
+          "name": "GET comments — valid (newest first)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/posts/{{postId}}/comments" }
+        },
+        {
+          "name": "GET comments — non-existing post (expect 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/posts/000000000000000000000000/comments" }
+        },
+        {
+          "name": "POST comment — valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/posts/{{postId}}/comments",
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Great post!\"\n}" }
+          }
+        },
+        {
+          "name": "POST comment — empty (expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/posts/{{postId}}/comments",
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"   \"\n}" }
+          }
+        },
+        {
+          "name": "POST comment — non-existing post (expect 404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/posts/000000000000000000000000/comments",
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Hello\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Follow (FR-07)",
+      "item": [
+        {
+          "name": "POST follow — valid",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{otherUserId}}/follow" }
+        },
+        {
+          "name": "POST follow — duplicate (expect 409)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{otherUserId}}/follow" }
+        },
+        {
+          "name": "POST follow — self-follow (expect 400)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{userId}}/follow" }
+        },
+        {
+          "name": "POST follow — non-existing user (expect 404)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/000000000000000000000000/follow" }
+        },
+        {
+          "name": "DELETE follow — valid (unfollow)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/users/{{otherUserId}}/follow" }
+        },
+        {
+          "name": "DELETE follow — not following (expect 404)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/users/{{otherUserId}}/follow" }
+        }
+      ]
+    },
+    {
+      "name": "5. Posts (minimal, supports FR-05/06)",
+      "item": [
+        {
+          "name": "POST create post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/posts",
+            "body": { "mode": "raw", "raw": "{\n  \"caption\": \"Testing FR-05/06\",\n  \"tags\": [\"#test\"]\n}" }
+          }
+        },
+        {
+          "name": "GET feed",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/posts" }
+        }
+      ]
+    }
+  ]
+}

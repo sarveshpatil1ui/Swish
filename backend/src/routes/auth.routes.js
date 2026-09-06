@@ -1,15 +1,3 @@
-// backend/src/routes/auth.routes.js
-// ─────────────────────────────────────────────────────────────────────────────
-// Authentication routes:
-//
-//   POST /api/auth/register      Register a new user → send OTP
-//   POST /api/auth/verify-otp    Verify OTP → mark email verified → set cookie
-//   POST /api/auth/resend-otp    Regenerate + resend OTP
-//   POST /api/auth/login         Login with email + password → set cookie
-//   GET  /api/auth/me            Return current user (requires auth cookie)
-//   POST /api/auth/logout        Clear auth cookie
-//
-// ─────────────────────────────────────────────────────────────────────────────
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import bcrypt from 'bcryptjs'
@@ -28,9 +16,6 @@ import {
 const router = Router()
 const BCRYPT_ROUNDS = 12
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Compute 2-character initials from a name. */
 function computeInitials(name) {
   return name
     .trim()
@@ -41,7 +26,6 @@ function computeInitials(name) {
     .slice(0, 2)
 }
 
-/** Return avatar color based on role. */
 function avatarColorForRole(role) {
   if (role === 'faculty') return '#10b981'
   if (role === 'admin')   return '#ef4444'
@@ -92,7 +76,6 @@ function handleValidationErrors(req, res) {
   return null
 }
 
-// ── POST /api/auth/register ──────────────────────────────────────────────────
 router.post(
   '/register',
   [
@@ -122,12 +105,9 @@ router.post(
 
       const normalizedEmail = email.trim().toLowerCase()
 
-      // ── Duplicate check ─────────────────────────────────────────────────────
       const existing = await User.findOne({ email: normalizedEmail })
       if (existing) {
-        // If account exists but is unverified, allow re-registration (re-send OTP)
         if (!existing.isEmailVerified && !existing.isDemo) {
-          // Re-send a new OTP to the existing pending account
           const otp    = generateOtp()
           const hashed = await hashOtp(otp)
           existing.otpHash      = hashed
@@ -157,14 +137,11 @@ router.post(
         username = `${baseUsername}${suffix++}`
       }
 
-      // ── Hash password ────────────────────────────────────────────────────────
       const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
-      // ── Generate OTP ─────────────────────────────────────────────────────────
       const otp     = generateOtp()
       const otpHash = await hashOtp(otp)
 
-      // ── Create user (unverified) ─────────────────────────────────────────────
       const user = await User.create({
         name:         name.trim(),
         username,
@@ -178,19 +155,16 @@ router.post(
         otpHash,
         otpExpiresAt:    otpExpiresAt(),
         otpAttempts:     0,
-        // student fields
         ...(role === 'student' && {
           year:      year ?? null,
           studentId: studentId ?? null,
         }),
-        // faculty fields
         ...(role === 'faculty' && {
           designation: designation ?? null,
           employeeId:  employeeId ?? null,
         }),
       })
 
-      // ── Send OTP email ───────────────────────────────────────────────────────
       await sendOtpEmail(normalizedEmail, user.name, otp)
 
       return res.status(201).json({
@@ -206,7 +180,6 @@ router.post(
   }
 )
 
-// ── POST /api/auth/verify-otp ────────────────────────────────────────────────
 router.post(
   '/verify-otp',
   [
@@ -229,7 +202,6 @@ router.post(
         return res.status(400).json({ ok: false, error: 'This account is already verified.' })
       }
 
-      // ── Brute-force guard ───────────────────────────────────────────────────
       const maxAttempts = Number(process.env.OTP_MAX_ATTEMPTS) || 5
       if (user.otpAttempts >= maxAttempts) {
         return res.status(429).json({
@@ -238,7 +210,6 @@ router.post(
         })
       }
 
-      // ── Expiry check ────────────────────────────────────────────────────────
       if (!user.otpExpiresAt || new Date() > user.otpExpiresAt) {
         return res.status(400).json({
           ok: false,
@@ -247,7 +218,6 @@ router.post(
         })
       }
 
-      // ── OTP comparison (bcrypt) ─────────────────────────────────────────────
       const isValid = user.otpHash ? await verifyOtp(otp, user.otpHash) : false
 
       if (!isValid) {
@@ -260,14 +230,12 @@ router.post(
         })
       }
 
-      // ── Mark verified, clear OTP fields ─────────────────────────────────────
       user.isEmailVerified = true
       user.otpHash         = null
       user.otpExpiresAt    = null
       user.otpAttempts     = 0
       await user.save()
 
-      // ── Issue JWT cookie ─────────────────────────────────────────────────────
       setAuthCookie(res, user)
 
       return res.status(200).json({
@@ -282,7 +250,6 @@ router.post(
   }
 )
 
-// ── POST /api/auth/resend-otp ─────────────────────────────────────────────────
 router.post(
   '/resend-otp',
   [
@@ -329,7 +296,6 @@ router.post(
   }
 )
 
-// ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post(
   '/login',
   [
@@ -355,7 +321,6 @@ router.post(
         return res.status(401).json({ ok: false, error: 'Invalid email or password.' })
       }
 
-      // ── Account state checks ───────────────────────────────────────────────
       if (user.deactivated) {
         return res.status(401).json({ ok: false, error: 'This account has been deactivated.' })
       }
@@ -363,9 +328,7 @@ router.post(
         return res.status(403).json({ ok: false, error: 'This account has been suspended. Please contact support.' })
       }
 
-      // ── Email verification check ────────────────────────────────────────────
       if (!user.isEmailVerified) {
-        // Re-send a fresh OTP so they can complete verification
         const otp    = generateOtp()
         const hashed = await hashOtp(otp)
         user.otpHash      = hashed
@@ -382,7 +345,6 @@ router.post(
         })
       }
 
-      // ── Issue JWT cookie ───────────────────────────────────────────────────
       setAuthCookie(res, user)
 
       return res.status(200).json({
@@ -397,7 +359,6 @@ router.post(
   }
 )
 
-// ── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', requireAuth, async (req, res) => {
   try {
     return res.status(200).json({ ok: true, user: req.user.toJSON() })
@@ -407,7 +368,6 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 })
 
-// ── POST /api/auth/logout ─────────────────────────────────────────────────────
 router.post('/logout', (_req, res) => {
   res.clearCookie('swish_token', {
     httpOnly: true,

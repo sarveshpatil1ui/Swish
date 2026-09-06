@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, MessageCircle, Share2, Bookmark,
-  MoreHorizontal, Check, ImageOff,
+  MoreHorizontal, Check, ImageOff, Trash2,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
 // ── Tiny avatar ───────────────────────────────────────────────────────────────
 function Avatar({ initials, color, size = 9 }) {
@@ -36,29 +37,52 @@ function GradientCard({ emoji, label, gradientFrom, gradientTo }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function PostCard({ post: initialPost }) {
-  const { currentUser } = useSwish()
+export default function PostCard({ post }) {
+  const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost } = useSwish()
 
-  const [post,         setPost]         = useState(initialPost)
+  // Likes/comment-count now live in the `post` prop (owned by SwishContext),
+  // so this component reads them directly instead of cloning into local state
+  // — that keeps the displayed counts in sync everywhere the post appears.
   const [showComments, setShowComments] = useState(false)
   const [copied,       setCopied]       = useState(false)
+  const [saved,        setSaved]        = useState(post.saved)
+  const [liking,       setLiking]       = useState(false)
   const [followed,     setFollowed]     = useState(false)
+  const [followLoading, setFollowLoading] = useState(false)
   const [imgLoaded,    setImgLoaded]    = useState(false)
   const [imgError,     setImgError]     = useState(false)
   const [showMenu,     setShowMenu]     = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting,     setDeleting]     = useState(false)
+  const [doubleTapAnim, setDoubleTapAnim] = useState(false)
+  const [lastTap, setLastTap] = useState(0)
 
   const isOwnPost = currentUser?.id === post.userId
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  const handleLike = () => {
-    setPost(p => ({
-      ...p,
-      liked: !p.liked,
-      likes: p.liked ? p.likes - 1 : p.likes + 1,
-    }))
+  const handleLike = async () => {
+    if (liking) return // prevent duplicate/accidental double requests
+    setLiking(true)
+    const result = post.liked ? await unlikePost(post.id) : await likePost(post.id)
+    setLiking(false)
+    if (!result.ok && result.error) {
+      console.error('[PostCard] like/unlike failed:', result.error)
+    }
   }
 
-  const handleSave = () => setPost(p => ({ ...p, saved: !p.saved }))
+  const handleFollow = async () => {
+    if (followLoading) return
+    setFollowLoading(true)
+    const result = followed ? await unfollowUser(post.userId) : await followUser(post.userId)
+    setFollowLoading(false)
+    if (result.ok) {
+      setFollowed(f => !f)
+    } else if (result.error) {
+      console.error('[PostCard] follow/unfollow failed:', result.error)
+    }
+  }
+
+  const handleSave = () => setSaved(s => !s)
 
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`
@@ -67,17 +91,23 @@ export default function PostCard({ post: initialPost }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleAddComment = (text) => {
-    const newComment = {
-      id: `c-${Date.now()}`,
-      userId:       currentUser?.id       || 'user-1',
-      userName:     currentUser?.name     || 'You',
-      userInitials: currentUser?.initials || 'U',
-      avatarColor:  currentUser?.avatarColor || '#6366f1',
-      text,
-      time: 'Just now',
+  const handleDeletePost = async () => {
+    setDeleting(true)
+    await deletePost(post.id)
+    setDeleting(false)
+    setShowDeleteConfirm(false)
+  }
+
+  const handleDoubleTap = async () => {
+    const now = Date.now()
+    if (now - lastTap < 300) {
+      if (!post.liked && !liking) {
+        setDoubleTapAnim(true)
+        setTimeout(() => setDoubleTapAnim(false), 800)
+        await handleLike()
+      }
     }
-    setPost(p => ({ ...p, comments: [...p.comments, newComment] }))
+    setLastTap(now)
   }
 
   const hasImage = post.imageUrl && !imgError
@@ -112,9 +142,10 @@ export default function PostCard({ post: initialPost }) {
             {/* Follow (other users' posts only) */}
             {!isOwnPost && (
               <motion.button
-                onClick={() => setFollowed(f => !f)}
+                onClick={handleFollow}
+                disabled={followLoading}
                 whileTap={{ scale: 0.95 }}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                   followed
                     ? 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
                     : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
@@ -143,19 +174,34 @@ export default function PostCard({ post: initialPost }) {
                     onMouseLeave={() => setShowMenu(false)}
                     className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-lg py-1 min-w-[140px]"
                   >
-                    {['Save post', 'Copy link', 'Report'].map(item => (
+                    <button
+                      onClick={() => { handleSave(); setShowMenu(false) }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {saved ? 'Unsave post' : 'Save post'}
+                    </button>
+                    <button
+                      onClick={() => { handleShare(); setShowMenu(false) }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Copy link
+                    </button>
+                    {isOwnPost && (
                       <button
-                        key={item}
-                        onClick={() => setShowMenu(false)}
-                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                          item === 'Report'
-                            ? 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                            : 'text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800'
-                        }`}
+                        onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-2"
                       >
-                        {item}
+                        <Trash2 size={14} /> Delete post
                       </button>
-                    ))}
+                    )}
+                    {!isOwnPost && (
+                      <button
+                        onClick={() => setShowMenu(false)}
+                        className="w-full text-left px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                      >
+                        Report
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -164,7 +210,25 @@ export default function PostCard({ post: initialPost }) {
         </div>
 
         {/* ── Image ───────────────────────────────────────────────────── */}
-        <div className="relative w-full overflow-hidden bg-slate-100 dark:bg-gray-800" style={{ aspectRatio: '4/3' }}>
+        <div
+          className="relative w-full overflow-hidden bg-slate-100 dark:bg-gray-800 cursor-pointer"
+          style={{ aspectRatio: '4/3' }}
+          onClick={handleDoubleTap}
+        >
+          {/* Double-tap heart animation */}
+          <AnimatePresence>
+            {doubleTapAnim && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.4, opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
+              >
+                <Heart size={80} className="text-white fill-white drop-shadow-lg" />
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* Loading skeleton */}
           {post.imageUrl && !imgError && !imgLoaded && (
             <div className="absolute inset-0 bg-slate-200 dark:bg-gray-700 animate-pulse" />
@@ -218,8 +282,9 @@ export default function PostCard({ post: initialPost }) {
               {/* Like */}
               <motion.button
                 onClick={handleLike}
+                disabled={liking}
                 whileTap={{ scale: 0.82 }}
-                className={`p-2 rounded-xl transition-all ${
+                className={`p-2 rounded-xl transition-all disabled:cursor-not-allowed ${
                   post.liked
                     ? 'text-rose-500'
                     : 'text-slate-400 dark:text-gray-500 hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30'
@@ -267,15 +332,15 @@ export default function PostCard({ post: initialPost }) {
             <button
               onClick={handleSave}
               className={`p-2 rounded-xl transition-all ${
-                post.saved
+                saved
                   ? 'text-indigo-600 dark:text-indigo-400'
                   : 'text-slate-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
               }`}
-              aria-label={post.saved ? 'Unsave' : 'Save'}
+              aria-label={saved ? 'Unsave' : 'Save'}
             >
               <Bookmark
                 size={22}
-                className={post.saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''}
+                className={saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''}
               />
             </button>
           </div>
@@ -311,12 +376,12 @@ export default function PostCard({ post: initialPost }) {
           )}
 
           {/* View comments link */}
-          {post.comments.length > 0 ? (
+          {post.commentCount > 0 ? (
             <button
               onClick={() => setShowComments(true)}
               className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-400 text-sm transition-colors mb-1 block"
             >
-              View all {post.comments.length} comment{post.comments.length !== 1 ? 's' : ''}
+              View all {post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}
             </button>
           ) : (
             <p className="text-slate-300 dark:text-gray-700 text-xs mb-1">No comments yet. Be first!</p>
@@ -346,7 +411,19 @@ export default function PostCard({ post: initialPost }) {
           <CommentDrawer
             post={post}
             onClose={() => setShowComments(false)}
-            onAddComment={handleAddComment}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirmation */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <DeleteConfirmModal
+            title="Delete this post?"
+            message="This action cannot be undone. All comments will also be removed."
+            loading={deleting}
+            onConfirm={handleDeletePost}
+            onCancel={() => setShowDeleteConfirm(false)}
           />
         )}
       </AnimatePresence>

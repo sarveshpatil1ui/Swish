@@ -18,12 +18,16 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import {
   apiLogin, apiRegister, apiLogout, apiMe,
   apiGetUsers, apiToggleUserStatus,
+  apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
+  apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
+  apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
+  apiFetchFollowers, apiFetchFollowing,
   loadColleges, saveColleges,
-  loadPosts, savePosts,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
   redirectPathForRole,
 } from '../utils/auth'
+import { normalizePost } from '../utils/posts'
 
 const SwishContext = createContext(null)
 
@@ -100,12 +104,9 @@ export function SwishProvider({ children }) {
     return saved ?? SEED_COLLEGES
   })
 
-  // ── Posts ──────────────────────────────────────────────────────────────────
-  const [posts, setPosts] = useState(() => {
-    // Force clear any old mockData stuck in localStorage
-    savePosts([])
-    return []
-  })
+  // ── Posts (FR-05 Likes, FR-06 Comments — now backed by the real API) ────────
+  const [posts, setPosts]           = useState([])
+  const [postsLoading, setPostsLoading] = useState(false)
 
   // ── Reports ────────────────────────────────────────────────────────────────
   const [reports, setReports] = useState(() => {
@@ -155,6 +156,119 @@ export function SwishProvider({ children }) {
       setUsers([]) // Clear if logged out or student
     }
   }, [isAuthenticated, currentUser])
+
+  // ── Fetch posts once authenticated ───────────────────────────────────────────
+  const fetchPosts = async () => {
+    setPostsLoading(true)
+    try {
+      const res = await apiGetPosts()
+      if (res.ok) setPosts(res.posts.map(normalizePost))
+    } finally {
+      setPostsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchPosts()
+    } else {
+      setPosts([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
+
+  // ── createPost — minimal, supports FR-05/FR-06 having real posts to attach to
+  const createPost = async ({ caption, imageFile, tags }) => {
+    const res = await apiCreatePost({ caption, imageFile, tags })
+    if (!res.ok) return { ok: false, error: res.error || 'Failed to create post.' }
+    setPosts(prev => [normalizePost(res.post), ...prev])
+    return { ok: true }
+  }
+
+  // ── likePost / unlikePost (FR-05) ────────────────────────────────────────────
+  // Optimistic update with rollback on failure, so the UI feels instant but
+  // never drifts from server state on error (e.g. a stale duplicate-like 409).
+  const likePost = async (postId) => {
+    const prevPosts = posts
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, liked: true, likes: p.likes + 1 } : p))
+    const res = await apiLikePost(postId)
+    if (!res.ok) {
+      setPosts(prevPosts) // rollback
+      return { ok: false, error: res.error }
+    }
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, liked: true, likes: res.likeCount } : p))
+    return { ok: true }
+  }
+
+  const unlikePost = async (postId) => {
+    const prevPosts = posts
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, liked: false, likes: Math.max(0, p.likes - 1) } : p))
+    const res = await apiUnlikePost(postId)
+    if (!res.ok) {
+      setPosts(prevPosts) // rollback
+      return { ok: false, error: res.error }
+    }
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, liked: false, likes: res.likeCount } : p))
+    return { ok: true }
+  }
+
+  // ── Comments (FR-06) ──────────────────────────────────────────────────────────
+  // Comments themselves aren't kept in the global posts array (they're fetched
+  // on-demand by CommentDrawer when opened) — only the denormalized count is.
+  const fetchComments = async (postId) => apiGetComments(postId)
+
+  const addComment = async (postId, text) => {
+    const res = await apiAddComment(postId, text)
+    if (res.ok) {
+      setPosts(ps => ps.map(p => p.id === postId ? { ...p, commentCount: res.commentCount } : p))
+    }
+    return res
+  }
+
+  // ── Delete Post ────────────────────────────────────────────────────────────────
+  const deletePostAction = async (postId) => {
+    const res = await apiDeletePost(postId)
+    if (res.ok) {
+      setPosts(prev => prev.filter(p => p.id !== postId))
+    }
+    return res
+  }
+
+  // ── Delete Comment ─────────────────────────────────────────────────────────────
+  const deleteComment = async (postId, commentId) => {
+    const res = await apiDeleteComment(postId, commentId)
+    if (res.ok) {
+      setPosts(ps => ps.map(p => p.id === postId ? { ...p, commentCount: res.commentCount } : p))
+    }
+    return res
+  }
+
+  // ── Follow / Unfollow (FR-07) ─────────────────────────────────────────────────
+  const followUser = async (userId) => apiFollowUser(userId)
+  const unfollowUser = async (userId) => apiUnfollowUser(userId)
+
+  // ── Followers / Following lists ───────────────────────────────────────────────
+  const fetchFollowers = async (userId) => apiFetchFollowers(userId)
+  const fetchFollowing = async (userId) => apiFetchFollowing(userId)
+
+  // ── Profile fetch/update (FR-02) ──────────────────────────────────────────────
+  const fetchProfile = async (userId) => apiGetProfile(userId)
+
+  const saveProfile = async (userId, { name, bio }) => {
+    const res = await apiUpdateProfile(userId, { name, bio })
+    if (res.ok && currentUser?.id === userId) {
+      setCurrentUser(u => ({ ...u, name: res.user.name, bio: res.user.bio, initials: res.user.initials }))
+    }
+    return res
+  }
+
+  const uploadProfilePhoto = async (file) => {
+    const res = await apiUploadProfilePhoto(file)
+    if (res.ok) {
+      setCurrentUser(u => ({ ...u, profilePhoto: res.profilePhoto }))
+    }
+    return res
+  }
 
   // ── login ─────────────────────────────────────────────────────────────────
   const login = async (email, password) => {
@@ -306,23 +420,21 @@ export function SwishProvider({ children }) {
     saveColleges(updated)
   }
 
-  // ── Post Management ───────────────────────────────────────────────────────
+  // ── Post Management (admin moderation) ──────────────────────────────────────
+  // NOTE: these are local-only for now — outside FR-02/05/06/07 scope. A real
+  // implementation needs backend moderation routes (e.g. DELETE /api/posts/:id,
+  // PATCH /api/posts/:id/visibility) which don't exist yet. Left as local state
+  // updates (matching pre-existing behavior) rather than silently no-op-ing.
   const deletePost = (id) => {
-    const updated = posts.filter(p => p.id !== id)
-    setPosts(updated)
-    savePosts(updated)
+    setPosts(prev => prev.filter(p => p.id !== id))
   }
 
   const hidePost = (id) => {
-    const updated = posts.map(p => p.id === id ? { ...p, hidden: true } : p)
-    setPosts(updated)
-    savePosts(updated)
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, hidden: true } : p))
   }
 
   const showPost = (id) => {
-    const updated = posts.map(p => p.id === id ? { ...p, hidden: false } : p)
-    setPosts(updated)
-    savePosts(updated)
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, hidden: false } : p))
   }
 
   // ── Report Management ─────────────────────────────────────────────────────
@@ -369,11 +481,28 @@ export function SwishProvider({ children }) {
         // Users
         users,
         toggleUserStatus,
-        // Posts
+        // Posts (FR-05 Likes, FR-06 Comments)
         posts,
-        deletePost,
+        postsLoading,
+        fetchPosts,
+        createPost,
+        likePost,
+        unlikePost,
+        fetchComments,
+        addComment,
+        deletePost: deletePostAction,
+        deleteComment,
         hidePost,
         showPost,
+        // Follow (FR-07)
+        followUser,
+        unfollowUser,
+        fetchFollowers,
+        fetchFollowing,
+        // Profile (FR-02)
+        fetchProfile,
+        saveProfile,
+        uploadProfilePhoto,
         // Reports
         reports,
         updateReportStatus,

@@ -4,7 +4,7 @@
 
 **Swish** is a modern, premium social networking platform designed exclusively for university and college campuses. It connects students, faculty, and campus organizations in a verified, trustworthy environment — think *Instagram × Campus Community* with role-based access, real-time messaging, and a polished dark-mode experience.
 
-> **Status**: Frontend prototype with full UI, mock data, and client-side auth. Backend integration (APIs, database, real authentication) is planned for the next phase.
+> **Status**: Full-stack application with a React/Vite frontend and a Node.js/Express backend using MongoDB for authentication and data storage.
 
 ---
 
@@ -38,6 +38,15 @@
 
 ```
 Swissh/
+├── backend/                        # Node.js + Express Backend
+│   ├── package.json
+│   └── src/
+│       ├── config/                 # Database config (MongoDB)
+│       ├── controllers/            # Route controllers
+│       ├── middleware/             # Auth & validation middlewares
+│       ├── models/                 # Mongoose schemas (User, Post, Comment)
+│       ├── routes/                 # API routes (auth, users, posts)
+│       └── index.js                # Express entry point
 ├── index.html                      # Entry point with SEO meta & font preloads
 ├── vite.config.js                  # Vite + React + TailwindCSS plugin
 ├── package.json
@@ -136,7 +145,7 @@ Swissh/
 
 ## 🔐 Authentication & Roles
 
-The prototype uses a **client-side mock auth system** (`localStorage`) with three user roles:
+The system uses **JWT (JSON Web Tokens)** for secure, stateless authentication handled by the Express backend. Tokens are issued on login/registration and stored securely in HTTP-only cookies to prevent XSS attacks.
 
 | Role | Access |
 |---|---|
@@ -144,12 +153,7 @@ The prototype uses a **client-side mock auth system** (`localStorage`) with thre
 | `faculty` | Everything students get + Faculty Dashboard |
 | `admin` | Full access including Admin Dashboard + Faculty Dashboard |
 
-Route protection is handled by `ProtectedRoute.jsx`, which supports:
-- Basic auth gating (`isAuthenticated`)
-- Role-based allow-lists (`allowedRoles`)
-- Admin-only dashboard gating (`dashboardOnly`)
-
-> ⚠️ **Security Notice**: The current auth is for demo purposes only. Passwords are stored in plain text in localStorage. See `src/utils/auth.js` for migration notes.
+Route protection is handled by `ProtectedRoute.jsx` on the frontend, checking against the authenticated user state. API endpoints in the backend use the `requireAuth` middleware to verify tokens before processing requests.
 
 ---
 
@@ -166,13 +170,39 @@ Route protection is handled by `ProtectedRoute.jsx`, which supports:
 # Clone the repository
 git clone https://github.com/your-username/swissh.git
 cd swissh
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
 ```
+
+### Running the Backend
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   - Create a `.env` file in the `backend` folder based on `.env.example` (if provided), or set `MONGO_URI`, `JWT_SECRET`, etc.
+4. Start the backend server:
+   ```bash
+   npm run dev
+   ```
+
+### Running the Frontend
+
+1. Open a new terminal tab and navigate to the project root:
+   ```bash
+   cd swissh
+   ```
+2. Install frontend dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
 
 Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 
@@ -201,9 +231,9 @@ npm run preview
 
 - [x] **Phase 1** — High-fidelity visual prototype
 - [x] **Phase 1.5** — Extended features (Messages, Settings, Faculty Dashboard, role-based routing)
-- [ ] **Phase 2** — Database architecture (MongoDB / PostgreSQL)
-- [ ] **Phase 3** — RESTful API (Node.js / Express)
-- [ ] **Phase 4** — JWT authentication & Cloudinary image hosting
+- [x] **Phase 2** — Database architecture (MongoDB / Mongoose)
+- [x] **Phase 3** — RESTful API (Node.js / Express)
+- [x] **Phase 4** — JWT authentication & Image handling (Multer)
 - [ ] **Phase 5** — Real-time features (WebSockets for messaging & notifications)
 - [ ] **Phase 6** — Mobile app (React Native)
 

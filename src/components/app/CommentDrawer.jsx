@@ -1,17 +1,64 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Send } from 'lucide-react'
+import { X, Send, Loader2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { formatRelativeTime } from '../../utils/posts'
 
-export default function CommentDrawer({ post, onClose, onAddComment }) {
-  const { currentUser } = useSwish()
-  const [text, setText] = useState('')
+export default function CommentDrawer({ post, onClose }) {
+  const { currentUser, fetchComments, addComment, deleteComment } = useSwish()
+  const [text, setText]         = useState('')
+  const [comments, setComments] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef(null)
 
-  const handleSubmit = (e) => {
+  // Fetch newest-first comments for this post when the drawer opens.
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError('')
+    fetchComments(post.id).then(res => {
+      if (cancelled) return
+      if (res.ok) {
+        setComments(res.comments)
+      } else {
+        setError(res.error || 'Failed to load comments.')
+      }
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!text.trim()) return
-    onAddComment(text.trim())
+    const trimmed = text.trim()
+    if (!trimmed || submitting) return
+
+    setSubmitting(true)
+    setError('')
+    const res = await addComment(post.id, trimmed)
+    setSubmitting(false)
+
+    if (!res.ok) {
+      setError(res.error || 'Failed to post comment.')
+      return
+    }
+
+    // New comment goes on top — comments are ordered newest-first.
+    setComments(prev => [
+      {
+        id: res.comment.id,
+        userId: res.comment.userId,
+        userName: res.comment.userName,
+        userInitials: res.comment.userInitials,
+        avatarColor: res.comment.avatarColor,
+        text: res.comment.text,
+        createdAt: res.comment.createdAt,
+      },
+      ...prev,
+    ])
     setText('')
   }
 
@@ -67,14 +114,22 @@ export default function CommentDrawer({ post, onClose, onAddComment }) {
 
         {/* Comments list */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {post.comments.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin text-slate-300 dark:text-gray-600" />
+            </div>
+          ) : error && comments.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-rose-500 text-sm">{error}</p>
+            </div>
+          ) : comments.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-400 dark:text-gray-500 text-sm">No comments yet.</p>
               <p className="text-slate-300 dark:text-gray-600 text-xs mt-1">Be the first to comment!</p>
             </div>
           ) : (
-            post.comments.map((c) => (
-              <div key={c.id} className="flex gap-3">
+            comments.map((c) => (
+              <div key={c.id} className="flex gap-3 group">
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5"
                   style={{ backgroundColor: c.avatarColor }}
@@ -86,7 +141,20 @@ export default function CommentDrawer({ post, onClose, onAddComment }) {
                     <p className="text-slate-900 dark:text-white text-xs font-semibold mb-0.5">{c.userName}</p>
                     <p className="text-slate-700 dark:text-gray-300 text-sm leading-relaxed">{c.text}</p>
                   </div>
-                  <p className="text-slate-400 dark:text-gray-600 text-[11px] mt-1 ml-2">{c.time}</p>
+                  <div className="flex items-center gap-3 mt-1 ml-2">
+                    <p className="text-slate-400 dark:text-gray-600 text-[11px]">{formatRelativeTime(c.createdAt)}</p>
+                    {(c.userId === currentUser?.id || currentUser?.id === post.userId) && (
+                      <button
+                        onClick={async () => {
+                          const res = await deleteComment(post.id, c.id)
+                          if (res.ok) setComments(prev => prev.filter(x => x.id !== c.id))
+                        }}
+                        className="text-slate-300 dark:text-gray-700 hover:text-rose-500 dark:hover:text-rose-400 text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -95,6 +163,9 @@ export default function CommentDrawer({ post, onClose, onAddComment }) {
 
         {/* Add comment input */}
         <div className="px-5 py-4 border-t border-slate-100 dark:border-gray-800">
+          {error && comments.length > 0 && (
+            <p className="text-rose-500 text-xs mb-2">{error}</p>
+          )}
           <form onSubmit={handleSubmit} className="flex gap-3 items-end">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
@@ -109,22 +180,30 @@ export default function CommentDrawer({ post, onClose, onAddComment }) {
                 onChange={e => setText(e.target.value)}
                 placeholder="Add a comment…"
                 rows={1}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 resize-none transition-all"
+                maxLength={1000}
+                disabled={submitting}
+                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 resize-none transition-all disabled:opacity-60"
                 style={{ minHeight: '42px', maxHeight: '120px' }}
                 onInput={e => {
                   e.target.style.height = 'auto'
                   e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit(e)
+                  }
                 }}
                 aria-label="Comment text"
               />
             </div>
             <button
               type="submit"
-              disabled={!text.trim()}
+              disabled={!text.trim() || submitting}
               className="w-9 h-9 bg-indigo-600 disabled:bg-slate-200 dark:disabled:bg-gray-700 text-white disabled:text-slate-400 dark:disabled:text-gray-500 rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:cursor-not-allowed transition-all flex-shrink-0"
               aria-label="Post comment"
             >
-              <Send size={15} />
+              {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </form>
         </div>

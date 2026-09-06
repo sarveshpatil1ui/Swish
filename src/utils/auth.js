@@ -1,14 +1,6 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// src/utils/auth.js  —  Swish API client utilities (replaces mock auth)
-//
-// All auth now goes through the real Express backend at /api/auth.
-// JWT is stored as an httpOnly cookie — the browser sends it automatically.
-// We never touch the token directly from JS; the server sets/clears the cookie.
-// ─────────────────────────────────────────────────────────────────────────────
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-// ── Internal fetch wrapper ────────────────────────────────────────────────────
 
 /**
  * Thin wrapper around fetch for JSON API calls.
@@ -32,63 +24,29 @@ async function apiFetch(path, options = {}) {
   return data
 }
 
-// ── Auth API calls ────────────────────────────────────────────────────────────
-
-/**
- * Register a new student or faculty account.
- * On success: { ok: true, pendingVerification: true, email }
- * On error:   { ok: false, error: string }
- */
 export async function apiRegister(userData) {
   return apiFetch('/api/auth/register', { method: 'POST', body: userData })
 }
 
-/**
- * Verify the OTP sent to email after registration (or after login with unverified account).
- * On success: { ok: true, user, redirectTo }  — backend also sets httpOnly cookie
- * On error:   { ok: false, error, expired? }
- */
 export async function apiVerifyOtp(email, otp) {
   return apiFetch('/api/auth/verify-otp', { method: 'POST', body: { email, otp } })
 }
 
-/**
- * Resend a fresh OTP to the given email.
- * On success: { ok: true, message }
- * On error:   { ok: false, error }
- */
 export async function apiResendOtp(email) {
   return apiFetch('/api/auth/resend-otp', { method: 'POST', body: { email } })
 }
 
-/**
- * Log in with email + password.
- * On success: { ok: true, user, redirectTo }    — backend sets httpOnly cookie
- * If unverified: { ok: false, pendingVerification: true, email, error }
- * On error:   { ok: false, error }
- */
 export async function apiLogin(email, password) {
   return apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
 }
 
-/**
- * Fetch the currently authenticated user (rehydrates session on page refresh).
- * Relies on the httpOnly cookie being sent automatically.
- * On success: { ok: true, user }
- * If not logged in: { ok: false, error } with status 401
- */
 export async function apiMe() {
   return apiFetch('/api/auth/me')
 }
 
-/**
- * Log out — tells the server to clear the httpOnly cookie.
- */
 export async function apiLogout() {
   return apiFetch('/api/auth/logout', { method: 'POST' })
 }
-
-// ── Role → redirect path (mirrors backend logic) ──────────────────────────────
 
 /**
  * Returns the correct post-login path for a given role.
@@ -100,10 +58,6 @@ export function redirectPathForRole(role) {
   if (role === 'faculty') return '/faculty'
   return '/home'
 }
-
-// ── localStorage helpers for non-auth data (posts, reports, etc.) ─────────────
-// These are kept for compatibility with the existing frontend store logic.
-// When the backend is extended with post/report APIs, replace these too.
 
 export const STORAGE_KEYS = {
   COLLEGES:      'swish_colleges',
@@ -126,20 +80,105 @@ export const saveReports       = (v) => _ls.set(STORAGE_KEYS.REPORTS, v)
 export const loadNotifications = () => _ls.get(STORAGE_KEYS.NOTIFICATIONS)
 export const saveNotifications = (v) => _ls.set(STORAGE_KEYS.NOTIFICATIONS, v)
 
-// ── Admin / Faculty API calls ─────────────────────────────────────────────────
-
-/**
- * Fetch all users for Admin/Faculty dashboards.
- * On success: { ok: true, users: Array }
- */
 export async function apiGetUsers() {
   return apiFetch('/api/users')
 }
 
-/**
- * Toggle user suspended status (Admin/Faculty).
- * On success: { ok: true, user: Object }
- */
 export async function apiToggleUserStatus(userId) {
   return apiFetch(`/api/users/${userId}/status`, { method: 'PATCH' })
+}
+
+export async function apiGetProfile(userId) {
+  return apiFetch(`/api/users/${userId}`)
+}
+
+export async function apiUpdateProfile(userId, { name, bio }) {
+  return apiFetch(`/api/users/${userId}`, { method: 'PUT', body: { name, bio } })
+}
+
+export async function apiUploadProfilePhoto(file) {
+  const formData = new FormData()
+  formData.append('photo', file)
+
+  const res = await fetch(`${BASE_URL}/api/users/upload-photo`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+  data._status = res.status
+  return data
+}
+
+export async function apiFollowUser(userId) {
+  return apiFetch(`/api/users/${userId}/follow`, { method: 'POST' })
+}
+
+/** On success: { ok: true, following: false, followerCount } */
+export async function apiUnfollowUser(userId) {
+  return apiFetch(`/api/users/${userId}/follow`, { method: 'DELETE' })
+}
+
+// ── Post API calls (FR-05 Likes, FR-06 Comments) ──────────────────────────────
+
+/** On success: { ok: true, posts: Array } */
+export async function apiGetPosts() {
+  return apiFetch('/api/posts')
+}
+
+/** On success: { ok: true, post } */
+export async function apiCreatePost({ caption, imageFile, tags }) {
+  const formData = new FormData()
+  if (caption) formData.append('caption', caption)
+  if (imageFile) formData.append('photo', imageFile)
+  if (tags && tags.length) formData.append('tags', JSON.stringify(tags))
+
+  const res = await fetch(`${BASE_URL}/api/posts`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+  data._status = res.status
+  return data
+}
+
+/** On success: { ok: true, liked: true, likeCount } */
+export async function apiLikePost(postId) {
+  return apiFetch(`/api/posts/${postId}/like`, { method: 'POST' })
+}
+
+/** On success: { ok: true, liked: false, likeCount } */
+export async function apiUnlikePost(postId) {
+  return apiFetch(`/api/posts/${postId}/like`, { method: 'DELETE' })
+}
+
+/** On success: { ok: true, comments: Array } — newest first */
+export async function apiGetComments(postId) {
+  return apiFetch(`/api/posts/${postId}/comments`)
+}
+
+/** On success: { ok: true, comment, commentCount } */
+export async function apiAddComment(postId, text) {
+  return apiFetch(`/api/posts/${postId}/comments`, { method: 'POST', body: { text } })
+}
+
+/** On success: { ok: true, postId } */
+export async function apiDeletePost(postId) {
+  return apiFetch(`/api/posts/${postId}`, { method: 'DELETE' })
+}
+
+/** On success: { ok: true, commentId, commentCount } */
+export async function apiDeleteComment(postId, commentId) {
+  return apiFetch(`/api/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
+}
+
+/** On success: { ok: true, users: Array } */
+export async function apiFetchFollowers(userId) {
+  return apiFetch(`/api/users/${userId}/followers`)
+}
+
+/** On success: { ok: true, users: Array } */
+export async function apiFetchFollowing(userId) {
+  return apiFetch(`/api/users/${userId}/following`)
 }

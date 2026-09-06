@@ -1,16 +1,6 @@
-// backend/src/middleware/auth.middleware.js
-// ─────────────────────────────────────────────────────────────────────────────
-// requireAuth   — reads JWT from httpOnly cookie, verifies it, attaches req.user
-// requireRole   — factory: requireRole('admin') | requireRole('faculty','admin')
-// ─────────────────────────────────────────────────────────────────────────────
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 
-/**
- * Verifies the JWT stored in the httpOnly 'swish_token' cookie.
- * On success: attaches req.user (full Mongoose doc, minus sensitive fields).
- * On failure: returns 401.
- */
 export async function requireAuth(req, res, next) {
   try {
     const token = req.cookies?.swish_token
@@ -28,7 +18,6 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ ok: false, error: msg })
     }
 
-    // Fetch fresh user from DB (ensures deactivated/suspended users are caught immediately)
     const user = await User.findById(payload.sub)
     if (!user) {
       return res.status(401).json({ ok: false, error: 'User not found.' })

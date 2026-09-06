@@ -3,19 +3,23 @@ import { motion } from 'framer-motion'
 import { X, ImagePlus, Trash2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 
-export default function CreatePostModal({ onClose, onPublish }) {
-  const { currentUser } = useSwish()
+export default function CreatePostModal({ onClose }) {
+  const { currentUser, createPost } = useSwish()
   const [image, setImage] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
   const [caption, setCaption] = useState('')
   const [dragging, setDragging] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const fileRef = useRef(null)
 
+  const [publishError, setPublishError] = useState('')
+
   const handleFile = (file) => {
     if (!file || !file.type.startsWith('image/')) return
     const url = URL.createObjectURL(file)
     setImage(url)
+    setImageFile(file)
   }
 
   const handleDrop = (e) => {
@@ -25,41 +29,24 @@ export default function CreatePostModal({ onClose, onPublish }) {
     handleFile(file)
   }
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault()
     if (!image && !caption.trim()) return
-    
+
     setPublishing(true)
-    
-    // Simulate network delay
-    setTimeout(() => {
-      if (onPublish) {
-        const newPost = {
-          id:              `post-new-${Date.now()}`,
-          userId:          currentUser?.id          || 'user-1',
-          userName:        currentUser?.name        || 'You',
-          userInitials:    currentUser?.initials    || 'U',
-          userAvatarColor: currentUser?.avatarColor || '#6366f1',
-          userDept:        `${currentUser?.dept || 'Student'} · ${currentUser?.year || ''}`.trim().replace(/·\s*$/, ''),
-          imageUrl:        image || null,
-          emoji:           '📸',
-          gradientFrom:    '#eef2ff',
-          gradientTo:      '#ede9fe',
-          label:           'New Post',
-          caption:         caption.trim(),
-          tags:            [],
-          likes:           0,
-          liked:           false,
-          saved:           false,
-          comments:        [],
-          createdAt:       'Just now',
-        }
-        onPublish(newPost)
-      }
-      setPublishing(false)
-      setPublished(true)
-      setTimeout(onClose, 800)
-    }, 600)
+    setPublishError('')
+
+    // NOTE: post image upload is now fully implemented on the backend.
+    const result = await createPost({ caption: caption.trim(), imageFile, tags: [] })
+
+    setPublishing(false)
+    if (!result.ok) {
+      setPublishError(result.error || 'Failed to publish post.')
+      return
+    }
+
+    setPublished(true)
+    setTimeout(onClose, 800)
   }
 
   return (
@@ -134,7 +121,7 @@ export default function CreatePostModal({ onClose, onPublish }) {
                 <img src={image} alt="Post preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
                   <button
-                    onClick={() => setImage(null)}
+                    onClick={() => { setImage(null); setImageFile(null); }}
                     className="opacity-0 group-hover:opacity-100 bg-white text-slate-800 rounded-xl px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-lg hover:bg-red-50 hover:text-red-600"
                   >
                     <Trash2 size={13} />
@@ -169,6 +156,10 @@ export default function CreatePostModal({ onClose, onPublish }) {
                 {caption.length}/300
               </p>
             </div>
+
+            {publishError && (
+              <p className="text-rose-500 text-xs mt-2">{publishError}</p>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3 mt-4">
