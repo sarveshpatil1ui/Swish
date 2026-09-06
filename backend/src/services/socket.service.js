@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
 
-// ── In-memory online users map: userId → socketId ─────────────────────────────
+// ── In-memory online users: userId → Set<socketId> (handles multiple tabs) ────
 const onlineUsers = new Map()
 
 export function getIO() { return _io }
@@ -45,14 +45,19 @@ export function initSocket(app) {
 
   _io.on('connection', (socket) => {
     const userId = socket.user._id.toString()
-    onlineUsers.set(userId, socket.id)
 
-    // Notify all online users that this user came online
-    socket.broadcast.emit('user:online', { userId })
-    // Send the full online list to the newly connected client
+    // Track this socket (a user may have multiple tabs open)
+    if (!onlineUsers.has(userId)) {
+      onlineUsers.set(userId, new Set())
+    }
+    const wasAlreadyOnline = onlineUsers.get(userId).size > 0
+    onlineUsers.get(userId).add(socket.id)
+
+    // Only broadcast online event on first tab
+    if (!wasAlreadyOnline) socket.broadcast.emit('user:online', { userId })
     socket.emit('online:list', getOnlineUsers())
 
-    console.log(`[Socket] Connected: ${socket.user.name} (${userId})`)
+    console.log(`[Socket] Connected: ${socket.user.name} (${userId}) tab=${socket.id}`)
 
     // ── Join a conversation room ──────────────────────────────────────────────
     socket.on('conv:join', async (convId) => {
@@ -103,25 +108,26 @@ export function initSocket(app) {
           readBy:    saved.readBy.map(r => r.toString()),
         }
 
-        // Emit to everyone in the conversation room (including sender)
+        // Emit to everyone in the conversation room (including sender's tab)
         _io.to(`conv:${convId}`).emit('msg:new', payload)
 
-        // Also emit a lightweight notification to participants NOT in the room
+        // Also notify participants who are online but NOT in the room
         for (const participantId of conv.participants) {
           const pid = participantId.toString()
           if (pid === userId) continue
-          const participantSocketId = onlineUsers.get(pid)
-          if (participantSocketId) {
-            const participantSocket = _io.sockets.sockets.get(participantSocketId)
-            // If they haven't joined this conversation room, send them a notification
-            if (participantSocket && !participantSocket.rooms.has(`conv:${convId}`)) {
-              participantSocket.emit('msg:notification', {
-                convId,
-                senderId:   userId,
-                senderName: socket.user.name,
-                text:       saved.text,
-                createdAt:  saved.createdAt,
-              })
+          const socketIds = onlineUsers.get(pid)
+          if (socketIds) {
+            for (const sid of socketIds) {
+              const participantSocket = _io.sockets.sockets.get(sid)
+              if (participantSocket && !participantSocket.rooms.has(`conv:${convId}`)) {
+                participantSocket.emit('msg:notification', {
+                  convId,
+                  senderId:   userId,
+                  senderName: socket.user.name,
+                  text:       saved.text,
+                  createdAt:  saved.createdAt,
+                })
+              }
             }
           }
         }
@@ -133,17 +139,53 @@ export function initSocket(app) {
       }
     })
 
-    // ── Typing indicator ──────────────────────────────────────────────────────
-    socket.on('typing:start', ({ convId }) => {
-      socket.to(`conv:${convId}`).emit('typing:start', {
-        convId,
-        userId,
-        name: socket.user.name,
-      })
+    // ── Typing indicator ─────────────────────────────────────────────────────────────
+    // Strategy: emit to conv room AND directly to online participants
+    // so the event reaches them even if they haven't opened the chat.
+    socket.on('typing:start', async ({ convId }) => {
+      const payload = { convId, userId, name: socket.user.name }
+      // Send to everyone else in the room
+      socket.to(`conv:${convId}`).emit('typing:start', payload)
+      // Also send directly to participants who are online but not in the room
+      try {
+        const conv = await Conversation.findById(convId).select('participants').lean()
+        if (!conv) return
+        for (const pid of conv.participants) {
+          const pidStr = pid.toString()
+          if (pidStr === userId) continue
+          const socketIds = onlineUsers.get(pidStr)
+          if (socketIds) {
+            for (const sid of socketIds) {
+              const targetSocket = _io.sockets.sockets.get(sid)
+              if (targetSocket && !targetSocket.rooms.has(`conv:${convId}`)) {
+                targetSocket.emit('typing:start', payload)
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
     })
 
-    socket.on('typing:stop', ({ convId }) => {
-      socket.to(`conv:${convId}`).emit('typing:stop', { convId, userId })
+    socket.on('typing:stop', async ({ convId }) => {
+      const payload = { convId, userId }
+      socket.to(`conv:${convId}`).emit('typing:stop', payload)
+      try {
+        const conv = await Conversation.findById(convId).select('participants').lean()
+        if (!conv) return
+        for (const pid of conv.participants) {
+          const pidStr = pid.toString()
+          if (pidStr === userId) continue
+          const socketIds = onlineUsers.get(pidStr)
+          if (socketIds) {
+            for (const sid of socketIds) {
+              const targetSocket = _io.sockets.sockets.get(sid)
+              if (targetSocket && !targetSocket.rooms.has(`conv:${convId}`)) {
+                targetSocket.emit('typing:stop', payload)
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
     })
 
     // ── Mark messages as read ─────────────────────────────────────────────────
@@ -173,22 +215,31 @@ export function initSocket(app) {
 
     // ── Follow notification ───────────────────────────────────────────────────
     socket.on('follow:notify', ({ targetUserId }) => {
-      const targetSocketId = onlineUsers.get(String(targetUserId))
-      if (targetSocketId) {
-        _io.to(targetSocketId).emit('follow:received', {
-          fromUserId:   userId,
-          fromUserName: socket.user.name,
-          fromInitials: socket.user.initials,
-          fromColor:    socket.user.avatarColor,
-        })
+      const socketIds = onlineUsers.get(String(targetUserId))
+      if (socketIds) {
+        for (const sid of socketIds) {
+          _io.to(sid).emit('follow:received', {
+            fromUserId:   userId,
+            fromUserName: socket.user.name,
+            fromInitials: socket.user.initials,
+            fromColor:    socket.user.avatarColor,
+          })
+        }
       }
     })
 
     // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
-      onlineUsers.delete(userId)
-      socket.broadcast.emit('user:offline', { userId })
-      console.log(`[Socket] Disconnected: ${socket.user.name} (${userId})`)
+      const socketIds = onlineUsers.get(userId)
+      if (socketIds) {
+        socketIds.delete(socket.id)
+        if (socketIds.size === 0) {
+          // Last tab closed — user is truly offline
+          onlineUsers.delete(userId)
+          socket.broadcast.emit('user:offline', { userId })
+        }
+      }
+      console.log(`[Socket] Disconnected: ${socket.user.name} (${userId}) tab=${socket.id}`)
     })
   })
 

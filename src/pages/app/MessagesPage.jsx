@@ -256,11 +256,13 @@ export default function MessagesPage() {
   const messagesEndRef = useRef(null)
   const inputRef       = useRef(null)
   const textareaRef    = useRef(null)
-  const activeConvRef  = useRef(null)
+  const activeConvRef  = useRef(null)   // always holds current activeConvId
+  const convsRef       = useRef([])     // always holds current convs (for use inside socket handlers)
   const typingTimer    = useRef(null)
 
-  // Keep ref in sync
+  // Keep refs in sync with state
   useEffect(() => { activeConvRef.current = activeConvId }, [activeConvId])
+  useEffect(() => { convsRef.current = convs }, [convs])
 
   // ── Load conversations via REST (on mount) ──────────────────────────────────
   const loadConvs = useCallback(async () => {
@@ -272,19 +274,21 @@ export default function MessagesPage() {
   useEffect(() => { loadConvs() }, [loadConvs])
 
   // ── Socket.io real-time events ──────────────────────────────────────────────
+  // IMPORTANT: This effect must run ONCE. Do NOT add convs/loadConvs to deps —
+  // that causes the effect to re-run on every message, re-registering listeners
+  // and producing duplicate messages. Use refs to access current state.
   useEffect(() => {
-    // New message received
+    // ── New message received ────────────────────────────────────────────────
     const onNewMsg = (msg) => {
       const { convId } = msg
+      const currentConvId = activeConvRef.current
 
-      // If this conv is currently open, append message to view
-      if (activeConvRef.current === convId) {
+      if (currentConvId === convId) {
         setMessages(prev => {
-          // Avoid duplicates (from optimistic send + socket echo)
-          if (prev.find(m => m.id === msg.id)) return prev
+          // Deduplicate: if we already have this message (from optimistic send), skip
+          if (prev.some(m => m.id === msg.id)) return prev
           return [...prev, msg]
         })
-        // Emit read receipt
         emit('msg:read', { convId })
       }
 
@@ -296,33 +300,44 @@ export default function MessagesPage() {
               lastMessage:   msg.text,
               lastMessageAt: msg.createdAt,
               lastSenderId:  msg.senderId,
-              unread: activeConvRef.current === convId ? 0 : (c.unread || 0) + (msg.senderId !== currentUser?.id ? 1 : 0),
+              // Only increment unread if this chat is NOT currently open
+              unread: currentConvId === convId
+                ? 0
+                : (c.unread || 0) + (msg.senderId !== currentUser?.id ? 1 : 0),
             }
           : c
       ))
     }
 
-    // Notification for messages in convs not currently open
+    // ── Notification for messages in other (non-open) convs ─────────────────
     const onNotification = (msg) => {
       setUnreadNotifs(prev => [...prev.slice(-4), msg])
       setTimeout(() => setUnreadNotifs(prev => prev.slice(1)), 4000)
-      // Bump unread in conv list
-      setConvs(prev => prev.map(c =>
-        c.id === msg.convId
-          ? { ...c, lastMessage: msg.text, lastMessageAt: msg.createdAt, unread: (c.unread || 0) + 1 }
-          : c
-      ))
-      // If conv not in list yet, reload
-      if (!convs.find(c => c.id === msg.convId)) loadConvs()
+
+      setConvs(prev => {
+        const exists = prev.some(c => c.id === msg.convId)
+        if (!exists) {
+          // New conversation appeared — reload the full list once
+          api('/api/messages').then(data => {
+            if (data.ok) setConvs(data.conversations)
+          })
+          return prev
+        }
+        return prev.map(c =>
+          c.id === msg.convId
+            ? { ...c, lastMessage: msg.text, lastMessageAt: msg.createdAt, unread: (c.unread || 0) + 1 }
+            : c
+        )
+      })
     }
 
-    // Typing indicators
-    const onTypingStart = ({ convId, userId, name }) => {
-      if (userId === currentUser?.id) return
-      setTypingUsers(prev => ({ ...prev, [convId]: { userId, name } }))
+    // ── Typing indicators ───────────────────────────────────────────────────
+    const onTypingStart = ({ convId, userId: uid, name }) => {
+      if (uid === currentUser?.id) return
+      setTypingUsers(prev => ({ ...prev, [convId]: { userId: uid, name } }))
     }
-    const onTypingStop = ({ convId, userId }) => {
-      if (userId === currentUser?.id) return
+    const onTypingStop = ({ convId, userId: uid }) => {
+      if (uid === currentUser?.id) return
       setTypingUsers(prev => {
         const next = { ...prev }
         delete next[convId]
@@ -330,15 +345,14 @@ export default function MessagesPage() {
       })
     }
 
-    // Read receipts
+    // ── Read receipts ───────────────────────────────────────────────────────
     const onRead = ({ convId, readBy }) => {
-      if (activeConvRef.current === convId) {
-        setMessages(prev => prev.map(m =>
-          m.readBy && !m.readBy.includes(readBy)
-            ? { ...m, readBy: [...m.readBy, readBy] }
-            : m
-        ))
-      }
+      if (activeConvRef.current !== convId) return
+      setMessages(prev => prev.map(m =>
+        m.readBy && !m.readBy.includes(readBy)
+          ? { ...m, readBy: [...m.readBy, readBy] }
+          : m
+      ))
     }
 
     on('msg:new',          onNewMsg)
@@ -354,7 +368,10 @@ export default function MessagesPage() {
       off('typing:stop',      onTypingStop)
       off('msg:read',         onRead)
     }
-  }, [on, off, emit, currentUser?.id, convs, loadConvs])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, off, emit, currentUser?.id])
+  // ^ Only stable values here. `convs` and `loadConvs` are intentionally EXCLUDED.
+  //   They would re-run this effect on every message, creating duplicate listeners.
 
   // ── Scroll to bottom on new messages ───────────────────────────────────────
   useEffect(() => {
@@ -433,18 +450,22 @@ export default function MessagesPage() {
     inputRef.current?.focus()
 
     setSending(true)
-    emit('msg:send', { convId: activeConvId, text }, (ack) => {
+    // Capture the conv ID now so the ack closure doesn't stale
+    const sentToConvId = activeConvId
+    emit('msg:send', { convId: sentToConvId, text }, (ack) => {
       setSending(false)
       if (ack?.ok) {
-        // Replace temp message with confirmed one
+        // Replace the temp bubble with the server-confirmed message.
+        // The `msg:new` socket echo from the server will be deduplicated
+        // by the id-check in onNewMsg, so no duplicate will appear.
         setMessages(prev => prev.map(m => m.id === tempId ? ack.message : m))
         setConvs(prev => prev.map(c =>
-          c.id === activeConvId
+          c.id === sentToConvId
             ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: currentUser?.id }
             : c
         ))
       } else {
-        // Remove on failure
+        // Remove optimistic bubble on failure
         setMessages(prev => prev.filter(m => m.id !== tempId))
       }
     })
