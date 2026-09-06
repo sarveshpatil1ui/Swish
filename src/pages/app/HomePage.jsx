@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import PostCard from '../../components/app/PostCard'
 import Stories from '../../components/app/Stories'
 import RightPanel from '../../components/app/RightPanel'
 import CreatePostModal from '../../components/app/CreatePostModal'
-import { Bell, PenSquare, Zap, Search, X } from 'lucide-react'
+import { PenSquare, Search, X } from 'lucide-react'
+
 
 // ── Empty feed ────────────────────────────────────────────────────────────────
 function EmptyFeed({ onCreatePost }) {
@@ -84,42 +85,12 @@ export default function HomePage() {
 
   const noResults = hasSearch && filteredPosts.length === 0
 
+
   return (
     <>
-      {/* ── Mobile top bar ─────────────────────────────────────────────── */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-slate-100 dark:border-gray-800">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center group-hover:bg-indigo-700 transition-colors">
-            <Zap size={14} className="text-white fill-white" />
-          </div>
-          <span
-            className="font-extrabold text-lg text-slate-900 dark:text-white"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            Swish
-          </span>
-        </Link>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowCreate(true)}
-            className="p-2 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all"
-            aria-label="Create post"
-          >
-            <PenSquare size={19} />
-          </button>
-          <Link
-            to="/notifications"
-            className="relative p-2 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all"
-            aria-label="Notifications"
-          >
-            <Bell size={19} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-gray-950" />
-          </Link>
-        </div>
-      </div>
-
       {/* ── Main layout ────────────────────────────────────────────────── */}
       <div className="flex gap-6 px-4 pt-5 pb-8 max-w-5xl mx-auto xl:max-w-none xl:mx-0">
+
 
         {/* Feed column */}
         <div className="flex-1 min-w-0 space-y-4 max-w-[560px] mx-auto xl:mx-0">

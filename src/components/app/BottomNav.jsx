@@ -1,96 +1,80 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Compass, PlusCircle, Bell, Settings, Shield, GraduationCap, MessageSquare } from 'lucide-react'
+import { Home, Compass, PlusSquare, User } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
 import { useSwish } from '../../context/SwishContext'
 
-const notifications = []
-
 export default function BottomNav() {
   const [showCreate, setShowCreate] = useState(false)
   const { currentUser } = useSwish()
-  const unreadCount = notifications.filter(n => !n.read).length
 
   const tabs = [
-    { to: '/home',          icon: Home,           label: 'Home' },
-    { to: '/explore',       icon: Compass,        label: 'Explore' },
+    { to: '/home',                                    icon: Home,    label: 'Home'    },
+    { to: '/explore',                                 icon: Compass, label: 'Explore' },
     { create: true },
-    { to: '/messages',      icon: MessageSquare,  label: 'Messages' },
-    ...(currentUser?.role === 'faculty'
-      ? [{ to: '/faculty', icon: GraduationCap, label: 'Faculty' }]
-      : currentUser?.role === 'admin'
-      ? [{ to: '/admin',   icon: Shield,         label: 'Admin' }]
-      : [{ to: '/notifications', icon: Bell,     label: 'Alerts', badge: true }]),
+    { to: `/profile/${currentUser?.id || 'user-1'}`, icon: User,    label: 'Profile' },
   ]
 
   return (
     <>
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm border-t border-slate-200 dark:border-gray-800 transition-colors duration-300 safe-area-pb"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-black border-t border-slate-100 dark:border-gray-900 transition-colors duration-300"
         aria-label="Mobile navigation"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex items-stretch justify-around h-16 px-1">
-          {tabs.map((tab, i) => {
+        <div className="flex items-center justify-around h-[54px] px-6">
+          {tabs.map((tab) => {
+
+            /* ── Create button ── */
             if (tab.create) {
               return (
-                <div key="create" className="flex items-center justify-center px-2">
-                  <button
-                    onClick={() => setShowCreate(true)}
-                    className="flex items-center justify-center w-11 h-11 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl transition-all shadow-sm active:scale-95"
-                    aria-label="Create post"
-                  >
-                    <PlusCircle size={22} className="text-white" />
-                  </button>
-                </div>
+                <button
+                  key="create"
+                  onClick={() => setShowCreate(true)}
+                  aria-label="Create post"
+                  className="flex items-center justify-center w-11 h-11 rounded-[12px] bg-indigo-600 active:scale-90 transition-transform duration-150 shadow-lg shadow-indigo-500/25"
+                >
+                  <PlusSquare size={21} className="text-white" strokeWidth={2} />
+                </button>
               )
             }
 
+            /* ── Regular tab ── */
             const Icon = tab.icon
             return (
               <NavLink
                 key={tab.to}
                 to={tab.to}
-                className={({ isActive }) =>
-                  `relative flex flex-col items-center justify-center flex-1 gap-0.5 transition-all ${
-                    isActive
-                      ? 'text-indigo-600 dark:text-indigo-400'
-                      : 'text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300'
-                  }`
-                }
                 aria-label={tab.label}
+                className="relative flex items-center justify-center w-12 h-12 rounded-xl active:scale-90 transition-transform duration-150"
               >
                 {({ isActive }) => (
                   <>
+                    {/* Animated active background */}
                     <AnimatePresence>
                       {isActive && (
                         <motion.span
-                          layoutId="bottom-nav-bar"
-                          className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2.5px] bg-indigo-600 dark:bg-indigo-400 rounded-full"
-                          initial={{ scaleX: 0 }}
-                          animate={{ scaleX: 1 }}
-                          exit={{ scaleX: 0 }}
-                          transition={{ duration: 0.2, ease: 'easeOut' }}
+                          key="bg"
+                          layoutId="tab-bg"
+                          className="absolute inset-0 rounded-xl bg-indigo-50 dark:bg-indigo-500/10"
+                          initial={{ opacity: 0, scale: 0.75 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.75 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                         />
                       )}
                     </AnimatePresence>
 
                     <Icon
-                      size={22}
-                      className={`transition-transform ${isActive ? 'stroke-[2.5] scale-110' : 'stroke-2'}`}
-                    />
-
-                    <span
-                      className={`text-[10px] font-semibold leading-none transition-all ${
-                        isActive ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'
+                      size={24}
+                      strokeWidth={isActive ? 2.5 : 1.75}
+                      className={`relative z-10 transition-all duration-150 ${
+                        isActive
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                          : 'text-gray-400 dark:text-gray-500'
                       }`}
-                    >
-                      {tab.label}
-                    </span>
-
-                    {tab.badge && unreadCount > 0 && (
-                      <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
-                    )}
+                    />
                   </>
                 )}
               </NavLink>

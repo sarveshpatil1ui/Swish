@@ -18,6 +18,73 @@ function handleValidationErrors(req, res) {
   }
   return null
 }
+
+// ── GET /api/users/search?q= — search users (any authenticated user) ──────────
+router.get('/search', requireAuth, async (req, res) => {
+  try {
+    const q = req.query.q?.trim()
+    if (!q) return res.json({ ok: true, users: [] })
+
+    const regex = new RegExp(q, 'i')
+    const users = await User.find({
+      _id:         { $ne: req.user._id },
+      deactivated: false,
+      $or: [{ name: regex }, { username: regex }, { dept: regex }],
+    })
+      .limit(20)
+      .select('name username initials avatarColor profilePhoto dept year role followers')
+      .lean()
+
+    // Check follow status for each result
+    const ids = users.map(u => u._id)
+    const followDocs = await Follow.find({ follower: req.user._id, following: { $in: ids } })
+    const followingSet = new Set(followDocs.map(f => f.following.toString()))
+
+    res.json({
+      ok: true,
+      users: users.map(u => ({
+        ...u,
+        id: u._id.toString(),
+        isFollowing: followingSet.has(u._id.toString()),
+        isSelf: u._id.toString() === req.user.id,
+      })),
+    })
+  } catch (err) {
+    console.error('[GET /api/users/search]', err)
+    res.status(500).json({ ok: false, error: 'Search failed.' })
+  }
+})
+
+// ── GET /api/users/all — list all users for Explore page ─────────────────────
+router.get('/all', requireAuth, async (req, res) => {
+  try {
+    const users = await User.find({
+      _id:         { $ne: req.user._id },
+      deactivated: false,
+    })
+      .sort({ followers: -1, createdAt: -1 })
+      .select('name username initials avatarColor profilePhoto dept year role followers')
+      .lean()
+
+    const ids = users.map(u => u._id)
+    const followDocs = await Follow.find({ follower: req.user._id, following: { $in: ids } })
+    const followingSet = new Set(followDocs.map(f => f.following.toString()))
+
+    res.json({
+      ok: true,
+      users: users.map(u => ({
+        ...u,
+        id: u._id.toString(),
+        isFollowing: followingSet.has(u._id.toString()),
+        isSelf: u._id.toString() === req.user.id,
+      })),
+    })
+  } catch (err) {
+    console.error('[GET /api/users/all]', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch users.' })
+  }
+})
+
 router.get('/:userId', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
