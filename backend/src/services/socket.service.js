@@ -18,9 +18,16 @@ export function initSocket(app) {
 
   _io = new Server(httpServer, {
     cors: {
-      origin:      process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true)
+        if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true)
+        if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true)
+        const allowed = (process.env.CLIENT_ORIGIN || '').split(',').map(s => s.trim())
+        if (allowed.includes(origin)) return cb(null, true)
+        cb(new Error('Socket CORS: origin not allowed'))
+      },
       credentials: true,
-      methods:     ['GET', 'POST'],
+      methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
   })
@@ -62,9 +69,7 @@ export function initSocket(app) {
     // ── Join a conversation room ──────────────────────────────────────────────
     socket.on('conv:join', async (convId) => {
       try {
-        const conv = await Conversation.findOne({
-          _id: convId, participants: userId,
-        })
+        const conv = await Conversation.findOne({ _id: convId, participants: userId })
         if (!conv) return
         socket.join(`conv:${convId}`)
       } catch (err) {
@@ -81,31 +86,29 @@ export function initSocket(app) {
       try {
         if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
-        const conv = await Conversation.findOne({
-          _id: convId, participants: userId,
-        })
+        const conv = await Conversation.findOne({ _id: convId, participants: userId })
         if (!conv) return ack?.({ ok: false, error: 'Conversation not found.' })
 
         const msg = {
-          sender:  socket.user._id,
-          text:    text.trim(),
-          readBy:  [socket.user._id],
+          sender: socket.user._id,
+          text:   text.trim(),
+          readBy: [socket.user._id],
         }
         conv.messages.push(msg)
-        conv.lastMessage    = text.trim().slice(0, 100)
-        conv.lastMessageAt  = new Date()
-        conv.lastSender     = socket.user._id
+        conv.lastMessage   = text.trim().slice(0, 100)
+        conv.lastMessageAt = new Date()
+        conv.lastSender    = socket.user._id
         await conv.save()
 
         const saved = conv.messages[conv.messages.length - 1]
         const payload = {
-          id:        saved._id.toString(),
+          id:         saved._id.toString(),
           convId,
-          senderId:  userId,
+          senderId:   userId,
           senderName: socket.user.name,
-          text:      saved.text,
-          createdAt: saved.createdAt,
-          readBy:    saved.readBy.map(r => r.toString()),
+          text:       saved.text,
+          createdAt:  saved.createdAt,
+          readBy:     saved.readBy.map(r => r.toString()),
         }
 
         // Emit to everyone in the conversation room (including sender's tab)
@@ -139,14 +142,10 @@ export function initSocket(app) {
       }
     })
 
-    // ── Typing indicator ─────────────────────────────────────────────────────────────
-    // Strategy: emit to conv room AND directly to online participants
-    // so the event reaches them even if they haven't opened the chat.
+    // ── Typing indicator ──────────────────────────────────────────────────────
     socket.on('typing:start', async ({ convId }) => {
       const payload = { convId, userId, name: socket.user.name }
-      // Send to everyone else in the room
       socket.to(`conv:${convId}`).emit('typing:start', payload)
-      // Also send directly to participants who are online but not in the room
       try {
         const conv = await Conversation.findById(convId).select('participants').lean()
         if (!conv) return
@@ -191,9 +190,7 @@ export function initSocket(app) {
     // ── Mark messages as read ─────────────────────────────────────────────────
     socket.on('msg:read', async ({ convId }) => {
       try {
-        const conv = await Conversation.findOne({
-          _id: convId, participants: userId,
-        })
+        const conv = await Conversation.findOne({ _id: convId, participants: userId })
         if (!conv) return
 
         let modified = false
@@ -205,7 +202,6 @@ export function initSocket(app) {
         }
         if (modified) {
           await conv.save()
-          // Tell the sender their messages were read
           socket.to(`conv:${convId}`).emit('msg:read', { convId, readBy: userId })
         }
       } catch (err) {
