@@ -22,6 +22,7 @@ import {
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
   apiFetchFollowers, apiFetchFollowing,
+  apiGetColleges, apiAddCollege, apiToggleCollege,
   loadColleges, saveColleges,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
@@ -43,16 +44,28 @@ export const DEFAULT_PREFERENCES = {
   privacy: {
     private: false,
     showEmail: false,
-    activity: true,
-    tagged: true,
+    showYear: true,
+    showDept: true,
+    allowDMs: true,
+    profileDiscoverable: true,
   },
   security: {
+    loginAlerts: true,
+    sessionTimeout: '30d',
     twoFactor: false,
   },
 }
 
-// ── Seed colleges (demo data — will be replaced by Admin College API later) ───
+// ── Seed colleges (fallback data — synchronized with MongoDB) ─────────────────
 const SEED_COLLEGES = [
+  {
+    id: 'col-sigce',
+    name: 'Smt. Indira Gandhi College of Engineering',
+    code: 'SIGCE',
+    domain: 'sigce.edu.in',
+    location: 'Navi Mumbai, Maharashtra',
+    active: true,
+  },
   {
     id: 'col-1',
     name: 'KJSCE Mumbai',
@@ -98,11 +111,24 @@ export function SwishProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading]       = useState(true) // true until /me check done
 
-  // ── Colleges (still localStorage — pending Admin College API) ───────────────
+  // ── Colleges ───────────────────────────────────────────────────────────────
   const [colleges, setColleges] = useState(() => {
     const saved = loadColleges()
     return saved ?? SEED_COLLEGES
   })
+
+  useEffect(() => {
+    apiGetColleges()
+      .then(res => {
+        if (res?.ok && Array.isArray(res.colleges) && res.colleges.length > 0) {
+          setColleges(res.colleges)
+          saveColleges(res.colleges)
+        }
+      })
+      .catch(err => {
+        console.warn('[SwishProvider] Colleges API unreachable, using local fallback:', err)
+      })
+  }, [])
 
   // ── Posts (FR-05 Likes, FR-06 Comments — now backed by the real API) ────────
   const [posts, setPosts]           = useState([])
@@ -397,24 +423,43 @@ export function SwishProvider({ children }) {
     await logout()
   }
 
-  // ── College management (still in-memory — pending Admin College API) ───────
-  const addCollege = ({ name, code, domain, location }) => {
+  // ── College management ───────────────────────────────────────────────────
+  const addCollege = async ({ name, code, domain, location }) => {
+    try {
+      const res = await apiAddCollege({ name, code, domain, location })
+      if (res?.ok && res.college) {
+        setColleges(prev => {
+          const updated = [...prev.filter(c => c.domain !== res.college.domain), res.college]
+          saveColleges(updated)
+          return updated
+        })
+        return res.college
+      }
+    } catch (e) {
+      console.warn('[addCollege API failed, saving locally]', e)
+    }
     const newCollege = {
       id: `col-${Date.now()}`,
       name:     name.trim(),
       code:     code.trim().toUpperCase(),
       domain:   domain.trim().toLowerCase(),
-      location: location.trim(),
+      location: (location || '').trim(),
       active:   true,
     }
     const updated = [...colleges, newCollege]
     setColleges(updated)
     saveColleges(updated)
+    return newCollege
   }
 
-  const toggleCollege = (id) => {
+  const toggleCollege = async (id) => {
+    try {
+      await apiToggleCollege(id)
+    } catch (e) {
+      console.warn('[toggleCollege API failed]', e)
+    }
     const updated = colleges.map(c =>
-      c.id === id ? { ...c, active: !c.active } : c
+      (c.id === id || c._id === id) ? { ...c, active: !c.active } : c
     )
     setColleges(updated)
     saveColleges(updated)

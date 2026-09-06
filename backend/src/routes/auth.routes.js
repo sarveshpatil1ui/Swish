@@ -115,7 +115,11 @@ router.post(
           existing.otpExpiresAt = otpExpiresAt()
           existing.otpAttempts  = 0
           await existing.save()
-          await sendOtpEmail(normalizedEmail, existing.name, otp)
+          try {
+            await sendOtpEmail(normalizedEmail, existing.name, otp)
+          } catch (mErr) {
+            console.error('[sendOtpEmail failed]', mErr.message)
+          }
           return res.status(200).json({
             ok: true,
             pendingVerification: true,
@@ -132,6 +136,7 @@ router.post(
       // ── Domain verification — check MongoDB for active college ────────────────
       const emailDomain = normalizedEmail.split('@')[1]
       const isAdminEmail = normalizedEmail === 'admin@swish.com'
+      let collegeName = ''
       if (!isAdminEmail) {
         const college = await College.findOne({ domain: emailDomain, active: true })
         if (!college) {
@@ -140,6 +145,9 @@ router.post(
             error: 'This email domain is not registered with Swish. Contact your campus admin.',
           })
         }
+        collegeName = college.name || ''
+      } else {
+        collegeName = 'Swish Admin'
       }
 
       // ── Build username (name → lowercase dot-separated) ─────────────────────
@@ -165,6 +173,7 @@ router.post(
         passwordHash,
         role,
         dept,
+        college:      collegeName,
         isEmailVerified: false,
         otpHash,
         otpExpiresAt:    otpExpiresAt(),
@@ -179,7 +188,11 @@ router.post(
         }),
       })
 
-      await sendOtpEmail(normalizedEmail, user.name, otp)
+      try {
+        await sendOtpEmail(normalizedEmail, user.name, otp)
+      } catch (mErr) {
+        console.error('[sendOtpEmail failed]', mErr.message)
+      }
 
       return res.status(201).json({
         ok: true,
@@ -297,7 +310,11 @@ router.post(
       user.otpAttempts  = 0
       await user.save()
 
-      await sendOtpEmail(normalizedEmail, user.name, otp)
+      try {
+        await sendOtpEmail(normalizedEmail, user.name, otp)
+      } catch (mErr) {
+        console.error('[sendOtpEmail failed]', mErr.message)
+      }
 
       return res.status(200).json({
         ok: true,

@@ -182,3 +182,20 @@ export async function apiFetchFollowers(userId) {
 export async function apiFetchFollowing(userId) {
   return apiFetch(`/api/users/${userId}/following`)
 }
+
+// ── Colleges API ──────────────────────────────────────────────────────────────
+export async function apiGetColleges() {
+  return apiFetch('/api/colleges')
+}
+
+export async function apiAddCollege(data) {
+  return apiFetch('/api/colleges', { method: 'POST', body: data })
+}
+
+export async function apiToggleCollege(id) {
+  return apiFetch(`/api/colleges/${id}/toggle`, { method: 'PATCH' })
+}
+
+export async function apiCheckDomain(domain) {
+  return apiFetch(`/api/colleges/check-domain?domain=${encodeURIComponent(domain)}`)
+}
