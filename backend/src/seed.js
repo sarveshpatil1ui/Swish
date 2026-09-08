@@ -7,6 +7,7 @@ import User from './models/User.js'
 import Post from './models/Post.js'
 import Comment from './models/Comment.js'
 import Follow from './models/Follow.js'
+import College from './models/College.js'
 
 const BCRYPT_ROUNDS = 12
 
@@ -73,6 +74,21 @@ const DEMO_ACCOUNTS = [
     isEmailVerified: true,
     isDemo:       true,
   },
+  {
+    name:         'Demo College Admin',
+    username:     'demo.collegeadmin',
+    initials:     'DA',
+    avatarColor:  '#f59e0b',
+    email:        'collegeadmin@campus.edu',
+    password:     'college123',
+    role:         'college_admin',
+    college:      'KJSCE Mumbai',
+    dept:         'Administration',
+    designation:  'College Administrator',
+    bio:          'Managing college operations and student services',
+    isEmailVerified: true,
+    isDemo:       true,
+  },
   // ── New test profiles ──────────────────────────────────────────────────────
   {
     name:         'Priya Desai',
@@ -128,6 +144,27 @@ async function seed() {
   await connectDB()
   console.log('\n🌱  Starting seed...\n')
 
+  // ── 0. Ensure demo college exists and get its ID ─────────────────────────────
+  const demoCollege = await College.findOneAndUpdate(
+    { domain: 'campus.edu' },
+    { 
+      $set: { 
+        name: 'KJSCE Mumbai',
+        code: 'KJSCE',
+        domain: 'campus.edu',
+        location: 'Mumbai, Maharashtra',
+        active: true,
+        website: 'https://kjsce.somaiya.edu',
+        address: 'Vidyavihar, Mumbai - 400077',
+        phone: '+91-22-24061234',
+        email: 'info@kjsce.edu',
+        description: 'K. J. Somaiya College of Engineering - A premier engineering institution in Mumbai'
+      }
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  )
+  console.log(`  ✅  Demo college: ${demoCollege.name} (id: ${demoCollege._id})`)
+
   // ── 1. Upsert demo users ────────────────────────────────────────────────────
   const userMap = {}   // email → User document
 
@@ -135,9 +172,15 @@ async function seed() {
     const { password, ...rest } = account
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
+    // Add collegeId for college_admin role
+    const userData = { ...rest, passwordHash }
+    if (rest.role === 'college_admin') {
+      userData.collegeId = demoCollege._id
+    }
+
     const result = await User.findOneAndUpdate(
       { email: rest.email },
-      { $set: { ...rest, passwordHash } },
+      { $set: userData },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
 
@@ -326,14 +369,15 @@ async function seed() {
 
   console.log('\n✅  Seed complete.\n')
   console.log('──────────────────────────────────────────────')
-  console.log('  Test accounts (all passwords are "swish123"):')
-  console.log('    • rahul@campus.edu   (password: swish123)')
-  console.log('    • priya@campus.edu   (password: swish123)')
-  console.log('    • arjun@campus.edu   (password: swish123)')
-  console.log('    • sneha@campus.edu   (password: swish123)')
-  console.log('    • student@campus.edu (password: student123)')
-  console.log('    • faculty@campus.edu (password: faculty123)')
-  console.log('    • admin@swish.com    (password: admin123)')
+  console.log('  Test accounts:')
+  console.log('    • rahul@campus.edu          (password: swish123)')
+  console.log('    • priya@campus.edu          (password: swish123)')
+  console.log('    • arjun@campus.edu          (password: swish123)')
+  console.log('    • sneha@campus.edu          (password: swish123)')
+  console.log('    • student@campus.edu        (password: student123)')
+  console.log('    • faculty@campus.edu        (password: faculty123)')
+  console.log('    • admin@swish.com           (password: admin123)')
+  console.log('    • collegeadmin@campus.edu  (password: college123)')
   console.log('──────────────────────────────────────────────\n')
 
   await mongoose.disconnect()
