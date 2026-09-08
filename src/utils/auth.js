@@ -50,11 +50,12 @@ export async function apiLogout() {
 
 /**
  * Returns the correct post-login path for a given role.
- * @param {'student'|'faculty'|'admin'} role
+ * @param {'student'|'faculty'|'admin'|'college_admin'} role
  * @returns {string}
  */
 export function redirectPathForRole(role) {
   if (role === 'admin')   return '/admin'
+  if (role === 'college_admin') return '/college-admin'
   if (role === 'faculty') return '/faculty'
   return '/home'
 }
@@ -196,6 +197,53 @@ export async function apiToggleCollege(id) {
   return apiFetch(`/api/colleges/${id}/toggle`, { method: 'PATCH' })
 }
 
+export async function apiUpdateCollege(id, data) {
+  return apiFetch(`/api/colleges/${id}`, { method: 'PUT', body: data })
+}
+
 export async function apiCheckDomain(domain) {
   return apiFetch(`/api/colleges/check-domain?domain=${encodeURIComponent(domain)}`)
+}
+
+// ── Change Password ─────────────────────────────────────────────────────────
+export async function apiChangePassword(currentPassword, newPassword) {
+  return apiFetch('/api/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } })
+}
+
+// ── Departments API ─────────────────────────────────────────────────────────
+export async function apiGetDepartments() {
+  return apiFetch('/api/departments')
+}
+
+export async function apiCreateDepartment(data) {
+  return apiFetch('/api/departments', { method: 'POST', body: data })
+}
+
+export async function apiUpdateDepartment(id, data) {
+  return apiFetch(`/api/departments/${id}`, { method: 'PUT', body: data })
+}
+
+export async function apiToggleDepartment(id) {
+  return apiFetch(`/api/departments/${id}/toggle`, { method: 'PATCH' })
+}
+
+// ── Notices API ───────────────────────────────────────────────────────────────
+export async function apiGetNotices() {
+  return apiFetch('/api/notices')
+}
+
+export async function apiCreateNotice(data) {
+  return apiFetch('/api/notices', { method: 'POST', body: data })
+}
+
+export async function apiUpdateNotice(id, data) {
+  return apiFetch(`/api/notices/${id}`, { method: 'PUT', body: data })
+}
+
+export async function apiDeleteNotice(id) {
+  return apiFetch(`/api/notices/${id}`, { method: 'DELETE' })
+}
+
+export async function apiPublishNotice(id) {
+  return apiFetch(`/api/notices/${id}/publish`, { method: 'PATCH' })
 }

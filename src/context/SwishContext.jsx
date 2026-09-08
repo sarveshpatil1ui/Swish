@@ -110,6 +110,7 @@ export function SwishProvider({ children }) {
   const [currentUser, setCurrentUser]       = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading]       = useState(true) // true until /me check done
+  const [mustChangePassword, setMustChangePassword] = useState(false)
 
   // ── Colleges ───────────────────────────────────────────────────────────────
   const [colleges, setColleges] = useState(() => {
@@ -160,6 +161,10 @@ export function SwishProvider({ children }) {
           }
           setCurrentUser(userWithPrefs)
           setIsAuthenticated(true)
+          // Check if user must change password (for college_admin)
+          if (result.user.role === 'college_admin' && result.user.mustChangePassword) {
+            setMustChangePassword(true)
+          }
         }
       })
       .catch(() => {
@@ -507,6 +512,8 @@ export function SwishProvider({ children }) {
         currentUser,
         isAuthenticated,
         authLoading,
+        mustChangePassword,
+        setMustChangePassword,
         login,
         register,
         logout,

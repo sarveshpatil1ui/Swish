@@ -150,4 +150,57 @@ router.patch(
   }
 )
 
+// ── PUT /api/colleges/:id ─────────────────────────────────────────────────────
+// Admin or college_admin — update college information
+// College admin can only update their own college
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole('admin', 'college_admin'),
+  [
+    body('name').optional().trim(),
+    body('code').optional().trim(),
+    body('location').optional().trim(),
+    body('website').optional().trim(),
+    body('address').optional().trim(),
+    body('phone').optional().trim(),
+    body('email').optional().trim().isEmail().withMessage('Invalid email.'),
+    body('description').optional().trim(),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res)
+    if (validationError) return
+
+    try {
+      const college = await College.findById(req.params.id)
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'College not found.' })
+      }
+
+      // College admin can only update their own college
+      if (req.user.role === 'college_admin' && req.user.collegeId?.toString() !== college._id.toString()) {
+        return res.status(403).json({ ok: false, error: 'You can only update your own college.' })
+      }
+
+      const { name, code, location, website, address, phone, email, description } = req.body
+
+      if (name) college.name = name.trim()
+      if (code) college.code = code.trim().toUpperCase()
+      if (location !== undefined) college.location = location.trim()
+      if (website !== undefined) college.website = website.trim()
+      if (address !== undefined) college.address = address.trim()
+      if (phone !== undefined) college.phone = phone.trim()
+      if (email !== undefined) college.email = email.trim().toLowerCase()
+      if (description !== undefined) college.description = description.trim()
+
+      await college.save()
+
+      return res.status(200).json({ ok: true, college: college.toJSON() })
+    } catch (err) {
+      console.error('[PUT /colleges/:id]', err)
+      res.status(500).json({ ok: false, error: 'Failed to update college.' })
+    }
+  }
+)
+
 export default router

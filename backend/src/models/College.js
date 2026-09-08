@@ -16,6 +16,13 @@ const CollegeSchema = new Schema(
     domain:   { type: String, required: true, unique: true, trim: true, lowercase: true },
     location: { type: String, default: '', trim: true },
     active:   { type: Boolean, default: true },
+    // Additional fields for College Admin module
+    logo:     { type: String, default: null },
+    website:  { type: String, default: '', trim: true },
+    address:  { type: String, default: '', trim: true },
+    phone:    { type: String, default: '', trim: true },
+    email:    { type: String, default: '', trim: true, lowercase: true },
+    description: { type: String, default: '', maxlength: 1000 },
   },
   { timestamps: true }
 )

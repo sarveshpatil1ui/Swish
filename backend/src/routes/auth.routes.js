@@ -60,6 +60,7 @@ function setAuthCookie(res, user) {
 /** Returns the role-specific post-login path. */
 function redirectPathForRole(role) {
   if (role === 'admin')   return '/admin'
+  if (role === 'college_admin') return '/college-admin'
   if (role === 'faculty') return '/faculty'
   return '/home'
 }
@@ -407,5 +408,48 @@ router.post('/logout', (_req, res) => {
   })
   return res.status(200).json({ ok: true, message: 'Logged out successfully.' })
 })
+
+router.post(
+  '/change-password',
+  requireAuth,
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required.'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters.'),
+    body('confirmPassword').custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Passwords do not match.')
+      }
+      return true
+    }),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res)
+    if (validationError) return
+
+    try {
+      const { currentPassword, newPassword } = req.body
+      const user = await User.findById(req.user._id)
+
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'User not found.' })
+      }
+
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash)
+      if (!isPasswordValid) {
+        return res.status(401).json({ ok: false, error: 'Current password is incorrect.' })
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
+      user.passwordHash = passwordHash
+      user.mustChangePassword = false
+      await user.save()
+
+      return res.status(200).json({ ok: true, message: 'Password changed successfully.' })
+    } catch (err) {
+      console.error('[POST /change-password]', err)
+      res.status(500).json({ ok: false, error: 'Failed to change password.' })
+    }
+  }
+)
 
 export default router

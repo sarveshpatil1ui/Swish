@@ -56,14 +56,22 @@ router.get('/search', requireAuth, async (req, res) => {
 })
 
 // ── GET /api/users/all — list all users for Explore page ─────────────────────
+// College admin only sees users from their college
 router.get('/all', requireAuth, async (req, res) => {
   try {
-    const users = await User.find({
+    const filter = {
       _id:         { $ne: req.user._id },
       deactivated: false,
-    })
+    }
+    
+    // College admin can only see users from their college
+    if (req.user.role === 'college_admin' && req.user.collegeId) {
+      filter.collegeId = req.user.collegeId
+    }
+    
+    const users = await User.find(filter)
       .sort({ followers: -1, createdAt: -1 })
-      .select('name username initials avatarColor profilePhoto dept year role followers')
+      .select('name username initials avatarColor profilePhoto dept year role followers college collegeId')
       .lean()
 
     const ids = users.map(u => u._id)

@@ -23,6 +23,17 @@ import SettingsPage from './pages/app/SettingsPage'
 import FacultyPage from './pages/app/FacultyPage'
 import MessagesPage from './pages/app/MessagesPage'
 
+// ── College Admin pages ───────────────────────────────────────────────────────
+import CollegeAdminLayout from './components/college-admin/CollegeAdminLayout'
+import CollegeAdminDashboard from './pages/college-admin/CollegeAdminDashboard'
+import StudentManagement from './pages/college-admin/StudentManagement'
+import FacultyManagement from './pages/college-admin/FacultyManagement'
+import DepartmentManagement from './pages/college-admin/DepartmentManagement'
+import NoticeManagement from './pages/college-admin/NoticeManagement'
+import CollegeProfile from './pages/college-admin/CollegeProfile'
+import AdminProfile from './pages/college-admin/AdminProfile'
+import ChangePassword from './pages/college-admin/ChangePassword'
+
 // Inner wrapper so we can read currentUser from SwishContext
 function SocketBridge({ children }) {
   const { currentUser } = useSwish()
@@ -88,6 +99,34 @@ export default function App() {
                 <Route path="moderation" element={<FacultyPage defaultTab="Moderation" />} />
                 <Route path="posts" element={<FacultyPage defaultTab="Posts" />} />
               </Route>
+
+              {/* ── College Admin (requires college_admin role) ─────────── */}
+              <Route
+                path="/college-admin"
+                element={
+                  <ProtectedRoute allowedRoles={['college_admin']}>
+                    <CollegeAdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<CollegeAdminDashboard />} />
+                <Route path="students" element={<StudentManagement />} />
+                <Route path="faculty" element={<FacultyManagement />} />
+                <Route path="departments" element={<DepartmentManagement />} />
+                <Route path="notices" element={<NoticeManagement />} />
+                <Route path="college-profile" element={<CollegeProfile />} />
+                <Route path="profile" element={<AdminProfile />} />
+              </Route>
+
+              {/* ── Change Password (standalone, for forced password change) */}
+              <Route
+                path="/change-password"
+                element={
+                  <ProtectedRoute allowedRoles={['college_admin']}>
+                    <ChangePassword />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* ── Fallback ────────────────────────────────────────────── */}
               <Route path="*" element={<Navigate to="/" replace />} />

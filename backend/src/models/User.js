@@ -48,14 +48,16 @@ const UserSchema = new Schema(
 
     email:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role:         { type: String, enum: ['student', 'faculty', 'admin'], required: true },
+    role:         { type: String, enum: ['student', 'faculty', 'admin', 'college_admin'], required: true },
 
     isEmailVerified: { type: Boolean, default: false },
     otpHash:         { type: String, default: null },
     otpExpiresAt:    { type: Date,   default: null },
     otpAttempts:     { type: Number, default: 0 },
+    mustChangePassword: { type: Boolean, default: false },
 
     college: { type: String, default: '' },
+    collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', default: null },
     dept:    { type: String, default: '' },
     bio:     { type: String, default: '', maxlength: 500 },
 
