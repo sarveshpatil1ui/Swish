@@ -117,7 +117,7 @@ export default function AdminProfile() {
       )}
 
       {/* Profile Card */}
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-8">
           <div className="flex items-center gap-4">
@@ -160,7 +160,7 @@ export default function AdminProfile() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                     />
                     {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name}</p>}
                   </div>
@@ -170,7 +170,7 @@ export default function AdminProfile() {
                       type="email"
                       value={formData.email}
                       disabled
-                      className="w-full bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed"
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -179,7 +179,7 @@ export default function AdminProfile() {
                       type="text"
                       value={formData.designation}
                       onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                     />
                   </div>
                   <div>
@@ -188,7 +188,7 @@ export default function AdminProfile() {
                       type="text"
                       value={formData.college}
                       disabled
-                      className="w-full bg-slate-100 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-500 dark:text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed"
+                      className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export default function AdminProfile() {
           </div>
 
           {/* Password Section */}
-          <div className="border-t border-slate-200 dark:border-gray-800 pt-6">
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Security</h3>
               {!showPasswordSection && (
@@ -265,7 +265,7 @@ export default function AdminProfile() {
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                   />
                   {errors.currentPassword && <p className="text-rose-500 text-xs mt-1">{errors.currentPassword}</p>}
                 </div>
@@ -275,7 +275,7 @@ export default function AdminProfile() {
                     type="password"
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                   />
                   {errors.newPassword && <p className="text-rose-500 text-xs mt-1">{errors.newPassword}</p>}
                 </div>
@@ -285,7 +285,7 @@ export default function AdminProfile() {
                     type="password"
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                   />
                   {errors.confirmPassword && <p className="text-rose-500 text-xs mt-1">{errors.confirmPassword}</p>}
                 </div>

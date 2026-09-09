@@ -49,7 +49,7 @@ export default function FacultyManagement() {
           f.id === userId ? { ...f, suspended: res.user.suspended } : f
         ))
       } else {
-        alert(res.error || 'Failed to update faculty status')
+        console.error('[FacultyManagement] Failed to update faculty status:', res.error)
       }
     } catch (err) {
       console.error('[FacultyManagement] Error toggling status:', err)
@@ -86,31 +86,32 @@ export default function FacultyManagement() {
 
       {/* Stats */}
       <div className="flex items-center gap-4">
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{faculty.length}</p>
           <p className="text-xs text-slate-500 dark:text-gray-500">Total Faculty</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{faculty.filter(f => !f.suspended).length}</p>
           <p className="text-xs text-slate-500 dark:text-gray-500">Active</p>
         </div>
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-3">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
           <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{faculty.filter(f => f.suspended).length}</p>
           <p className="text-xs text-slate-500 dark:text-gray-500">Suspended</p>
         </div>
       </div>
 
       {/* Faculty Table */}
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
         {filteredFaculty.length === 0 ? (
           <div className="text-center py-12">
             <User size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="text-slate-500 dark:text-gray-500 text-sm">No faculty found</p>
+            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">No faculty members are currently registered for this college.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-gray-800/60 border-b border-slate-200 dark:border-gray-800">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
@@ -119,9 +120,9 @@ export default function FacultyManagement() {
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredFaculty.map((fac) => (
-                  <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-gray-800/30 transition-colors">
+                  <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User } from 'lucide-react'
+import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User, Building2 } from 'lucide-react'
 import { apiGetNotices, apiCreateNotice, apiUpdateNotice, apiDeleteNotice, apiPublishNotice, apiGetDepartments } from '../../utils/auth'
 
 export default function NoticeManagement() {
@@ -75,7 +75,7 @@ export default function NoticeManagement() {
         setShowAddForm(false)
         resetForm()
       } else {
-        alert(res.error || 'Failed to create notice')
+        console.error('[NoticeManagement] Failed to create notice:', res.error)
       }
     } catch (err) {
       console.error('[NoticeManagement] Error creating notice:', err)
@@ -100,7 +100,7 @@ export default function NoticeManagement() {
         setEditingNotice(null)
         resetForm()
       } else {
-        alert(res.error || 'Failed to update notice')
+        console.error('[NoticeManagement] Failed to update notice:', res.error)
       }
     } catch (err) {
       console.error('[NoticeManagement] Error updating notice:', err)
@@ -115,7 +115,7 @@ export default function NoticeManagement() {
       if (res.ok) {
         setNotices(prev => prev.filter(n => n.id !== id))
       } else {
-        alert(res.error || 'Failed to delete notice')
+        console.error('[NoticeManagement] Failed to delete notice:', res.error)
       }
     } catch (err) {
       console.error('[NoticeManagement] Error deleting notice:', err)
@@ -128,7 +128,7 @@ export default function NoticeManagement() {
       if (res.ok) {
         setNotices(prev => prev.map(n => n.id === id ? res.notice : n))
       } else {
-        alert(res.error || 'Failed to toggle publish status')
+        console.error('[NoticeManagement] Failed to toggle publish status:', res.error)
       }
     } catch (err) {
       console.error('[NoticeManagement] Error toggling publish:', err)
@@ -214,7 +214,7 @@ export default function NoticeManagement() {
 
       {/* Add/Edit Form */}
       {(showAddForm || editingNotice) && (
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
             {editingNotice ? 'Edit Notice' : 'Create New Notice'}
           </h2>
@@ -225,7 +225,7 @@ export default function NoticeManagement() {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
               {errors.title && <p className="text-rose-500 text-xs mt-1">{errors.title}</p>}
             </div>
@@ -235,7 +235,7 @@ export default function NoticeManagement() {
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={4}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
               {errors.content && <p className="text-rose-500 text-xs mt-1">{errors.content}</p>}
             </div>
@@ -245,7 +245,7 @@ export default function NoticeManagement() {
                 <select
                   value={formData.targetAudience}
                   onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                 >
                   <option value="all">All</option>
                   <option value="students">Students</option>
@@ -258,7 +258,7 @@ export default function NoticeManagement() {
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -279,7 +279,7 @@ export default function NoticeManagement() {
                     })
                   }}
                   disabled={formData.targetAudience !== 'department'}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 disabled:opacity-50"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 disabled:opacity-50"
                 >
                   <option value="">Select Department</option>
                   {departments.map(dept => (
@@ -318,16 +318,17 @@ export default function NoticeManagement() {
       )}
 
       {/* Notices List */}
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
         {filteredNotices.length === 0 ? (
           <div className="text-center py-12">
             <Megaphone size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="text-slate-500 dark:text-gray-500 text-sm">No notices found</p>
+            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Create a notice to communicate important information to your college.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-gray-800">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredNotices.map((notice) => (
-              <div key={notice.id} className="p-6 hover:bg-slate-50 dark:hover:bg-gray-800/30 transition-colors">
+              <div key={notice.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -336,7 +337,7 @@ export default function NoticeManagement() {
                         {notice.priority}
                       </span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        notice.published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-400'
+                        notice.published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-gray-400'
                       }`}>
                         {notice.published ? 'Published' : 'Draft'}
                       </span>
@@ -359,7 +360,7 @@ export default function NoticeManagement() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handlePublish(notice.id)}
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       title={notice.published ? 'Unpublish' : 'Publish'}
                     >
                       {notice.published ? (
@@ -370,7 +371,7 @@ export default function NoticeManagement() {
                     </button>
                     <button
                       onClick={() => handleEdit(notice)}
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       title="Edit"
                     >
                       <Edit size={16} className="text-slate-600 dark:text-gray-400" />

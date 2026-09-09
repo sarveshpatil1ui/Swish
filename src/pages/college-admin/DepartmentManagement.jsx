@@ -61,7 +61,7 @@ export default function DepartmentManagement() {
         setFormData({ name: '', code: '', description: '', headOfDepartment: '' })
         setErrors({})
       } else {
-        alert(res.error || 'Failed to create department')
+        console.error('[DepartmentManagement] Failed to create department:', res.error)
       }
     } catch (err) {
       console.error('[DepartmentManagement] Error creating department:', err)
@@ -87,7 +87,7 @@ export default function DepartmentManagement() {
         setFormData({ name: '', code: '', description: '', headOfDepartment: '' })
         setErrors({})
       } else {
-        alert(res.error || 'Failed to update department')
+        console.error('[DepartmentManagement] Failed to update department:', res.error)
       }
     } catch (err) {
       console.error('[DepartmentManagement] Error updating department:', err)
@@ -100,7 +100,7 @@ export default function DepartmentManagement() {
       if (res.ok) {
         setDepartments(prev => prev.map(d => d.id === id ? res.department : d))
       } else {
-        alert(res.error || 'Failed to toggle department status')
+        console.error('[DepartmentManagement] Failed to toggle department status:', res.error)
       }
     } catch (err) {
       console.error('[DepartmentManagement] Error toggling department:', err)
@@ -162,7 +162,7 @@ export default function DepartmentManagement() {
 
       {/* Add/Edit Form */}
       {(showAddForm || editingDept) && (
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
             {editingDept ? 'Edit Department' : 'Add New Department'}
           </h2>
@@ -173,7 +173,7 @@ export default function DepartmentManagement() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
               {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name}</p>}
             </div>
@@ -183,7 +183,7 @@ export default function DepartmentManagement() {
                 type="text"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
               {errors.code && <p className="text-rose-500 text-xs mt-1">{errors.code}</p>}
             </div>
@@ -193,7 +193,7 @@ export default function DepartmentManagement() {
                 type="text"
                 value={formData.headOfDepartment}
                 onChange={(e) => setFormData({ ...formData, headOfDepartment: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
             </div>
             <div className="md:col-span-2">
@@ -202,7 +202,7 @@ export default function DepartmentManagement() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
               />
             </div>
             <div className="md:col-span-2 flex gap-3 justify-end">
@@ -225,16 +225,17 @@ export default function DepartmentManagement() {
       )}
 
       {/* Departments List */}
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
         {filteredDepartments.length === 0 ? (
           <div className="text-center py-12">
             <Building2 size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="text-slate-500 dark:text-gray-500 text-sm">No departments found</p>
+            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Create your first department to organize your college community.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-gray-800/60 border-b border-slate-200 dark:border-gray-800">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Code</th>
@@ -243,9 +244,9 @@ export default function DepartmentManagement() {
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredDepartments.map((dept) => (
-                  <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-gray-800/30 transition-colors">
+                  <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
@@ -260,7 +261,7 @@ export default function DepartmentManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-mono text-slate-600 dark:text-gray-400 bg-slate-100 dark:bg-gray-800 px-2 py-1 rounded">
+                      <span className="text-xs font-mono text-slate-600 dark:text-gray-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                         {dept.code}
                       </span>
                     </td>
@@ -279,7 +280,7 @@ export default function DepartmentManagement() {
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                         dept.active
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                          : 'text-slate-600 dark:text-gray-400 bg-slate-50 dark:bg-gray-800'
+                          : 'text-slate-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-800'
                       }`}>
                         {dept.active ? 'Active' : 'Inactive'}
                       </span>
@@ -288,14 +289,14 @@ export default function DepartmentManagement() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(dept)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Edit size={16} className="text-slate-600 dark:text-gray-400" />
                         </button>
                         <button
                           onClick={() => handleToggle(dept.id)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title={dept.active ? 'Deactivate' : 'Activate'}
                         >
                           {dept.active ? (
