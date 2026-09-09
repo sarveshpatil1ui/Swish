@@ -345,50 +345,29 @@ router.post(
 
       // ── Demo user bypass for development/testing ─────────────────────────────
       const DEMO_USERS = {
-        'admin@swish.com': { password: 'admin123', role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' },
-        'student@campus.edu': { password: 'student123', role: 'student', college: 'KJSCE Mumbai', name: 'Demo Student', initials: 'DS', avatarColor: '#6366f1' },
-        'faculty@campus.edu': { password: 'faculty123', role: 'faculty', college: 'KJSCE Mumbai', name: 'Demo Faculty', initials: 'DF', avatarColor: '#10b981' },
-        'collegeadmin@campus.edu': { password: 'college123', role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', designation: 'College Administrator' },
+        'admin@swish.com': { password: 'admin123' },
+        'student@campus.edu': { password: 'student123' },
+        'faculty@campus.edu': { password: 'faculty123' },
+        'collegeadmin@campus.edu': { password: 'college123' },
       }
 
-      const demoUser = DEMO_USERS[normalizedEmail]
-      if (demoUser && password === demoUser.password) {
-        // Create a temporary user object for demo login
-        const tempUser = {
-          _id: new mongoose.Types.ObjectId(),
-          email: normalizedEmail,
-          name: demoUser.name,
-          username: normalizedEmail.split('@')[0],
-          initials: demoUser.initials,
-          avatarColor: demoUser.avatarColor,
-          role: demoUser.role,
-          college: demoUser.college,
-          isEmailVerified: true,
-          isDemo: true,
-          mustChangePassword: false,
-          toJSON() {
-            return {
-              id: this._id.toString(),
-              email: this.email,
-              name: this.name,
-              username: this.username,
-              initials: this.initials,
-              avatarColor: this.avatarColor,
-              role: this.role,
-              college: this.college,
-              isEmailVerified: this.isEmailVerified,
-              isDemo: this.isDemo,
-              mustChangePassword: this.mustChangePassword,
-              ...(demoUser.designation && { designation: demoUser.designation }),
-            }
+      const demoPassword = DEMO_USERS[normalizedEmail]
+      if (demoPassword && password === demoPassword) {
+        // For demo accounts, look up the actual database user created by seed script
+        const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })
+        if (demoDbUser) {
+          // Verify password using stored hash (or bypass for demo accounts)
+          const isPasswordValid = await bcrypt.compare(password, demoDbUser.passwordHash)
+          if (isPasswordValid) {
+            setAuthCookie(res, demoDbUser)
+            return res.status(200).json({
+              ok: true,
+              user: demoDbUser.toJSON(),
+              redirectTo: redirectPathForRole(demoDbUser.role),
+            })
           }
         }
-        setAuthCookie(res, tempUser)
-        return res.status(200).json({
-          ok: true,
-          user: tempUser.toJSON(),
-          redirectTo: redirectPathForRole(demoUser.role),
-        })
+        // If demo user doesn't exist in DB, fall through to normal auth flow
       }
 
       const user = await User.findOne({ email: normalizedEmail })
