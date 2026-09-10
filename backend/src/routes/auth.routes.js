@@ -345,18 +345,18 @@ router.post(
 
       // ── Demo user bypass for development/testing ─────────────────────────────
       const DEMO_USERS = {
-        'admin@swish.com': { password: 'admin123' },
-        'student@campus.edu': { password: 'student123' },
-        'faculty@campus.edu': { password: 'faculty123' },
-        'collegeadmin@campus.edu': { password: 'college123' },
+        'admin@swish.com': { password: 'admin123', role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' },
+        'student@campus.edu': { password: 'student123', role: 'student', college: 'KJSCE Mumbai', name: 'Demo Student', initials: 'DS', avatarColor: '#6366f1' },
+        'faculty@campus.edu': { password: 'faculty123', role: 'faculty', college: 'KJSCE Mumbai', name: 'Demo Faculty', initials: 'DF', avatarColor: '#10b981' },
+        'collegeadmin@campus.edu': { password: 'college123', role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', designation: 'College Administrator' },
       }
 
-      const demoPassword = DEMO_USERS[normalizedEmail]
-      if (demoPassword && password === demoPassword) {
-        // For demo accounts, look up the actual database user created by seed script
+      const demoUser = DEMO_USERS[normalizedEmail]
+      if (demoUser && password === demoUser.password) {
+        // First try to find the database user created by seed script
         const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })
         if (demoDbUser) {
-          // Verify password using stored hash (or bypass for demo accounts)
+          // Verify password using stored hash
           const isPasswordValid = await bcrypt.compare(password, demoDbUser.passwordHash)
           if (isPasswordValid) {
             setAuthCookie(res, demoDbUser)
@@ -367,7 +367,50 @@ router.post(
             })
           }
         }
-        // If demo user doesn't exist in DB, fall through to normal auth flow
+        
+        // If demo user doesn't exist in DB or password hash doesn't match, 
+        // create/upsert the demo user in database (for development/testing)
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+        
+        // Get college for college_admin role
+        let collegeId = null
+        let collegeName = demoUser.college
+        if (demoUser.role === 'college_admin') {
+          const college = await College.findOne({ domain: 'campus.edu' })
+          if (college) {
+            collegeId = college._id
+            collegeName = college.name
+          }
+        }
+
+        const userData = {
+          name: demoUser.name,
+          username: normalizedEmail.split('@')[0],
+          initials: demoUser.initials,
+          avatarColor: demoUser.avatarColor,
+          email: normalizedEmail,
+          passwordHash,
+          role: demoUser.role,
+          college: collegeName,
+          collegeId: collegeId,
+          isEmailVerified: true,
+          isDemo: true,
+          mustChangePassword: false,
+          ...(demoUser.designation && { designation: demoUser.designation }),
+        }
+
+        const result = await User.findOneAndUpdate(
+          { email: normalizedEmail },
+          { $set: userData },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        )
+
+        setAuthCookie(res, result)
+        return res.status(200).json({
+          ok: true,
+          user: result.toJSON(),
+          redirectTo: redirectPathForRole(demoUser.role),
+        })
       }
 
       const user = await User.findOne({ email: normalizedEmail })
