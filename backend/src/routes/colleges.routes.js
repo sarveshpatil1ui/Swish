@@ -44,6 +44,26 @@ router.get('/', async (_req, res) => {
   }
 })
 
+// ── GET /api/colleges/my-college ─────────────────────────────────────────────
+// College admin only — get their own college
+router.get('/my-college', requireAuth, requireRole('college_admin'), async (req, res) => {
+  try {
+    if (!req.user.collegeId) {
+      return res.status(404).json({ ok: false, error: 'College not found for this user.' })
+    }
+
+    const college = await College.findById(req.user.collegeId)
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    return res.status(200).json({ ok: true, college: college.toJSON() })
+  } catch (err) {
+    console.error('[GET /colleges/my-college]', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch college.' })
+  }
+})
+
 // ── GET /api/colleges/check-domain ───────────────────────────────────────────
 // Public — used by signup form to check if a domain is registered & active
 router.get(

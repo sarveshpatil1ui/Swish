@@ -134,6 +134,10 @@ router.put(
       .optional()
       .trim()
       .isLength({ max: 300 }).withMessage('Bio must be 300 characters or fewer.'),
+    body('designation')
+      .optional()
+      .trim()
+      .isLength({ max: 100 }).withMessage('Designation too long.'),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -144,9 +148,10 @@ router.put(
         return res.status(403).json({ ok: false, error: 'You can only edit your own profile.' })
       }
 
-      const { name, bio } = req.body
+      const { name, bio, designation } = req.body
       if (name !== undefined) req.user.name = name
       if (bio !== undefined) req.user.bio = bio
+      if (designation !== undefined) req.user.designation = designation
       await req.user.save()
 
       res.json({ ok: true, user: req.user.toJSON() })
@@ -250,16 +255,60 @@ router.post('/upload-photo', requireAuth, (req, res) => {
   })
 })
 
-router.get('/', requireAuth, requireRole('admin', 'faculty'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
   try {
-    const users = await User.find({}).sort({ createdAt: -1 })
+    const filter = {}
+    
+    // College admin can only see users from their college
+    if (req.user.role === 'college_admin' && req.user.collegeId) {
+      filter.collegeId = req.user.collegeId
+    }
+    
+    const users = await User.find(filter).sort({ createdAt: -1 })
     res.json({ ok: true, users })
   } catch (err) {
     console.error('[GET /api/users] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch users.' })
   }
 })
-router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty'), async (req, res) => {
+
+// ── GET /api/users/stats ─────────────────────────────────────────────────────
+// Get user statistics for college admin dashboard
+router.get('/stats', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const filter = {}
+    
+    // College admin can only see stats from their college
+    if (req.user.role === 'college_admin' && req.user.collegeId) {
+      filter.collegeId = req.user.collegeId
+    }
+    
+    const [totalStudents, totalFaculty, activeStudents, activeFaculty, suspendedStudents, suspendedFaculty] = await Promise.all([
+      User.countDocuments({ ...filter, role: 'student' }),
+      User.countDocuments({ ...filter, role: 'faculty' }),
+      User.countDocuments({ ...filter, role: 'student', suspended: false }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: false }),
+      User.countDocuments({ ...filter, role: 'student', suspended: true }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: true }),
+    ])
+    
+    res.json({
+      ok: true,
+      stats: {
+        totalStudents,
+        totalFaculty,
+        activeStudents,
+        activeFaculty,
+        suspendedStudents,
+        suspendedFaculty,
+      }
+    })
+  } catch (err) {
+    console.error('[GET /api/users/stats] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch user statistics.' })
+  }
+})
+router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
   try {
     const { id } = req.params
 
@@ -270,6 +319,17 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty'), async 
     const targetUser = await User.findById(id)
     if (!targetUser) {
       return res.status(404).json({ ok: false, error: 'User not found.' })
+    }
+
+    // College admin can only manage users from their college
+    if (req.user.role === 'college_admin') {
+      if (!targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'You can only manage users from your college.' })
+      }
+      // College admin cannot manage other college admins
+      if (targetUser.role === 'college_admin') {
+        return res.status(403).json({ ok: false, error: 'College admins cannot manage other college admins.' })
+      }
     }
 
     if (req.user.role === 'faculty' && targetUser.role !== 'student') {

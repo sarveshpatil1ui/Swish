@@ -5,7 +5,7 @@ import {
   TrendingUp, Activity, Calendar, ArrowRight
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiGetUsers, apiGetDepartments, apiGetNotices } from '../../utils/auth'
+import { apiGetUserStats, apiGetDepartments, apiGetNotices } from '../../utils/auth'
 
 function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
   return (
@@ -51,6 +51,10 @@ export default function CollegeAdminDashboard() {
     totalFaculty: 0,
     totalDepartments: 0,
     totalNotices: 0,
+    activeStudents: 0,
+    activeFaculty: 0,
+    suspendedStudents: 0,
+    suspendedFaculty: 0,
   })
   const [recentNotices, setRecentNotices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -61,19 +65,21 @@ export default function CollegeAdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [usersRes, deptsRes, noticesRes] = await Promise.all([
-        apiGetUsers(),
+      const [statsRes, deptsRes, noticesRes] = await Promise.all([
+        apiGetUserStats(),
         apiGetDepartments(),
         apiGetNotices(),
       ])
 
-      if (usersRes.ok) {
-        const students = usersRes.users.filter(u => u.role === 'student').length
-        const faculty = usersRes.users.filter(u => u.role === 'faculty').length
+      if (statsRes.ok) {
         setStats(prev => ({
           ...prev,
-          totalStudents: students,
-          totalFaculty: faculty,
+          totalStudents: statsRes.stats.totalStudents,
+          totalFaculty: statsRes.stats.totalFaculty,
+          activeStudents: statsRes.stats.activeStudents,
+          activeFaculty: statsRes.stats.activeFaculty,
+          suspendedStudents: statsRes.stats.suspendedStudents,
+          suspendedFaculty: statsRes.stats.suspendedFaculty,
         }))
       }
 
@@ -141,6 +147,46 @@ export default function CollegeAdminDashboard() {
           value={stats.totalNotices}
           iconBg="bg-amber-100 dark:bg-amber-950/60"
           iconColor="text-amber-600 dark:text-amber-400"
+        />
+      </div>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Activity}
+          label="Active Students"
+          value={stats.activeStudents || 0}
+          iconBg="bg-emerald-100 dark:bg-emerald-950/60"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          trend="up"
+          trendVal="Active"
+        />
+        <StatCard
+          icon={Activity}
+          label="Active Faculty"
+          value={stats.activeFaculty || 0}
+          iconBg="bg-emerald-100 dark:bg-emerald-950/60"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          trend="up"
+          trendVal="Active"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Suspended Students"
+          value={stats.suspendedStudents || 0}
+          iconBg="bg-rose-100 dark:bg-rose-950/60"
+          iconColor="text-rose-600 dark:text-rose-400"
+          trend="down"
+          trendVal="Suspended"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Suspended Faculty"
+          value={stats.suspendedFaculty || 0}
+          iconBg="bg-rose-100 dark:bg-rose-950/60"
+          iconColor="text-rose-600 dark:text-rose-400"
+          trend="down"
+          trendVal="Suspended"
         />
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Building2, MapPin, Globe, Phone, Mail, Save, Edit2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiGetColleges, apiUpdateCollege } from '../../utils/auth'
+import { apiGetMyCollege, apiUpdateCollege } from '../../utils/auth'
 
 export default function CollegeProfile() {
   const { currentUser } = useSwish()
@@ -27,22 +27,19 @@ export default function CollegeProfile() {
 
   const fetchCollege = async () => {
     try {
-      const res = await apiGetColleges()
+      const res = await apiGetMyCollege()
       if (res.ok) {
-        const userCollege = res.colleges.find(c => c.id === currentUser?.collegeId)
-        if (userCollege) {
-          setCollege(userCollege)
-          setFormData({
-            name: userCollege.name || '',
-            code: userCollege.code || '',
-            location: userCollege.location || '',
-            website: userCollege.website || '',
-            address: userCollege.address || '',
-            phone: userCollege.phone || '',
-            email: userCollege.email || '',
-            description: userCollege.description || ''
-          })
-        }
+        setCollege(res.college)
+        setFormData({
+          name: res.college.name || '',
+          code: res.college.code || '',
+          location: res.college.location || '',
+          website: res.college.website || '',
+          address: res.college.address || '',
+          phone: res.college.phone || '',
+          email: res.college.email || '',
+          description: res.college.description || ''
+        })
       }
     } catch (err) {
       console.error('[CollegeProfile] Error fetching college:', err)
@@ -64,7 +61,7 @@ export default function CollegeProfile() {
 
     setSaving(true)
     try {
-      const res = await apiUpdateCollege(college.id, formData)
+      const res = await apiUpdateCollege(college._id || college.id, formData)
       if (res.ok) {
         setCollege(res.college)
         setEditing(false)

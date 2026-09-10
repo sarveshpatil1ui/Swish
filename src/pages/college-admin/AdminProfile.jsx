@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Mail, Briefcase, Building2, Save, Edit2, Lock, Shield } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiChangePassword } from '../../utils/auth'
+import { apiChangePassword, apiUpdateProfile } from '../../utils/auth'
 
 export default function AdminProfile() {
   const { currentUser } = useSwish()
@@ -45,14 +45,21 @@ export default function AdminProfile() {
 
     setSaving(true)
     try {
-      // Note: This would need a backend API to update user profile
-      // For now, we'll just update the local state
-      setEditing(false)
-      setErrors({})
-      setSuccessMessage('Profile updated successfully')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      const res = await apiUpdateProfile(currentUser.id, { 
+        name: formData.name,
+        designation: formData.designation
+      })
+      if (res.ok) {
+        setEditing(false)
+        setErrors({})
+        setSuccessMessage('Profile updated successfully')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        setErrors({ profile: res.error || 'Failed to update profile' })
+      }
     } catch (err) {
       console.error('[AdminProfile] Error updating profile:', err)
+      setErrors({ profile: 'Failed to update profile' })
     } finally {
       setSaving(false)
     }
@@ -208,6 +215,7 @@ export default function AdminProfile() {
                     <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
+                {errors.profile && <p className="text-rose-500 text-sm">{errors.profile}</p>}
               </form>
             ) : (
               <div className="space-y-4">

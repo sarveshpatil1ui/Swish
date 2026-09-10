@@ -85,6 +85,10 @@ export async function apiGetUsers() {
   return apiFetch('/api/users')
 }
 
+export async function apiGetUserStats() {
+  return apiFetch('/api/users/stats')
+}
+
 export async function apiToggleUserStatus(userId) {
   return apiFetch(`/api/users/${userId}/status`, { method: 'PATCH' })
 }
@@ -187,6 +191,10 @@ export async function apiFetchFollowing(userId) {
 // ── Colleges API ──────────────────────────────────────────────────────────────
 export async function apiGetColleges() {
   return apiFetch('/api/colleges')
+}
+
+export async function apiGetMyCollege() {
+  return apiFetch('/api/colleges/my-college')
 }
 
 export async function apiAddCollege(data) {
