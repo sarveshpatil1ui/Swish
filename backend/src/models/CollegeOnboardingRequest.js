@@ -27,6 +27,7 @@ const CollegeOnboardingRequestSchema = new Schema(
     // Proof Upload (Placeholders for Cloudinary integration)
     proofUrl:      { type: String, default: null },
     proofPublicId: { type: String, default: null },
+    proofResourceType: { type: String, default: null },
 
     approvedAt: {
   type: Date,

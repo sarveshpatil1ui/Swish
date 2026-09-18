@@ -18,6 +18,7 @@ import {
   verifyOtp,
   otpExpiresAt,
 } from '../services/otp.service.js'
+import { createProofUploadSignature } from '../services/cloudinary.service.js'
 
 const router = Router()
 
@@ -175,6 +176,22 @@ router.post(
   }
 )
 
+// ── POST /api/onboarding/proof-upload-signature ────────────────────────────
+router.post('/proof-upload-signature', async (req, res) => {
+  try {
+    const { resourceType } = req.body || {}
+    const rType = resourceType === 'raw' || resourceType === 'application/pdf' ? 'raw' : 'image'
+    const upload = createProofUploadSignature(rType)
+    return res.status(200).json({ ok: true, upload })
+  } catch (err) {
+    console.error('[POST /api/onboarding/proof-upload-signature]', err)
+    return res.status(500).json({
+      ok: false,
+      error: err.message || 'Could not prepare secure proof upload.',
+    })
+  }
+})
+
 // ── POST /api/onboarding/submit ──────────────────────────────────────────────
 router.post(
   '/submit',
@@ -190,6 +207,8 @@ router.post(
     body('campusSize').optional().trim(),
     body('designation').optional().trim(),
     body('phone').optional().trim(),
+    body('proofPublicId').optional().trim(),
+    body('proofResourceType').optional().trim(),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -208,6 +227,8 @@ router.post(
         campusSize,
         designation,
         phone,
+        proofPublicId,
+        proofResourceType,
       } = req.body
 
       const normalizedEmail = officialEmail.trim().toLowerCase()
@@ -311,6 +332,8 @@ router.post(
         designation: designation ? designation.trim() : '',
         phone: phone ? phone.trim() : '',
         officialEmail: normalizedEmail,
+        proofPublicId: proofPublicId || null,
+        proofResourceType: proofResourceType || null,
         status: 'PENDING',
         emailVerified: true,
         verifiedAt: new Date(),

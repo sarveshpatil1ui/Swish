@@ -65,6 +65,23 @@ export function createProofUploadSignature(resourceType) {
 }
 
 /**
+ * Generate a short-lived signed URL for viewing a private/authenticated proof asset.
+ */
+export function getSignedProofUrl(publicId, resourceType = 'image') {
+  if (!isCloudinaryConfigured() || !publicId) return null
+
+  const rType = ['image', 'raw'].includes(resourceType) ? resourceType : 'image'
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600 // 1 hour validity
+
+  return cloudinary.url(publicId, {
+    resource_type: rType,
+    type: 'authenticated',
+    sign_url: true,
+    expires_at: expiresAt,
+  })
+}
+
+/**
  * Verify that a proof asset exists in the expected Cloudinary folder.
  */
 export async function verifyProofAsset(publicId, resourceType) {

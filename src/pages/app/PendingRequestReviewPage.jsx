@@ -28,8 +28,33 @@ export default function PendingRequestReviewPage() {
   const [error, setError] = useState('')
   const [decisionLoading, setDecisionLoading] = useState(false)
 const [decisionError, setDecisionError] = useState('')
-const [showRejectForm, setShowRejectForm] = useState(false)
-const [rejectionReason, setRejectionReason] = useState('')
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [docLoading, setDocLoading] = useState(false)
+
+  async function handleViewDocument() {
+    if (request?.proofUrl) {
+      window.open(request.proofUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    try {
+      setDocLoading(true)
+      const res = await fetch(
+        `http://localhost:3001/api/admin/pending-requests/${id}/proof-url`,
+        { credentials: 'include' }
+      )
+      const data = await res.json()
+      if (!res.ok || !data.ok || !data.proofUrl) {
+        throw new Error(data.error || 'Failed to load document URL.')
+      }
+      window.open(data.proofUrl, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      alert(err.message || 'Unable to open proof document.')
+    } finally {
+      setDocLoading(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -496,21 +521,15 @@ async function handleReject() {
                   </div>
                 </div>
 
-                {request.proofUrl ? (
-                  <a
-                    href={request.proofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 shrink-0"
-                  >
-                    View Document
-                    <ExternalLink size={15} />
-                  </a>
-                ) : (
-                  <span className="text-sm text-slate-400">
-                    Document reference available
-                  </span>
-                )}
+                <button
+                  type="button"
+                  onClick={handleViewDocument}
+                  disabled={docLoading}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 shrink-0"
+                >
+                  {docLoading ? 'Opening...' : 'View Document'}
+                  <ExternalLink size={15} />
+                </button>
               </div>
             ) : (
               <div className="rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">

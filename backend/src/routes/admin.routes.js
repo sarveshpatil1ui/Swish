@@ -8,6 +8,7 @@ import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import {sendCollegeAdminCredentialsEmail,sendCollegeRegistrationRejectedEmail,} from '../services/email.service.js'
+import { getSignedProofUrl } from '../services/cloudinary.service.js'
 const router = express.Router()
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -465,6 +466,11 @@ router.get(
         })
       }
 
+      let proofUrl = request.proofUrl || null
+      if (!proofUrl && request.proofPublicId) {
+        proofUrl = getSignedProofUrl(request.proofPublicId, request.proofResourceType)
+      }
+
       return res.status(200).json({
         ok: true,
         request: {
@@ -486,7 +492,7 @@ router.get(
 
           proofPublicId: request.proofPublicId || null,
           proofResourceType: request.proofResourceType || null,
-          proofUrl: request.proofUrl || null,
+          proofUrl,
 
           status: request.status,
           createdAt: request.createdAt || null,
@@ -502,6 +508,26 @@ router.get(
         ok: false,
         error: 'Unable to load college request.',
       })
+    }
+  }
+)
+
+router.get(
+  '/pending-requests/:id/proof-url',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const request = await CollegeOnboardingRequest.findById(req.params.id).lean()
+      if (!request || !request.proofPublicId) {
+        return res.status(404).json({ ok: false, error: 'Proof document not found.' })
+      }
+
+      const proofUrl = getSignedProofUrl(request.proofPublicId, request.proofResourceType)
+      return res.status(200).json({ ok: true, proofUrl })
+    } catch (err) {
+      console.error('[GET /api/admin/pending-requests/:id/proof-url]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to generate proof document URL.' })
     }
   }
 )
