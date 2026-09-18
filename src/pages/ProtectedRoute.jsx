@@ -7,7 +7,7 @@
 import { Navigate } from 'react-router-dom'
 import { useSwish } from '../context/SwishContext'
 
-export default function ProtectedRoute({ children, dashboardOnly = false, allowedRoles }) {
+export default function ProtectedRoute({ children, dashboardOnly = false, allowedRoles,requirePasswordChange = false }) {
   const { isAuthenticated, currentUser, authLoading } = useSwish()
 
   // While the /api/auth/me call is in-flight, show nothing (prevents flash redirect)
@@ -22,10 +22,29 @@ export default function ProtectedRoute({ children, dashboardOnly = false, allowe
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
+  if (
+  requirePasswordChange &&
+  currentUser?.role === 'college_admin' &&
+  !currentUser?.mustChangePassword
+) {
+  return <Navigate to="/home" replace />
+}
 
-  if (allowedRoles && !allowedRoles.includes(currentUser?.role)) {
-    return <Navigate to={currentUser?.role === 'faculty' ? '/faculty' : '/home'} replace />
+ if (allowedRoles && !allowedRoles.includes(currentUser?.role)) {
+  if (currentUser?.role === 'admin') {
+    return <Navigate to="/admin" replace />
   }
+
+  if (currentUser?.role === 'college_admin') {
+    return <Navigate to="/college-admin" replace />
+  }
+
+  if (currentUser?.role === 'faculty') {
+    return <Navigate to="/faculty" replace />
+  }
+
+  return <Navigate to="/home" replace />
+}
 
   if (dashboardOnly && currentUser?.role !== 'admin') {
     return <Navigate to="/home" replace />

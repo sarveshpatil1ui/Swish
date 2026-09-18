@@ -75,7 +75,6 @@ const UserSchema = new Schema(
 
     deactivated: { type: Boolean, default: false },
     suspended:   { type: Boolean, default: false },
-
     isDemo: { type: Boolean, default: false },
   },
   { timestamps: true }

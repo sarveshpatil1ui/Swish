@@ -60,10 +60,16 @@ function setAuthCookie(res, user) {
 
 /** Returns the role-specific post-login path. */
 function redirectPathForRole(role) {
-  if (role === 'admin')   return '/admin'
+  if (role === 'admin')         return '/admin'
   if (role === 'college_admin') return '/college-admin'
-  if (role === 'faculty') return '/faculty'
+  if (role === 'faculty')       return '/faculty'
   return '/home'
+}
+
+/** Role-based path, but routes first-login college admins to the password reset. */
+function redirectPathForUser(user) {
+  if (user.role === 'college_admin' && user.mustChangePassword) return '/first-login'
+  return redirectPathForRole(user.role)
 }
 
 /** Sends a validation-errors 422 response. */
@@ -270,7 +276,7 @@ router.post(
       return res.status(200).json({
         ok: true,
         user: user.toJSON(),
-        redirectTo: redirectPathForRole(user.role),
+        redirectTo: redirectPathForUser(user),
       })
     } catch (err) {
       console.error('[POST /verify-otp]', err)
@@ -325,6 +331,82 @@ router.post(
     } catch (err) {
       console.error('[POST /resend-otp]', err)
       res.status(500).json({ ok: false, error: 'Failed to resend code. Please try again.' })
+    }
+  }
+)
+router.post(
+  '/change-password',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body
+
+      if (
+        typeof currentPassword !== 'string' ||
+        typeof newPassword !== 'string'
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Current password and new password are required.',
+        })
+      }
+
+      if (!newPassword.trim()) {
+        return res.status(400).json({
+          ok: false,
+          error: 'New password cannot be empty.',
+        })
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({
+          ok: false,
+          error: 'New password must be at least 8 characters long.',
+        })
+      }
+
+      if (currentPassword === newPassword) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            'New password must be different from the current password.',
+        })
+      }
+
+      const user = req.user
+
+      const passwordMatches = await bcrypt.compare(
+        currentPassword,
+        user.passwordHash
+      )
+
+      if (!passwordMatches) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Current password is incorrect.',
+        })
+      }
+
+      user.passwordHash = await bcrypt.hash(
+        newPassword,
+        12
+      )
+
+      user.mustChangePassword = false
+
+      await user.save()
+
+      return res.status(200).json({
+        ok: true,
+        message: 'Password changed successfully.',
+      })
+    } catch (err) {
+      console.error('[POST /api/auth/change-password]', err)
+
+      return res.status(500).json({
+        ok: false,
+        error: 'Unable to change password.',
+      })
     }
   }
 )
@@ -431,6 +513,20 @@ router.post(
         return res.status(403).json({ ok: false, error: 'This account has been suspended. Please contact support.' })
       }
 
+      // Check institution active status for non-admin users
+      if (user.role !== 'admin' && user.email) {
+        const emailDomain = user.email.split('@')[1]
+        if (emailDomain) {
+          const college = await College.findOne({ domain: emailDomain.toLowerCase() })
+          if (college && !college.active) {
+            return res.status(403).json({
+              ok: false,
+              error: 'Your institution access is currently inactive. Please contact support.',
+            })
+          }
+        }
+      }
+
       if (!user.isEmailVerified) {
         const otp    = generateOtp()
         const hashed = await hashOtp(otp)
@@ -453,7 +549,8 @@ router.post(
       return res.status(200).json({
         ok: true,
         user: user.toJSON(),
-        redirectTo: redirectPathForRole(user.role),
+        mustChangePassword: user.mustChangePassword,
+        redirectTo: redirectPathForUser(user),
       })
     } catch (err) {
       console.error('[POST /login]', err)

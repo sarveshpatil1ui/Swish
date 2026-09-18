@@ -8,7 +8,7 @@ import {
   BadgeCheck, XCircle, RefreshCw,
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
-import { apiVerifyOtp, apiResendOtp } from '../utils/auth'
+import { apiVerifyOtp, apiResendOtp,apiCheckCollegeDomain, } from '../utils/auth'
 
 // ── Password strength helpers ─────────────────────────────────────────────────
 const getStrength = (pass) => {
@@ -90,7 +90,7 @@ const blankForm = (role) => ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function JoinPage() {
-  const { register, domainApproved, onVerified } = useSwish()
+  const { register, onVerified } = useSwish()
   const navigate = useNavigate()
 
   // Role toggle
@@ -103,6 +103,8 @@ export default function JoinPage() {
   const [errors,         setErrors]         = useState({})
   const [submitError,    setSubmitError]    = useState('')
   const [loading,        setLoading]        = useState(false)
+  const [domainStatus, setDomainStatus] = useState('idle')
+// idle | checking | approved | denied
 
   // ── OTP verification step ─────────────────────────────────────────────────
   const [otpStep,        setOtpStep]        = useState(false)  // show OTP form?
@@ -133,10 +135,51 @@ export default function JoinPage() {
     form.confirmPassword.length > 0 && form.confirmPassword === form.password
 
   // ── Live domain status ──────────────────────────────────────────────────────
-  const emailHasDomain = form.email.includes('@') && form.email.split('@')[1]?.length > 0
-  const emailApproved  = emailHasDomain && domainApproved(form.email)
-  const emailDenied    = emailHasDomain && !emailApproved
+ const emailHasDomain =
+  form.email.includes('@') &&
+  form.email.split('@')[1]?.length > 0
 
+const emailApproved = domainStatus === 'approved'
+const emailDenied = domainStatus === 'denied'
+const domainChecking = domainStatus === 'checking'
+useEffect(() => {
+  if (!emailHasDomain) {
+    setDomainStatus('idle')
+    return
+  }
+
+  const domain = form.email.trim().toLowerCase().split('@')[1]
+
+  let cancelled = false
+
+  const checkDomain = async () => {
+    setDomainStatus('checking')
+
+    try {
+      const result = await apiCheckCollegeDomain(domain)
+
+      if (!cancelled) {
+        setDomainStatus(
+          result.ok && result.approved === true
+            ? 'approved'
+            : 'denied'
+        )
+      }
+    } catch (err) {
+      console.error('[JoinPage] Domain check failed:', err)
+
+      if (!cancelled) {
+        setDomainStatus('denied')
+      }
+    }
+  }
+
+  checkDomain()
+
+  return () => {
+    cancelled = true
+  }
+}, [form.email, emailHasDomain])
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -145,7 +188,12 @@ export default function JoinPage() {
 
     if (!form.fullName.trim())        errs.fullName  = 'Full name is required'
     if (!form.email.trim())           errs.email     = 'Campus email is required'
-    else if (!emailApproved)          errs.email     = 'This email domain is not registered with Swish.'
+    else if (domainStatus !== 'approved') {
+  errs.email =
+    domainStatus === 'checking'
+      ? 'Please wait while we verify your campus domain.'
+      : 'This email domain is not registered with Swish.'
+}
     if (!form.dept)                   errs.dept      = 'Please select your department'
     if (!form.password)               errs.password  = 'Password is required'
     else if (form.password.length < 8) errs.password = 'Must be at least 8 characters'
@@ -682,16 +730,22 @@ export default function JoinPage() {
               </div>
               {/* Domain feedback */}
               {errors.email ? (
-                <p className="text-rose-500 dark:text-rose-400 text-xs mt-1">{errors.email}</p>
-              ) : emailApproved ? (
-                <p className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 flex items-center gap-1">
-                  <BadgeCheck size={12} /> Campus domain verified
-                </p>
-              ) : emailDenied ? (
-                <p className="text-rose-500 dark:text-rose-400 text-xs mt-1 flex items-center gap-1">
-                  <XCircle size={12} /> This email domain is not registered with Swish.
-                </p>
-              ) : (
+  <p className="text-rose-500 dark:text-rose-400 text-xs mt-1">
+    {errors.email}
+  </p>
+) : emailApproved ? (
+  <p className="text-emerald-600 dark:text-emerald-400 text-xs mt-1 flex items-center gap-1">
+    <BadgeCheck size={12} /> Campus domain verified
+  </p>
+) : domainChecking ? (
+  <p className="text-indigo-500 dark:text-indigo-400 text-xs mt-1 flex items-center gap-1">
+    <RefreshCw size={12} className="animate-spin" /> Checking campus domain…
+  </p>
+) : emailDenied ? (
+  <p className="text-rose-500 dark:text-rose-400 text-xs mt-1 flex items-center gap-1">
+    <XCircle size={12} /> This email domain is not registered with Swish.
+  </p>
+) : (
                 <p className="text-slate-400 dark:text-gray-600 text-xs mt-1.5">
                   Must be a valid campus or institute email address.
                 </p>

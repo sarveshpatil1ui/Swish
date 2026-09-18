@@ -16,7 +16,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 
 import {
-  apiLogin, apiRegister, apiLogout, apiMe,
+  apiLogin, apiRegister, apiLogout, apiMe,apiCheckCollegeDomain,
   apiGetUsers, apiToggleUserStatus,
   apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
@@ -369,13 +369,26 @@ export function SwishProvider({ children }) {
   }
 
   // ── domainApproved ────────────────────────────────────────────────────────
-  // Still uses frontend colleges list — will be replaced by Admin College API.
-  const domainApproved = (email) => {
-    if (!email || !email.includes('@')) return false
-    const domain = email.trim().toLowerCase().split('@')[1]
-    if (email.trim().toLowerCase() === 'admin@swish.com') return true
-    return colleges.some(c => c.active && c.domain === domain)
+const domainApproved = async (email) => {
+  if (!email || !email.includes('@')) return false
+
+  const normalizedEmail = email.trim().toLowerCase()
+
+  // Keep SWISH admin bypass
+  if (normalizedEmail === 'admin@swish.com') {
+    return true
   }
+
+  const domain = normalizedEmail.split('@')[1]
+
+  try {
+    const result = await apiCheckCollegeDomain(domain)
+    return result.ok && result.approved === true
+  } catch (err) {
+    console.error('[domainApproved] Domain check failed:', err)
+    return false
+  }
+}
 
   // ── updateUser ────────────────────────────────────────────────────────────
   // TODO: replace with PATCH /api/users/:id when user-profile API is built

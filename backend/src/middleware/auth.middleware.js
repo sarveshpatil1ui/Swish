@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import College from '../models/College.js'
 
 export async function requireAuth(req, res, next) {
   try {
@@ -27,6 +28,20 @@ export async function requireAuth(req, res, next) {
     }
     if (user.suspended) {
       return res.status(403).json({ ok: false, error: 'This account has been suspended.' })
+    }
+
+    // Check institution active status for non-admin users
+    if (user.role !== 'admin' && user.email) {
+      const emailDomain = user.email.split('@')[1]
+      if (emailDomain) {
+        const college = await College.findOne({ domain: emailDomain.toLowerCase() })
+        if (college && !college.active) {
+          return res.status(403).json({
+            ok: false,
+            error: 'Your institution access is currently inactive. Please contact support.',
+          })
+        }
+      }
     }
 
     req.user = user

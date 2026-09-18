@@ -12,6 +12,7 @@ import { Router } from 'express'
 import { body, query, validationResult } from 'express-validator'
 
 import College from '../models/College.js'
+import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { requireRole } from '../middleware/auth.middleware.js'
 
@@ -142,6 +143,66 @@ router.post(
     } catch (err) {
       console.error('[POST /colleges]', err)
       res.status(500).json({ ok: false, error: 'Failed to add college.' })
+    }
+  }
+)
+
+// ── GET /api/colleges/check-conflict ────────────────────────────────────────
+// Public — used by onboarding UI to detect live conflicts for name, code, and domain.
+// Returns { ok:true, conflicts:{ name:boolean, code:boolean, domain:boolean } }
+router.get(
+  '/check-conflict',
+  [
+    query('name').optional().trim(),
+    query('code').optional().trim(),
+    query('domain').optional().trim(),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res)
+    if (validationError) return
+
+    const nameQuery = req.query.name?.trim()
+    const codeQuery = req.query.code?.trim().toUpperCase()
+    const domainQuery = req.query.domain?.trim().toLowerCase()
+
+    const conflicts = { name: false, code: false, domain: false }
+    try {
+      // Existing College collection checks
+      if (nameQuery) {
+        const existingByName = await College.findOne({ name: new RegExp(`^${nameQuery}$`, 'i') })
+        if (existingByName) conflicts.name = true
+      }
+      if (codeQuery) {
+        const existingByCode = await College.findOne({ code: codeQuery })
+        if (existingByCode) conflicts.code = true
+      }
+      if (domainQuery) {
+        const existingByDomain = await College.findOne({ domain: domainQuery, active: true })
+        if (existingByDomain) conflicts.domain = true
+      }
+
+      // Pending onboarding request checks (status PENDING)
+      const pendingFilters = []
+      if (nameQuery) pendingFilters.push({ collegeName: new RegExp(`^${nameQuery}$`, 'i') })
+      if (codeQuery) pendingFilters.push({ collegeCode: codeQuery })
+      if (domainQuery) pendingFilters.push({ emailDomain: domainQuery })
+
+      if (pendingFilters.length) {
+        const pending = await CollegeOnboardingRequest.find({
+          status: 'PENDING',
+          $or: pendingFilters,
+        })
+        pending.forEach(r => {
+          if (nameQuery && r.collegeName?.toLowerCase() === nameQuery.toLowerCase()) conflicts.name = true
+          if (codeQuery && r.collegeCode?.toUpperCase() === codeQuery) conflicts.code = true
+          if (domainQuery && r.emailDomain?.toLowerCase() === domainQuery) conflicts.domain = true
+        })
+      }
+
+      return res.status(200).json({ ok: true, conflicts })
+    } catch (err) {
+      console.error('[GET /colleges/check-conflict]', err)
+      return res.status(500).json({ ok: false, error: 'Conflict check failed.' })
     }
   }
 )

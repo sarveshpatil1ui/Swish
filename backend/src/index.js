@@ -10,9 +10,11 @@ import authRoutes       from './routes/auth.routes.js'
 import usersRoutes      from './routes/users.routes.js'
 import postsRoutes      from './routes/posts.routes.js'
 import messagesRoutes   from './routes/messages.routes.js'
-import collegesRoutes   from './routes/colleges.routes.js'
+import collegesRoutes    from './routes/colleges.routes.js'
 import departmentsRoutes from './routes/departments.routes.js'
-import noticesRoutes    from './routes/notices.routes.js'
+import noticesRoutes     from './routes/notices.routes.js'
+import onboardingRoutes  from './routes/onboarding.routes.js'
+import adminRoutes       from './routes/admin.routes.js'
 
 const app  = express()
 const PORT = process.env.PORT || 3001
@@ -83,13 +85,15 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-app.use('/api/auth',     authRoutes)
-app.use('/api/users',    usersRoutes)
-app.use('/api/posts',    postsRoutes)
-app.use('/api/messages', messagesRoutes)
-app.use('/api/colleges', collegesRoutes)
+app.use('/api/auth',        authRoutes)
+app.use('/api/users',       usersRoutes)
+app.use('/api/posts',       postsRoutes)
+app.use('/api/messages',    messagesRoutes)
+app.use('/api/colleges',    collegesRoutes)
 app.use('/api/departments', departmentsRoutes)
-app.use('/api/notices',  noticesRoutes)
+app.use('/api/notices',     noticesRoutes)
+app.use('/api/onboarding',  onboardingRoutes)
+app.use('/api/admin',       adminRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })

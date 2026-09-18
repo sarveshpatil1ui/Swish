@@ -7,15 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+dist-ssr/
+build/
+**/build/
+
+# Local environment files — NEVER commit these
+.env
+.env.local
+.env.*.local
+backend/.env
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,8 +35,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables — NEVER commit these
-.env
-.env.local
-.env.*.local
-backend/.env
+# Local temporary files
+*.tmp
+*.temp
+
+# Coverage
+coverage/

@@ -46,7 +46,7 @@ export default function FinalCTA() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
-              to="/join"
+              to="/college-onboarding"
               id="final-join-cta"
               className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-base w-full sm:w-auto justify-center"
             >

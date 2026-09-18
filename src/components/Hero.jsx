@@ -135,7 +135,7 @@ export default function Hero() {
                 id="hero-join-cta"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm"
               >
-                Join Your Campus
+                Register Your College
                 <ArrowRight size={16} />
               </Link>
               <button
@@ -147,8 +147,21 @@ export default function Hero() {
               </button>
             </motion.div>
 
-            <motion.div
+            <motion.p
               variants={fadeUp} initial="hidden" animate="visible" custom={4}
+              className="text-slate-500 dark:text-gray-400 text-xs sm:text-sm mt-3"
+            >
+              Is your college not on Swish yet?{' '}
+              <Link
+                to="/college-onboarding"
+                className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline inline-flex items-center gap-0.5"
+              >
+                Register your college &rarr;
+              </Link>
+            </motion.p>
+
+            <motion.div
+              variants={fadeUp} initial="hidden" animate="visible" custom={5}
               className="flex items-center gap-3 mt-7"
             >
               <div className="flex -space-x-2">

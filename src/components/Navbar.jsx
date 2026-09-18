@@ -99,11 +99,11 @@ export default function Navbar() {
                 Login
               </Link>
               <Link
-                to="/join"
+                to="/college-onboarding"
                 id="navbar-join"
                 className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
               >
-                Join Swish
+                Register Your College
               </Link>
             </div>
 
@@ -163,11 +163,11 @@ export default function Navbar() {
                   Login
                 </Link>
                 <Link
-                  to="/join"
+                  to="/college-onboarding"
                   onClick={() => setMobileOpen(false)}
                   className="block w-full text-center px-4 py-2.5 text-white bg-indigo-600 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors"
                 >
-                  Join Swish
+                  Register Your College
                 </Link>
               </div>
             </div>

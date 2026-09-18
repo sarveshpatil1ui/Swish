@@ -8,6 +8,7 @@ import { useSwish } from './context/SwishContext'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import JoinPage from './pages/JoinPage'
+import CollegeOnboardingPage from './pages/CollegeOnboardingPage'
 import ProtectedRoute from './pages/ProtectedRoute'
 
 // ── Authenticated app shell ───────────────────────────────────────────────────
@@ -22,6 +23,10 @@ import AdminPage from './pages/app/AdminPage'
 import SettingsPage from './pages/app/SettingsPage'
 import FacultyPage from './pages/app/FacultyPage'
 import MessagesPage from './pages/app/MessagesPage'
+import PendingRequestsPage from './pages/app/PendingRequestsPage'
+import PendingRequestReviewPage from './pages/app/PendingRequestReviewPage'
+import FirstLoginPasswordPage from './pages/app/FirstLoginPasswordPage'
+
 
 // ── College Admin pages ───────────────────────────────────────────────────────
 import CollegeAdminLayout from './components/college-admin/CollegeAdminLayout'
@@ -54,7 +59,8 @@ export default function App() {
               {/* ── Public ─────────────────────────────────────────────── */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/join" element={<JoinPage />} />
+              <Route path="/join" element={<CollegeOnboardingPage />} />
+              <Route path="/college-onboarding" element={<CollegeOnboardingPage />} />
 
               {/* ── Authenticated app (sidebar + bottom nav layout) ─────── */}
               <Route
@@ -73,16 +79,39 @@ export default function App() {
               </Route>
 
               {/* ── Admin (requires admin role) ─────────────────────────── */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute dashboardOnly>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AdminPage />} />
-              </Route>
+            {/* ── Main Admin ───────────────────────────────────────────── */}
+<Route
+  path="/admin"
+  element={
+    <ProtectedRoute dashboardOnly>
+      <AdminPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/pending-requests"
+  element={
+    <ProtectedRoute dashboardOnly>
+      <PendingRequestsPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/pending-requests/:id"
+  element={
+    <ProtectedRoute dashboardOnly>
+      <PendingRequestReviewPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/first-login"
+  element={
+    <ProtectedRoute allowedRoles={['college_admin']} requirePasswordChange>
+      <FirstLoginPasswordPage />
+    </ProtectedRoute>
+  }
+/>
 
               {/* ── Faculty (accessible by faculty and admin) ───────────── */}
               <Route

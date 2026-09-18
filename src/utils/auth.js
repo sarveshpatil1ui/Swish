@@ -57,6 +57,7 @@ export function redirectPathForRole(role) {
   if (role === 'admin')   return '/admin'
   if (role === 'college_admin') return '/college-admin'
   if (role === 'faculty') return '/faculty'
+  if (role=='college_admin')return '/college-admin'  //Change here clg admin route
   return '/home'
 }
 
@@ -129,6 +130,11 @@ export async function apiUnfollowUser(userId) {
 /** On success: { ok: true, posts: Array } */
 export async function apiGetPosts() {
   return apiFetch('/api/posts')
+}
+export async function apiCheckCollegeDomain(domain) {
+  return apiFetch(
+    `/api/colleges/check-domain?domain=${encodeURIComponent(domain)}`
+  )
 }
 
 /** On success: { ok: true, post } */
