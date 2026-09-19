@@ -131,7 +131,7 @@ export default function Hero() {
               className="flex flex-wrap gap-3"
             >
               <Link
-                to="/join"
+                to="/college-onboarding"
                 id="hero-join-cta"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm"
               >

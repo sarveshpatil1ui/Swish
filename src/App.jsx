@@ -59,7 +59,7 @@ export default function App() {
               {/* ── Public ─────────────────────────────────────────────── */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/join" element={<CollegeOnboardingPage />} />
+              <Route path="/join" element={<JoinPage />} />
               <Route path="/college-onboarding" element={<CollegeOnboardingPage />} />
 
               {/* ── Authenticated app (sidebar + bottom nav layout) ─────── */}

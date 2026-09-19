@@ -27,40 +27,60 @@ import {
   XCircle,
   AlertCircle,
   Plus,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
+import { useTheme } from '../../context/ThemeContext'
+
+const adminCardClass =
+  'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
+
+const adminInteractiveClass =
+  'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]'
+
+const adminButtonClass =
+  'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
+
+const adminInputClass =
+  'bg-slate-50/80 dark:bg-gray-950/70 border border-slate-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/80 transition-all'
 
 function StatCard({ icon: Icon, label, value, description, iconClass }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">
+    <motion.div
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
+      className={`${adminCardClass} p-6`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-slate-400 dark:text-gray-500 text-xs font-medium">
+          <p className="text-slate-500 dark:text-gray-400 text-xs font-semibold">
             {label}
           </p>
 
           <p
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            className="text-slate-900 dark:text-white font-bold text-2xl mt-1"
+            className="text-slate-950 dark:text-white font-extrabold text-3xl mt-3 tracking-tight"
           >
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
 
           {description && (
-            <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-1.5">
+            <p className="text-slate-500 dark:text-gray-400 text-xs mt-1.5">
               {description}
             </p>
           )}
         </div>
 
         <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconClass}`}
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${iconClass}`}
         >
           <Icon size={19} className="text-white" />
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -75,9 +95,9 @@ function SidebarItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${adminInteractiveClass} ${
         active
-          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300'
+          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-sm'
           : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800/70 hover:text-slate-900 dark:hover:text-gray-200'
       }`}
     >
@@ -101,6 +121,7 @@ export default function AdminPage() {
   const navigate = useNavigate()
 
   const { currentUser: user} = useSwish()
+  const { dark, toggle } = useTheme()
 
   const [activeSection, setActiveSection] = useState('Dashboard')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -396,14 +417,14 @@ export default function AdminPage() {
   }
 
   const sidebar = (
-    <aside className="w-64 h-full bg-white dark:bg-gray-950 border-r border-slate-200 dark:border-gray-800 flex flex-col">
+    <aside className="w-64 h-full bg-white dark:bg-gray-950 border-r border-slate-200/80 dark:border-gray-800 flex flex-col shadow-sm shadow-slate-200/60 dark:shadow-black/20">
       {/* Logo */}
       <div className="h-16 px-5 flex items-center border-b border-slate-100 dark:border-gray-800">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2.5"
+          className={`flex items-center gap-2.5 ${adminInteractiveClass}`}
         >
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-200 dark:shadow-none">
             <ShieldCheck size={19} className="text-white" />
           </div>
 
@@ -453,10 +474,10 @@ export default function AdminPage() {
             <div className="ml-7 pl-3 border-l border-slate-200 dark:border-gray-800 space-y-1">
               <button
                 onClick={() => navigateSection('All Colleges')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
                   activeSection === 'All Colleges'
                     ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300'
+                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
                 }`}
               >
                 All Colleges
@@ -464,10 +485,10 @@ export default function AdminPage() {
 
               <button
                 onClick={() => navigate('/admin/pending-requests')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
                   activeSection === 'Pending Requests'
                     ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300'
+                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
                 }`}
               >
                 <span>Pending Requests</span>
@@ -481,10 +502,10 @@ export default function AdminPage() {
 
               <button
                 onClick={() => navigateSection('College Admins')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
                   activeSection === 'College Admins'
                     ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300'
+                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
                 }`}
               >
                 College Admins
@@ -519,7 +540,7 @@ export default function AdminPage() {
       <div className="border-t border-slate-100 dark:border-gray-800 p-3">
         <button
           onClick={() => navigateSection('Profile')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 ${adminInteractiveClass}`}
         >
           <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold">
             {user?.initials || 'A'}
@@ -537,8 +558,22 @@ export default function AdminPage() {
         </button>
 
         <button
+          type="button"
+          onClick={toggle}
+          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white ${adminInteractiveClass}`}
+        >
+          {dark ? (
+            <Sun size={15} className="text-amber-500" />
+          ) : (
+            <Moon size={15} className="text-slate-500" />
+          )}
+          {dark ? 'Light Mode' : 'Dark Mode'}
+        </button>
+
+        <button
           onClick={() => navigate('/')}
-          className="w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-medium text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+          className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 ${adminInteractiveClass}`}
         >
           <LogOut size={15} />
           Logout
@@ -558,7 +593,7 @@ export default function AdminPage() {
       {mobileSidebarOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           />
 
@@ -571,11 +606,11 @@ export default function AdminPage() {
       {/* Main content */}
       <main className="flex-1 min-w-0 lg:ml-64">
         {/* Top bar */}
-        <header className="h-16 bg-white dark:bg-gray-950 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-slate-200/80 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800"
+              className={`lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
             >
               <Menu size={20} />
             </button>
@@ -596,7 +631,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-gray-400">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-gray-400 bg-slate-100/70 dark:bg-gray-900 border border-slate-200/70 dark:border-gray-800 rounded-full px-3 py-1.5">
             <Activity size={14} />
             Platform Overview
           </div>
@@ -637,7 +672,7 @@ export default function AdminPage() {
       {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
-          className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 animate-pulse"
+          className={`${adminCardClass} p-6 animate-pulse`}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -722,7 +757,7 @@ export default function AdminPage() {
               {/* Activity + Pending requests */}
               <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6">
                 {/* Platform Activity */}
-                <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">
+                <section className={`${adminCardClass} p-6`}>
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="text-slate-900 dark:text-white text-sm font-bold">
@@ -739,7 +774,7 @@ export default function AdminPage() {
                   </div>
 
                   {/* Chart placeholder */}
-                  <div className="h-64 rounded-xl bg-slate-50 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 flex items-center justify-center">
+                  <div className="h-64 rounded-2xl bg-slate-50/80 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 flex items-center justify-center">
                     <div className="text-center">
                       <BarChart3
                         size={30}
@@ -758,7 +793,7 @@ export default function AdminPage() {
                 </section>
 
                 {/* Pending requests */}
-                <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">
+                <section className={`${adminCardClass} p-6`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-slate-900 dark:text-white text-sm font-bold">
@@ -793,7 +828,7 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => navigate('/admin/pending-requests')}
-                    className="mt-7 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition-colors"
+                    className={`mt-7 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none ${adminButtonClass}`}
                   >
                     Review Requests
                     <ArrowRight size={14} />
@@ -804,7 +839,7 @@ export default function AdminPage() {
               {/* Reports + Recent activity */}
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* Escalated reports */}
-                <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">
+                <section className={`${adminCardClass} p-6`}>
                   <div className="flex items-start justify-between gap-3 mb-5">
                     <div>
                       <h3 className="text-slate-900 dark:text-white text-sm font-bold">
@@ -853,7 +888,7 @@ export default function AdminPage() {
 
                   <button
                     onClick={() => navigateSection('Reports')}
-                    className="mt-6 flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:text-indigo-700 transition-colors"
+                    className={`mt-6 flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:text-indigo-700 ${adminButtonClass}`}
                   >
                     View Reports
                     <ArrowRight size={13} />
@@ -861,7 +896,7 @@ export default function AdminPage() {
                 </section>
 
                 {/* Recent activity */}
-                <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">
+                <section className={`${adminCardClass} p-6`}>
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="text-slate-900 dark:text-white text-sm font-bold">
@@ -980,7 +1015,7 @@ export default function AdminPage() {
               </div>
 
               {/* Search + Status filter */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-4">
+              <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${adminCardClass} p-4`}>
                 <div className="relative w-full sm:w-80">
                   <Search
                     size={16}
@@ -991,7 +1026,7 @@ export default function AdminPage() {
                     placeholder="Search by name, code, domain..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                   />
                 </div>
 
@@ -1000,7 +1035,7 @@ export default function AdminPage() {
                     <button
                       key={tab}
                       onClick={() => setStatusFilter(tab)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${adminButtonClass} ${
                         statusFilter === tab
                           ? 'bg-indigo-600 text-white shadow-sm'
                           : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700'
@@ -1013,7 +1048,7 @@ export default function AdminPage() {
               </div>
 
               {/* College Table */}
-              <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className={`${adminCardClass} overflow-hidden`}>
                 {collegesError && (
                   <div className="p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs">
                     {collegesError}
@@ -1126,7 +1161,7 @@ export default function AdminPage() {
                               <td className="py-3.5 px-4 text-right space-x-2">
                                 <button
                                   onClick={() => setSelectedCollege(college)}
-                                  className="px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
+                                  className={`px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg ${adminButtonClass}`}
                                 >
                                   View Details
                                 </button>
@@ -1134,7 +1169,7 @@ export default function AdminPage() {
                                 <button
                                   disabled={togglingId === college.id}
                                   onClick={() => handleToggleCollegeActive(college.id, college.active)}
-                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${adminButtonClass} ${
                                     college.active
                                       ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900'
                                       : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900'
@@ -1180,7 +1215,7 @@ export default function AdminPage() {
                     if (collegesList.length === 0) fetchColleges()
                     setShowAddAdminModal(true)
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm self-start sm:self-auto"
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none self-start sm:self-auto ${adminButtonClass}`}
                 >
                   <Plus size={15} />
                   Add College Admin
@@ -1213,7 +1248,7 @@ export default function AdminPage() {
               </div>
 
               {/* Search + Status filter */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-4">
+              <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${adminCardClass} p-4`}>
                 <div className="relative w-full sm:w-80">
                   <Search
                     size={16}
@@ -1224,7 +1259,7 @@ export default function AdminPage() {
                     placeholder="Search by name, email, or college..."
                     value={adminSearchQuery}
                     onChange={e => setAdminSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                   />
                 </div>
 
@@ -1233,7 +1268,7 @@ export default function AdminPage() {
                     <button
                       key={tab}
                       onClick={() => setAdminStatusFilter(tab)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold ${adminButtonClass} ${
                         adminStatusFilter === tab
                           ? 'bg-indigo-600 text-white shadow-sm'
                           : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700'
@@ -1246,7 +1281,7 @@ export default function AdminPage() {
               </div>
 
               {/* Table */}
-              <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className={`${adminCardClass} overflow-hidden`}>
                 {adminsError && (
                   <div className="p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs">
                     {adminsError}
@@ -1356,7 +1391,7 @@ export default function AdminPage() {
                               <td className="py-3.5 px-4 text-right space-x-2">
                                 <button
                                   onClick={() => setSelectedAdmin(admin)}
-                                  className="px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
+                                  className={`px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg ${adminButtonClass}`}
                                 >
                                   View
                                 </button>
@@ -1364,7 +1399,7 @@ export default function AdminPage() {
                                 <button
                                   disabled={adminTogglingId === admin.id}
                                   onClick={() => handleToggleAdminActive(admin.id, admin.active)}
-                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${adminButtonClass} ${
                                     admin.active
                                       ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-rose-200 dark:border-rose-900'
                                       : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900'
@@ -1437,7 +1472,7 @@ export default function AdminPage() {
               </div>
 
               {/* Search + Filters */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-4">
+              <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 ${adminCardClass} p-4`}>
                 {/* Search */}
                 <div className="relative w-full sm:w-72">
                   <Search
@@ -1449,7 +1484,7 @@ export default function AdminPage() {
                     placeholder="Search by name or email..."
                     value={userSearchQuery}
                     onChange={e => setUserSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                   />
                 </div>
 
@@ -1462,7 +1497,7 @@ export default function AdminPage() {
                       <button
                         key={role}
                         onClick={() => setUserRoleFilter(role)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${adminButtonClass} ${
                           userRoleFilter === role
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700'
@@ -1480,7 +1515,7 @@ export default function AdminPage() {
                       <button
                         key={s}
                         onClick={() => setUserStatusFilter(s)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${adminButtonClass} ${
                           userStatusFilter === s
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700'
@@ -1495,7 +1530,7 @@ export default function AdminPage() {
                   <select
                     value={userCollegeFilter}
                     onChange={e => setUserCollegeFilter(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-gray-800 border-0 rounded-xl text-xs font-medium text-slate-600 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ml-1"
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium text-slate-600 dark:text-gray-400 focus:outline-none ml-1 ${adminInputClass}`}
                   >
                     <option value="All">All Colleges</option>
                     {[...new Set(usersList.filter(u => u.college?.name).map(u => u.college.name))].sort().map(name => (
@@ -1506,7 +1541,7 @@ export default function AdminPage() {
               </div>
 
               {/* Users Table */}
-              <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+              <div className={`${adminCardClass} overflow-hidden`}>
                 {usersError && (
                   <div className="p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs">
                     {usersError}
@@ -1615,7 +1650,7 @@ export default function AdminPage() {
                             <td className="py-3.5 px-4 text-right">
                               <button
                                 onClick={() => setSelectedUser(u)}
-                                className="px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
+                                className={`px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg ${adminButtonClass}`}
                               >
                                 View
                               </button>
@@ -1633,7 +1668,7 @@ export default function AdminPage() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-10 text-center"
+              className={`${adminCardClass} p-10 text-center`}
             >
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center mx-auto mb-4">
                 <Building2
@@ -1663,7 +1698,7 @@ export default function AdminPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-xl"
+                  className={`${adminCardClass} w-full max-w-xl overflow-hidden shadow-xl shadow-slate-300/50 dark:shadow-black/40`}
                 >
                   {/* Modal Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
@@ -1683,7 +1718,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedCollege(null)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
+                      className={`p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
                     >
                       <X size={18} />
                     </button>
@@ -1789,7 +1824,7 @@ export default function AdminPage() {
                     <button
                       disabled={togglingId === selectedCollege.id}
                       onClick={() => handleToggleCollegeActive(selectedCollege.id, selectedCollege.active)}
-                      className={`px-4 py-2 text-xs font-semibold rounded-xl transition-colors ${
+                      className={`px-4 py-2 text-xs font-semibold rounded-xl ${adminButtonClass} ${
                         selectedCollege.active
                           ? 'bg-rose-600 text-white hover:bg-rose-700'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -1804,7 +1839,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedCollege(null)}
-                      className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                      className={`px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl ${adminButtonClass}`}
                     >
                       Close
                     </button>
@@ -1822,7 +1857,7 @@ export default function AdminPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-xl"
+                  className={`${adminCardClass} w-full max-w-xl overflow-hidden shadow-xl shadow-slate-300/50 dark:shadow-black/40`}
                 >
                   {/* Modal Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
@@ -1842,7 +1877,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedAdmin(null)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
+                      className={`p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
                     >
                       <X size={18} />
                     </button>
@@ -1965,7 +2000,7 @@ export default function AdminPage() {
                     <button
                       disabled={adminTogglingId === selectedAdmin.id}
                       onClick={() => handleToggleAdminActive(selectedAdmin.id, selectedAdmin.active)}
-                      className={`px-4 py-2 text-xs font-semibold rounded-xl transition-colors ${
+                      className={`px-4 py-2 text-xs font-semibold rounded-xl ${adminButtonClass} ${
                         selectedAdmin.active
                           ? 'bg-rose-600 text-white hover:bg-rose-700'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -1980,7 +2015,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedAdmin(null)}
-                      className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                      className={`px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl ${adminButtonClass}`}
                     >
                       Close
                     </button>
@@ -1998,7 +2033,7 @@ export default function AdminPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
+                  className={`${adminCardClass} w-full max-w-lg overflow-hidden shadow-xl shadow-slate-300/50 dark:shadow-black/40`}
                 >
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
                     <div className="flex items-center gap-2.5">
@@ -2017,7 +2052,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setShowAddAdminModal(false)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
+                      className={`p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
                     >
                       <X size={18} />
                     </button>
@@ -2046,7 +2081,7 @@ export default function AdminPage() {
                             officialEmail: selectedCol ? `admin@${selectedCol.domain}` : prev.officialEmail,
                           }))
                         }}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none ${adminInputClass}`}
                       >
                         <option value="">-- Choose a College --</option>
                         {collegesList.map(col => (
@@ -2067,7 +2102,7 @@ export default function AdminPage() {
                         placeholder="e.g. Dr. Ramesh Kumar"
                         value={addAdminForm.name}
                         onChange={e => setAddAdminForm(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                       />
                     </div>
 
@@ -2081,7 +2116,7 @@ export default function AdminPage() {
                         placeholder="e.g. admin@kjsce.edu"
                         value={addAdminForm.officialEmail}
                         onChange={e => setAddAdminForm(prev => ({ ...prev, officialEmail: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                       />
                     </div>
 
@@ -2094,7 +2129,7 @@ export default function AdminPage() {
                         placeholder="e.g. Campus IT Administrator"
                         value={addAdminForm.designation}
                         onChange={e => setAddAdminForm(prev => ({ ...prev, designation: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
                       />
                     </div>
 
@@ -2102,7 +2137,7 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => setShowAddAdminModal(false)}
-                        className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                        className={`px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl ${adminButtonClass}`}
                       >
                         Cancel
                       </button>
@@ -2110,7 +2145,7 @@ export default function AdminPage() {
                       <button
                         type="submit"
                         disabled={addAdminLoading}
-                        className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                        className={`px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none disabled:opacity-50 ${adminButtonClass}`}
                       >
                         {addAdminLoading ? 'Provisioning...' : 'Provision Admin'}
                       </button>
@@ -2129,7 +2164,7 @@ export default function AdminPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-xl"
+                  className={`${adminCardClass} w-full max-w-xl overflow-hidden shadow-xl shadow-slate-300/50 dark:shadow-black/40`}
                 >
                   {/* Modal Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-800">
@@ -2161,7 +2196,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedUser(null)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800"
+                      className={`p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
                     >
                       <X size={18} />
                     </button>
@@ -2263,7 +2298,7 @@ export default function AdminPage() {
                     <button
                       disabled={userTogglingId === selectedUser.id}
                       onClick={() => handleToggleUserActive(selectedUser.id, selectedUser.active)}
-                      className={`px-4 py-2 text-xs font-semibold rounded-xl transition-colors ${
+                      className={`px-4 py-2 text-xs font-semibold rounded-xl ${adminButtonClass} ${
                         selectedUser.active
                           ? 'bg-rose-600 text-white hover:bg-rose-700'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -2278,7 +2313,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={() => setSelectedUser(null)}
-                      className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                      className={`px-4 py-2 text-xs font-medium text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-xl ${adminButtonClass}`}
                     >
                       Close
                     </button>

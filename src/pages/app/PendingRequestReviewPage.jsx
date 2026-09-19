@@ -19,6 +19,12 @@ import {
   Loader2,
 } from 'lucide-react'
 
+const adminCardClass =
+  'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
+
+const adminButtonClass =
+  'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
+
 export default function PendingRequestReviewPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -224,7 +230,7 @@ async function handleReject() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-900 dark:text-white">
-        <div className="border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="border-b border-slate-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90">
           <div className="px-6 py-5">
             <div className="h-4 w-40 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-5" />
             <div className="h-7 w-72 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
@@ -233,11 +239,11 @@ async function handleReject() {
         </div>
 
         <main className="p-6 max-w-6xl mx-auto space-y-5">
-          <div className="h-32 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 animate-pulse" />
+          <div className={`${adminCardClass} h-32 animate-pulse`} />
 
           <div className="grid lg:grid-cols-2 gap-5">
-            <div className="h-80 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 animate-pulse" />
-            <div className="h-80 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 animate-pulse" />
+            <div className={`${adminCardClass} h-80 animate-pulse`} />
+            <div className={`${adminCardClass} h-80 animate-pulse`} />
           </div>
         </main>
       </div>
@@ -252,13 +258,13 @@ async function handleReject() {
             onClick={() =>
               navigate('/admin/pending-requests')
             }
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-6"
+            className={`inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-6 ${adminButtonClass}`}
           >
             <ArrowLeft size={16} />
             Back to Pending Requests
           </button>
 
-          <div className="bg-white dark:bg-gray-900 border border-rose-200 dark:border-rose-900 rounded-2xl p-8 text-center">
+          <div className="bg-white/95 dark:bg-gray-900/95 border border-rose-200 dark:border-rose-900 rounded-2xl p-8 text-center shadow-sm">
             <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mb-4">
               <AlertCircle
                 size={24}
@@ -278,7 +284,7 @@ async function handleReject() {
               onClick={() =>
                 navigate('/admin/pending-requests')
               }
-              className="mt-5 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              className={`mt-5 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 ${adminButtonClass}`}
             >
               Return to Pending Requests
             </button>
@@ -291,13 +297,13 @@ async function handleReject() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-900 dark:text-white">
       {/* Header */}
-      <header className="border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <header className="border-b border-slate-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur sticky top-0 z-20">
         <div className="px-6 py-5">
           <button
             onClick={() =>
               navigate('/admin/pending-requests')
             }
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-5"
+            className={`inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-5 ${adminButtonClass}`}
           >
             <ArrowLeft size={16} />
             Back to Pending Requests
@@ -329,7 +335,7 @@ async function handleReject() {
 
       <main className="p-6 max-w-6xl mx-auto space-y-5">
         {/* College Summary */}
-        <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6">
+        <section className={`${adminCardClass} p-6`}>
           <div className="flex flex-col md:flex-row md:items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
               <Building2
@@ -366,7 +372,7 @@ async function handleReject() {
         {/* Main Information */}
         <div className="grid lg:grid-cols-2 gap-5">
           {/* College Information */}
-          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+          <section className={`${adminCardClass} overflow-hidden`}>
             <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
               <h2 className="font-semibold flex items-center gap-2">
                 <Building2
@@ -415,7 +421,7 @@ async function handleReject() {
           </section>
 
           {/* Proposed Admin */}
-          <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+          <section className={`${adminCardClass} overflow-hidden`}>
             <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
               <h2 className="font-semibold flex items-center gap-2">
                 <User
@@ -451,7 +457,7 @@ async function handleReject() {
         </div>
 
         {/* Verification */}
-        <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+        <section className={`${adminCardClass} overflow-hidden`}>
           <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
             <h2 className="font-semibold flex items-center gap-2">
               <ShieldCheck
@@ -488,7 +494,7 @@ async function handleReject() {
         </section>
 
         {/* Proof */}
-        <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+        <section className={`${adminCardClass} overflow-hidden`}>
           <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
             <h2 className="font-semibold flex items-center gap-2">
               <FileCheck
@@ -525,7 +531,7 @@ async function handleReject() {
                   type="button"
                   onClick={handleViewDocument}
                   disabled={docLoading}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 shrink-0"
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 shrink-0 ${adminButtonClass}`}
                 >
                   {docLoading ? 'Opening...' : 'View Document'}
                   <ExternalLink size={15} />
@@ -540,7 +546,7 @@ async function handleReject() {
         </section>
 
         {/* Submission Timeline */}
-        <section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+        <section className={`${adminCardClass} overflow-hidden`}>
           <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800">
             <h2 className="font-semibold flex items-center gap-2">
               <CalendarDays
@@ -573,7 +579,7 @@ async function handleReject() {
           </div>
         </section>
 {/* Decision Area */}
-<section className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6">
+<section className={`${adminCardClass} p-6`}>
   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
     <div>
       <h2 className="font-semibold">
@@ -593,7 +599,7 @@ async function handleReject() {
           setDecisionError('')
         }}
         disabled={decisionLoading}
-        className="px-5 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-sm font-medium hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50"
+        className={`px-5 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 ${adminButtonClass}`}
       >
         Reject Request
       </button>
@@ -602,7 +608,7 @@ async function handleReject() {
         type="button"
         onClick={handleApprove}
         disabled={decisionLoading}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 ${adminButtonClass}`}
       >
         {decisionLoading ? (
           <>
@@ -636,7 +642,7 @@ async function handleReject() {
         }}
         rows={4}
         placeholder="Explain why this college registration request is being rejected..."
-        className="w-full rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-950 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+        className="w-full rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50/80 dark:bg-gray-950/70 px-4 py-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 dark:focus:ring-rose-950/70 resize-none transition-all"
       />
 
       <div className="flex justify-end gap-3 mt-3">
@@ -648,7 +654,7 @@ async function handleReject() {
             setDecisionError('')
           }}
           disabled={decisionLoading}
-          className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white"
+          className={`px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white ${adminButtonClass}`}
         >
           Cancel
         </button>
@@ -660,7 +666,7 @@ async function handleReject() {
             decisionLoading ||
             !rejectionReason.trim()
           }
-          className="px-5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-medium hover:bg-rose-700 disabled:opacity-50"
+          className={`px-5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 ${adminButtonClass}`}
         >
           {decisionLoading
             ? 'Rejecting...'
@@ -683,7 +689,7 @@ async function handleReject() {
 
 function InfoItem({ label, value }) {
   return (
-    <div className="rounded-xl bg-slate-50 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 p-4">
+    <div className="rounded-xl bg-slate-50/80 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
       <p className="text-xs text-slate-400 dark:text-gray-500 mb-1">
         {label}
       </p>
@@ -697,7 +703,7 @@ function InfoItem({ label, value }) {
 
 function VerificationItem({ label, verified, value }) {
   return (
-    <div className="rounded-xl bg-slate-50 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 p-4">
+    <div className="rounded-xl bg-slate-50/80 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-slate-400 dark:text-gray-500">
           {label}

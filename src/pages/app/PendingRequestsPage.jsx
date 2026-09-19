@@ -13,6 +13,12 @@ import {
   User,
 } from 'lucide-react'
 
+const adminCardClass =
+  'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
+
+const adminButtonClass =
+  'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
+
 export default function PendingRequestsPage() {
   const navigate = useNavigate()
 
@@ -90,11 +96,11 @@ export default function PendingRequestsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-900 dark:text-white">
       {/* Header */}
-      <header className="border-b border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <header className="border-b border-slate-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur sticky top-0 z-20">
         <div className="px-6 py-5">
           <button
             onClick={() => navigate('/admin')}
-            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-4"
+            className={`inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-4 ${adminButtonClass}`}
           >
             <ArrowLeft size={16} />
             Back to Dashboard
@@ -114,7 +120,7 @@ export default function PendingRequestsPage() {
             <button
               onClick={loadPendingRequests}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50"
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50 ${adminButtonClass}`}
             >
               <RefreshCw
                 size={16}
@@ -140,7 +146,7 @@ export default function PendingRequestsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search college, requester or email..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/80 transition-all"
             />
           </div>
         </div>
@@ -153,7 +159,7 @@ export default function PendingRequestsPage() {
         )}
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+        <div className={`${adminCardClass} overflow-hidden`}>
           {loading ? (
             <div className="p-6 space-y-4">
               {Array.from({ length: 5 }).map((_, index) => (
@@ -186,7 +192,7 @@ export default function PendingRequestsPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px]">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-gray-800 text-left">
+                  <tr className="border-b border-slate-200 dark:border-gray-800 bg-slate-50/70 dark:bg-gray-800/40 text-left">
                     <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       College
                     </th>
@@ -225,7 +231,7 @@ export default function PendingRequestsPage() {
                   {filteredRequests.map((request) => (
                     <tr
                       key={request.id}
-                      className="border-b border-slate-100 dark:border-gray-800 last:border-0 hover:bg-slate-50 dark:hover:bg-gray-800/50"
+                      className="border-b border-slate-100 dark:border-gray-800 last:border-0 hover:bg-slate-50/80 dark:hover:bg-gray-800/50 transition-colors"
                     >
                       {/* College */}
                       <td className="px-5 py-4">
@@ -332,7 +338,7 @@ export default function PendingRequestsPage() {
                               `/admin/pending-requests/${request.id}`
                             )
                           }
-                          className="px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+                          className={`px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none ${adminButtonClass}`}
                         >
                           Review
                         </button>
