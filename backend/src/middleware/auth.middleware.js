@@ -4,7 +4,9 @@ import College from '../models/College.js'
 
 export async function requireAuth(req, res, next) {
   try {
-    const token = req.cookies?.swish_token
+    const authHeader = req.headers.authorization
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const token = req.cookies?.swish_token || bearerToken
     if (!token) {
       return res.status(401).json({ ok: false, error: 'Not authenticated. Please log in.' })
     }

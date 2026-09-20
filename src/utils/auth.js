@@ -1,18 +1,45 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+const TOKEN_KEY = 'swish_token'
+
+export function getStoredToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setStoredToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+  } catch {}
+}
+
+export function clearStoredToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY)
+  } catch {}
+}
 
 /**
  * Thin wrapper around fetch for JSON API calls.
- * Always includes credentials (so the httpOnly cookie is sent).
+ * Always includes credentials (httpOnly cookie) AND Authorization: Bearer token (dual auth).
  *
  * @param {string} path    - e.g. '/api/auth/login'
  * @param {object} options - fetch options (method, body, etc.)
  * @returns {Promise<object>} parsed JSON response body
  */
 async function apiFetch(path, options = {}) {
+  const token = getStoredToken()
+  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers,
     credentials: 'include', // send httpOnly cookie on every request
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -29,7 +56,11 @@ export async function apiRegister(userData) {
 }
 
 export async function apiVerifyOtp(email, otp) {
-  return apiFetch('/api/auth/verify-otp', { method: 'POST', body: { email, otp } })
+  const data = await apiFetch('/api/auth/verify-otp', { method: 'POST', body: { email, otp } })
+  if (data.ok && data.token) {
+    setStoredToken(data.token)
+  }
+  return data
 }
 
 export async function apiResendOtp(email) {
@@ -37,7 +68,11 @@ export async function apiResendOtp(email) {
 }
 
 export async function apiLogin(email, password) {
-  return apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
+  const data = await apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
+  if (data.ok && data.token) {
+    setStoredToken(data.token)
+  }
+  return data
 }
 
 export async function apiMe() {
@@ -45,6 +80,7 @@ export async function apiMe() {
 }
 
 export async function apiLogout() {
+  clearStoredToken()
   return apiFetch('/api/auth/logout', { method: 'POST' })
 }
 

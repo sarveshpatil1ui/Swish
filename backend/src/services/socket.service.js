@@ -32,14 +32,18 @@ export function initSocket(app) {
     transports: ['websocket', 'polling'],
   })
 
-  // ── Auth middleware: verify JWT cookie on connect ───────────────────────────
+  // ── Auth middleware: verify JWT cookie or auth header on connect ───────────
   _io.use(async (socket, next) => {
     try {
       const cookieHeader = socket.handshake.headers.cookie || ''
       const match = cookieHeader.match(/swish_token=([^;]+)/)
-      if (!match) return next(new Error('Not authenticated'))
+      const token = match
+        ? match[1]
+        : (socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace(/^Bearer\s+/i, ''))
 
-      const payload = jwt.verify(match[1], process.env.JWT_SECRET)
+      if (!token) return next(new Error('Not authenticated'))
+
+      const payload = jwt.verify(token, process.env.JWT_SECRET)
       const user = await User.findById(payload.sub).select('name username initials avatarColor profilePhoto')
       if (!user) return next(new Error('User not found'))
 

@@ -37,8 +37,22 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
+import { getStoredToken } from '../../utils/auth'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+function adminFetch(url, options = {}) {
+  const token = getStoredToken()
+  const headers = { ...options.headers }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers,
+  })
+}
 
 const adminCardClass =
   'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
@@ -160,11 +174,10 @@ export default function AdminPage() {
     try {
       setDashboardLoading(true)
 
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE}/api/admin/dashboard`,
         {
           method: 'GET',
-          credentials: 'include',
         }
       )
 
@@ -192,11 +205,10 @@ export default function AdminPage() {
     try {
       setCollegesLoading(true)
 
-      const response = await fetch(
+      const response = await adminFetch(
         `${API_BASE}/api/admin/colleges`,
         {
           method: 'GET',
-          credentials: 'include',
         }
       )
 
@@ -235,11 +247,10 @@ export default function AdminPage() {
   const handleToggleCollegeActive = async (collegeId, currentActive) => {
     try {
       setTogglingId(collegeId)
-      const res = await fetch(
+      const res = await adminFetch(
         `${API_BASE}/api/admin/colleges/${collegeId}/toggle`,
         {
           method: 'PATCH',
-          credentials: 'include',
         }
       )
 
@@ -291,9 +302,8 @@ export default function AdminPage() {
   const fetchCollegeAdmins = async (isRetry = false) => {
     try {
       setAdminsLoading(true)
-      const response = await fetch(`${API_BASE}/api/admin/college-admins`, {
+      const response = await adminFetch(`${API_BASE}/api/admin/college-admins`, {
         method: 'GET',
-        credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
@@ -323,9 +333,8 @@ export default function AdminPage() {
   const handleToggleAdminActive = async (adminId, currentActive) => {
     try {
       setAdminTogglingId(adminId)
-      const res = await fetch(`${API_BASE}/api/admin/college-admins/${adminId}/toggle`, {
+      const res = await adminFetch(`${API_BASE}/api/admin/college-admins/${adminId}/toggle`, {
         method: 'PATCH',
-        credentials: 'include',
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
@@ -351,10 +360,9 @@ export default function AdminPage() {
     try {
       setAddAdminLoading(true)
       setAddAdminError('')
-      const res = await fetch(`${API_BASE}/api/admin/college-admins`, {
+      const res = await adminFetch(`${API_BASE}/api/admin/college-admins`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(addAdminForm),
       })
       const data = await res.json()
@@ -376,9 +384,8 @@ export default function AdminPage() {
   const fetchUsers = async (isRetry = false) => {
     try {
       setUsersLoading(true)
-      const response = await fetch(`${API_BASE}/api/admin/users`, {
+      const response = await adminFetch(`${API_BASE}/api/admin/users`, {
         method: 'GET',
-        credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
@@ -407,9 +414,8 @@ export default function AdminPage() {
   const handleToggleUserActive = async (userId, currentActive) => {
     try {
       setUserTogglingId(userId)
-      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/toggle`, {
+      const res = await adminFetch(`${API_BASE}/api/admin/users/${userId}/toggle`, {
         method: 'PATCH',
-        credentials: 'include',
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
@@ -440,9 +446,8 @@ export default function AdminPage() {
   const fetchAdminPosts = async (isRetry = false) => {
     try {
       setPostsLoading(true)
-      const response = await fetch(`${API_BASE}/api/posts`, {
+      const response = await adminFetch(`${API_BASE}/api/posts`, {
         method: 'GET',
-        credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
@@ -472,9 +477,8 @@ export default function AdminPage() {
     if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) return
     try {
       setDeletingPostId(postId)
-      const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
+      const res = await adminFetch(`${API_BASE}/api/posts/${postId}`, {
         method: 'DELETE',
-        credentials: 'include',
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getStoredToken } from '../../utils/auth'
 import {
   ArrowLeft,
   Building2,
@@ -33,10 +34,15 @@ export default function PendingRequestsPage() {
     try {
       setLoading(true)
 
+      const token = getStoredToken()
+      const headers = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const response = await fetch(
         `${API_BASE}/api/admin/pending-requests`,
         {
           method: 'GET',
+          headers,
           credentials: 'include',
         }
       )

@@ -12,6 +12,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import { getStoredToken } from '../utils/auth'
 
 const SocketContext = createContext(null)
 
@@ -38,6 +39,7 @@ export function SocketProvider({ userId, children }) {
     }
 
     const socket = io(SOCKET_URL, {
+      auth:                { token: getStoredToken() },
       withCredentials:     true,
       transports:          ['websocket', 'polling'],
       reconnection:        true,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { getStoredToken } from '../../utils/auth'
 import {
   ArrowLeft,
   Building2,
@@ -48,9 +49,13 @@ const [decisionError, setDecisionError] = useState('')
 
     try {
       setDocLoading(true)
+      const token = getStoredToken()
+      const headers = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch(
         `${API_BASE}/api/admin/pending-requests/${id}/proof-url`,
-        { credentials: 'include' }
+        { headers, credentials: 'include' }
       )
       const data = await res.json()
       if (!res.ok || !data.ok || !data.proofUrl) {
@@ -71,10 +76,15 @@ const [decisionError, setDecisionError] = useState('')
       try {
         setLoading(true)
 
+        const token = getStoredToken()
+        const headers = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
         const response = await fetch(
           `${API_BASE}/api/admin/pending-requests/${id}`,
           {
             method: 'GET',
+            headers,
             credentials: 'include',
           }
         )
@@ -132,10 +142,15 @@ const [decisionError, setDecisionError] = useState('')
     setDecisionLoading(true)
     setDecisionError('')
 
+    const token = getStoredToken()
+    const headers = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     const response = await fetch(
       `${API_BASE}/api/admin/pending-requests/${id}/approve`,
       {
         method: 'POST',
+        headers,
         credentials: 'include',
       }
     )
@@ -177,13 +192,17 @@ async function handleReject() {
     setDecisionLoading(true)
     setDecisionError('')
 
+    const token = getStoredToken()
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
     const response = await fetch(
       `${API_BASE}/api/admin/pending-requests/${id}/reject`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           reason: trimmedReason,

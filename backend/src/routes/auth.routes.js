@@ -272,10 +272,11 @@ router.post(
       user.otpAttempts     = 0
       await user.save()
 
-      setAuthCookie(res, user)
+      const token = setAuthCookie(res, user)
 
       return res.status(200).json({
         ok: true,
+        token,
         user: user.toJSON(),
         redirectTo: redirectPathForUser(user),
       })
@@ -444,9 +445,10 @@ router.post(
           // Verify password using stored hash
           const isPasswordValid = await bcrypt.compare(password, demoDbUser.passwordHash)
           if (isPasswordValid) {
-            setAuthCookie(res, demoDbUser)
+            const token = setAuthCookie(res, demoDbUser)
             return res.status(200).json({
               ok: true,
+              token,
               user: demoDbUser.toJSON(),
               redirectTo: redirectPathForRole(demoDbUser.role),
             })
@@ -490,9 +492,10 @@ router.post(
           { upsert: true, new: true, setDefaultsOnInsert: true }
         )
 
-        setAuthCookie(res, result)
+        const token = setAuthCookie(res, result)
         return res.status(200).json({
           ok: true,
+          token,
           user: result.toJSON(),
           redirectTo: redirectPathForRole(demoUser.role),
         })
@@ -547,10 +550,11 @@ router.post(
         })
       }
 
-      setAuthCookie(res, user)
+      const token = setAuthCookie(res, user)
 
       return res.status(200).json({
         ok: true,
+        token,
         user: user.toJSON(),
         mustChangePassword: user.mustChangePassword,
         redirectTo: redirectPathForUser(user),
