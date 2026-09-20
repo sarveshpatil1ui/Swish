@@ -56,33 +56,8 @@ export const DEFAULT_PREFERENCES = {
   },
 }
 
-// ── Seed colleges (fallback data — synchronized with MongoDB) ─────────────────
-const SEED_COLLEGES = [
-  {
-    id: 'col-sigce',
-    name: 'Smt. Indira Gandhi College of Engineering',
-    code: 'SIGCE',
-    domain: 'sigce.edu.in',
-    location: 'Navi Mumbai, Maharashtra',
-    active: true,
-  },
-  {
-    id: 'col-1',
-    name: 'KJSCE Mumbai',
-    code: 'KJSCE',
-    domain: 'campus.edu',
-    location: 'Mumbai, Maharashtra',
-    active: true,
-  },
-  {
-    id: 'col-2',
-    name: 'Demo College',
-    code: 'DEMO',
-    domain: 'abc.edu.in',
-    location: 'Pune, Maharashtra',
-    active: true,
-  },
-]
+// ── Seed colleges (empty — all colleges managed in database) ──────────────────
+const SEED_COLLEGES = []
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 

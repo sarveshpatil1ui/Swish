@@ -106,23 +106,6 @@ export default function LoginPage() {
     else setOtpError(result.error || 'Failed to resend code.')
   }
 
-  const fillDemo = (role = 'student') => {
-    if (role === 'admin') {
-      setEmail('admin@swish.com')
-      setPassword('SwishAdmin@2026')
-    } else if (role === 'faculty') {
-      setEmail('faculty@campus.edu')
-      setPassword('faculty123')
-    } else if (role === 'college_admin') {
-      setEmail('collegeadmin@campus.edu')
-      setPassword('college123')
-    } else {
-      setEmail('student@campus.edu')
-      setPassword('student123')
-    }
-    setError('')
-  }
-
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-950 transition-colors duration-300">
 
@@ -534,51 +517,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-slate-100 dark:bg-gray-800" />
-            <span className="text-slate-400 dark:text-gray-600 text-xs font-medium px-1">Quick demo access</span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-gray-800" />
-          </div>
-
-          {/* Demo credentials — 4 roles */}
-          <div className="grid grid-cols-4 gap-2 mb-7">
-            <button
-              type="button"
-              onClick={() => fillDemo('student')}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-400 rounded-xl text-xs font-semibold hover:border-indigo-200 dark:hover:border-indigo-800 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30 transition-all"
-            >
-              <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold" style={{ fontSize: '8px' }}>DS</div>
-              Student
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('faculty')}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-400 rounded-xl text-xs font-semibold hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/30 transition-all"
-            >
-              <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold" style={{ fontSize: '8px' }}>DF</div>
-              Faculty
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('college_admin')}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-400 rounded-xl text-xs font-semibold hover:border-amber-200 dark:hover:border-amber-800 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/60 dark:hover:bg-amber-950/30 transition-all"
-            >
-              <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold" style={{ fontSize: '8px' }}>DA</div>
-              College Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('admin')}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-400 rounded-xl text-xs font-semibold hover:border-rose-200 dark:hover:border-rose-800 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/60 dark:hover:bg-rose-950/30 transition-all"
-            >
-              <div className="w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold" style={{ fontSize: '8px' }}>AU</div>
-              Admin
-            </button>
-          </div>
-
           {/* Join link */}
-          <p className="text-center text-slate-500 dark:text-gray-500 text-sm">
+          <p className="text-center text-slate-500 dark:text-gray-500 text-sm mt-6">
             New to Swish?{' '}
             <Link
               to="/join"

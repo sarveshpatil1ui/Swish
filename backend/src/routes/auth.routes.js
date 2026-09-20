@@ -431,9 +431,6 @@ router.post(
       const adminExpectedPass = (process.env.ADMIN_PASSWORD || 'SwishAdmin@2026').trim()
       const DEMO_USERS = {
         'admin@swish.com': { password: adminExpectedPass, role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' },
-        'student@campus.edu': { password: 'student123', role: 'student', college: 'KJSCE Mumbai', name: 'Demo Student', initials: 'DS', avatarColor: '#6366f1' },
-        'faculty@campus.edu': { password: 'faculty123', role: 'faculty', college: 'KJSCE Mumbai', name: 'Demo Faculty', initials: 'DF', avatarColor: '#10b981' },
-        'collegeadmin@campus.edu': { password: 'college123', role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', designation: 'College Administrator' },
       }
 
       const demoUser = DEMO_USERS[normalizedEmail]
