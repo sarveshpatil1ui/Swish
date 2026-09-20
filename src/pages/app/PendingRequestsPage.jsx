@@ -19,6 +19,8 @@ const adminCardClass =
 const adminButtonClass =
   'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 export default function PendingRequestsPage() {
   const navigate = useNavigate()
 
@@ -27,13 +29,12 @@ export default function PendingRequestsPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
 
-  async function loadPendingRequests() {
+  async function loadPendingRequests(isRetry = false) {
     try {
       setLoading(true)
-      setError('')
 
       const response = await fetch(
-        'http://localhost:3001/api/admin/pending-requests',
+        `${API_BASE}/api/admin/pending-requests`,
         {
           method: 'GET',
           credentials: 'include',
@@ -43,12 +44,17 @@ export default function PendingRequestsPage() {
       const data = await response.json()
 
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => loadPendingRequests(true), 500)
+          return
+        }
         throw new Error(
           data.error || 'Unable to load pending requests.'
         )
       }
 
       setRequests(data.requests || [])
+      setError('')
     } catch (err) {
       console.error('[Pending Requests]', err)
       setError(

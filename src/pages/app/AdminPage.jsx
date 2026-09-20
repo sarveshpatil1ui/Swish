@@ -38,6 +38,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 const adminCardClass =
   'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
 
@@ -124,7 +126,7 @@ function SidebarItem({
 export default function AdminPage() {
   const navigate = useNavigate()
 
-  const { currentUser: user} = useSwish()
+  const { currentUser: user, authLoading, isAuthenticated } = useSwish()
   const { dark, toggle } = useTheme()
 
   const [activeSection, setActiveSection] = useState('Dashboard')
@@ -154,13 +156,12 @@ export default function AdminPage() {
   const [selectedCollege, setSelectedCollege] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
 
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = async (isRetry = false) => {
     try {
       setDashboardLoading(true)
-      setDashboardError('')
 
       const response = await fetch(
-        'http://localhost:3001/api/admin/dashboard',
+        `${API_BASE}/api/admin/dashboard`,
         {
           method: 'GET',
           credentials: 'include',
@@ -170,10 +171,15 @@ export default function AdminPage() {
       const data = await response.json()
 
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => loadDashboardStats(true), 500)
+          return
+        }
         throw new Error(data.error || 'Unable to load dashboard data.')
       }
 
       setDashboardStats(data.stats)
+      setDashboardError('')
     } catch (err) {
       console.error('[Admin Dashboard]', err)
       setDashboardError(err.message || 'Unable to load dashboard data.')
@@ -182,13 +188,12 @@ export default function AdminPage() {
     }
   }
 
-  const fetchColleges = async () => {
+  const fetchColleges = async (isRetry = false) => {
     try {
       setCollegesLoading(true)
-      setCollegesError('')
 
       const response = await fetch(
-        'http://localhost:3001/api/admin/colleges',
+        `${API_BASE}/api/admin/colleges`,
         {
           method: 'GET',
           credentials: 'include',
@@ -198,10 +203,15 @@ export default function AdminPage() {
       const data = await response.json()
 
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => fetchColleges(true), 500)
+          return
+        }
         throw new Error(data.error || 'Unable to load colleges.')
       }
 
       setCollegesList(data.colleges || [])
+      setCollegesError('')
     } catch (err) {
       console.error('[Admin Colleges]', err)
       setCollegesError(err.message || 'Unable to load colleges list.')
@@ -211,20 +221,22 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    loadDashboardStats()
-  }, [])
+    if (!authLoading && isAuthenticated) {
+      loadDashboardStats()
+    }
+  }, [authLoading, isAuthenticated])
 
   useEffect(() => {
-    if (activeSection === 'Colleges' || activeSection === 'All Colleges') {
+    if (!authLoading && isAuthenticated && (activeSection === 'Colleges' || activeSection === 'All Colleges')) {
       fetchColleges()
     }
-  }, [activeSection])
+  }, [activeSection, authLoading, isAuthenticated])
 
   const handleToggleCollegeActive = async (collegeId, currentActive) => {
     try {
       setTogglingId(collegeId)
       const res = await fetch(
-        `http://localhost:3001/api/admin/colleges/${collegeId}/toggle`,
+        `${API_BASE}/api/admin/colleges/${collegeId}/toggle`,
         {
           method: 'PATCH',
           credentials: 'include',
@@ -276,19 +288,23 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [userTogglingId, setUserTogglingId] = useState(null)
 
-  const fetchCollegeAdmins = async () => {
+  const fetchCollegeAdmins = async (isRetry = false) => {
     try {
       setAdminsLoading(true)
-      setAdminsError('')
-      const response = await fetch('http://localhost:3001/api/admin/college-admins', {
+      const response = await fetch(`${API_BASE}/api/admin/college-admins`, {
         method: 'GET',
         credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => fetchCollegeAdmins(true), 500)
+          return
+        }
         throw new Error(data.error || 'Unable to load college admins.')
       }
       setCollegeAdminsList(data.admins || [])
+      setAdminsError('')
     } catch (err) {
       console.error('[Admin College Admins]', err)
       setAdminsError(err.message || 'Unable to load college admins list.')
@@ -298,16 +314,16 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (activeSection === 'College Admins') {
+    if (!authLoading && isAuthenticated && activeSection === 'College Admins') {
       fetchCollegeAdmins()
       if (collegesList.length === 0) fetchColleges()
     }
-  }, [activeSection])
+  }, [activeSection, authLoading, isAuthenticated])
 
   const handleToggleAdminActive = async (adminId, currentActive) => {
     try {
       setAdminTogglingId(adminId)
-      const res = await fetch(`http://localhost:3001/api/admin/college-admins/${adminId}/toggle`, {
+      const res = await fetch(`${API_BASE}/api/admin/college-admins/${adminId}/toggle`, {
         method: 'PATCH',
         credentials: 'include',
       })
@@ -335,7 +351,7 @@ export default function AdminPage() {
     try {
       setAddAdminLoading(true)
       setAddAdminError('')
-      const res = await fetch('http://localhost:3001/api/admin/college-admins', {
+      const res = await fetch(`${API_BASE}/api/admin/college-admins`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -357,19 +373,23 @@ export default function AdminPage() {
     }
   }
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (isRetry = false) => {
     try {
       setUsersLoading(true)
-      setUsersError('')
-      const response = await fetch('http://localhost:3001/api/admin/users', {
+      const response = await fetch(`${API_BASE}/api/admin/users`, {
         method: 'GET',
         credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => fetchUsers(true), 500)
+          return
+        }
         throw new Error(data.error || 'Unable to load users.')
       }
       setUsersList(data.users || [])
+      setUsersError('')
     } catch (err) {
       console.error('[Admin Users]', err)
       setUsersError(err.message || 'Unable to load users list.')
@@ -379,15 +399,15 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (activeSection === 'Users') {
+    if (!authLoading && isAuthenticated && activeSection === 'Users') {
       fetchUsers()
     }
-  }, [activeSection])
+  }, [activeSection, authLoading, isAuthenticated])
 
   const handleToggleUserActive = async (userId, currentActive) => {
     try {
       setUserTogglingId(userId)
-      const res = await fetch(`http://localhost:3001/api/admin/users/${userId}/toggle`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/toggle`, {
         method: 'PATCH',
         credentials: 'include',
       })
@@ -417,19 +437,23 @@ export default function AdminPage() {
   const [postSearchQuery, setPostSearchQuery] = useState('')
   const [deletingPostId, setDeletingPostId] = useState(null)
 
-  const fetchAdminPosts = async () => {
+  const fetchAdminPosts = async (isRetry = false) => {
     try {
       setPostsLoading(true)
-      setPostsError('')
-      const response = await fetch('http://localhost:3001/api/posts', {
+      const response = await fetch(`${API_BASE}/api/posts`, {
         method: 'GET',
         credentials: 'include',
       })
       const data = await response.json()
       if (!response.ok || !data.ok) {
+        if (!isRetry && response.status === 401) {
+          setTimeout(() => fetchAdminPosts(true), 500)
+          return
+        }
         throw new Error(data.error || 'Unable to load posts.')
       }
       setAdminPostsList(data.posts || [])
+      setPostsError('')
     } catch (err) {
       console.error('[Admin Posts]', err)
       setPostsError(err.message || 'Unable to load posts list.')
@@ -439,16 +463,16 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (activeSection === 'Posts') {
+    if (!authLoading && isAuthenticated && activeSection === 'Posts') {
       fetchAdminPosts()
     }
-  }, [activeSection])
+  }, [activeSection, authLoading, isAuthenticated])
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) return
     try {
       setDeletingPostId(postId)
-      const res = await fetch(`http://localhost:3001/api/posts/${postId}`, {
+      const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -1913,7 +1937,7 @@ export default function AdminPage() {
                           {p.imageUrl && (
                             <div className="mt-3 rounded-xl overflow-hidden max-w-md border border-slate-200 dark:border-gray-800 bg-slate-100 dark:bg-gray-800">
                               <img
-                                src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:3001${p.imageUrl}`}
+                                src={p.imageUrl.startsWith('http') ? p.imageUrl : `${API_BASE}${p.imageUrl}`}
                                 alt="Post media"
                                 className="w-full h-auto max-h-72 object-cover"
                                 onError={e => { e.currentTarget.style.display = 'none' }}

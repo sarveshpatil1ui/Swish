@@ -51,7 +51,8 @@ function setAuthCookie(res, user) {
   res.cookie('swish_token', token, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production', // HTTPS-only in prod
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path:     '/',
     maxAge,
   })
 
