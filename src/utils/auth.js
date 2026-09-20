@@ -54,10 +54,9 @@ export async function apiLogout() {
  * @returns {string}
  */
 export function redirectPathForRole(role) {
-  if (role === 'admin')   return '/admin'
+  if (role === 'admin' || role === 'main_admin') return '/admin'
   if (role === 'college_admin') return '/college-admin'
   if (role === 'faculty') return '/faculty'
-  if (role=='college_admin')return '/college-admin'  //Change here clg admin route
   return '/home'
 }
 

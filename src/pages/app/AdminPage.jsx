@@ -29,6 +29,10 @@ import {
   Plus,
   Moon,
   Sun,
+  FileText,
+  Trash2,
+  Heart,
+  MessageSquare,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
@@ -406,6 +410,60 @@ export default function AdminPage() {
     }
   }
 
+  // Posts section state
+  const [adminPostsList, setAdminPostsList] = useState([])
+  const [postsLoading, setPostsLoading] = useState(false)
+  const [postsError, setPostsError] = useState('')
+  const [postSearchQuery, setPostSearchQuery] = useState('')
+  const [deletingPostId, setDeletingPostId] = useState(null)
+
+  const fetchAdminPosts = async () => {
+    try {
+      setPostsLoading(true)
+      setPostsError('')
+      const response = await fetch('http://localhost:3001/api/posts', {
+        method: 'GET',
+        credentials: 'include',
+      })
+      const data = await response.json()
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Unable to load posts.')
+      }
+      setAdminPostsList(data.posts || [])
+    } catch (err) {
+      console.error('[Admin Posts]', err)
+      setPostsError(err.message || 'Unable to load posts list.')
+    } finally {
+      setPostsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeSection === 'Posts') {
+      fetchAdminPosts()
+    }
+  }, [activeSection])
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) return
+    try {
+      setDeletingPostId(postId)
+      const res = await fetch(`http://localhost:3001/api/posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to delete post.')
+      }
+      setAdminPostsList(prev => prev.filter(p => (p.id !== postId && p._id !== postId)))
+    } catch (err) {
+      alert(err.message || 'Failed to delete post.')
+    } finally {
+      setDeletingPostId(null)
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Current data available from SwishContext.
   // These are used only for the initial dashboard UI.
@@ -518,6 +576,13 @@ export default function AdminPage() {
             label="Users"
             active={activeSection === 'Users'}
             onClick={() => navigateSection('Users')}
+          />
+
+          <SidebarItem
+            icon={FileText}
+            label="All Posts"
+            active={activeSection === 'Posts'}
+            onClick={() => navigateSection('Posts')}
           />
 
           <SidebarItem
@@ -1662,6 +1727,233 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+            </motion.div>
+          ) : activeSection === 'Posts' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              {/* Header */}
+              <div>
+                <h2
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  className="text-2xl font-extrabold text-slate-900 dark:text-white"
+                >
+                  All Posts
+                </h2>
+                <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">
+                  Review, monitor, and moderate user posts across all campuses.
+                </p>
+              </div>
+
+              {/* Summary stats */}
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+                <StatCard
+                  icon={FileText}
+                  label="Total Posts"
+                  value={adminPostsList.length}
+                  description="Across all campuses"
+                  iconClass="bg-indigo-500"
+                />
+                <StatCard
+                  icon={Eye}
+                  label="Posts with Media"
+                  value={adminPostsList.filter(p => p.imageUrl).length}
+                  description="Photos / Media attached"
+                  iconClass="bg-sky-500"
+                />
+                <StatCard
+                  icon={Heart}
+                  label="Total Likes"
+                  value={adminPostsList.reduce((acc, p) => acc + (p.likeCount || p.likes || 0), 0)}
+                  description="Platform reactions"
+                  iconClass="bg-rose-500"
+                />
+                <StatCard
+                  icon={MessageSquare}
+                  label="Total Comments"
+                  value={adminPostsList.reduce((acc, p) => acc + (p.commentCount || 0), 0)}
+                  description="Discussion threads"
+                  iconClass="bg-violet-500"
+                />
+              </div>
+
+              {/* Search */}
+              <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 ${adminCardClass} p-4`}>
+                <div className="relative w-full sm:w-80">
+                  <Search
+                    size={16}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search by caption, author name, or username..."
+                    value={postSearchQuery}
+                    onChange={e => setPostSearchQuery(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none ${adminInputClass}`}
+                  />
+                </div>
+                <div className="text-xs text-slate-400 dark:text-gray-500 font-medium">
+                  Showing {adminPostsList.filter(p => {
+                    const q = postSearchQuery.toLowerCase()
+                    return (
+                      (p.caption && p.caption.toLowerCase().includes(q)) ||
+                      (p.user?.name && p.user.name.toLowerCase().includes(q)) ||
+                      (p.user?.username && p.user.username.toLowerCase().includes(q))
+                    )
+                  }).length} posts
+                </div>
+              </div>
+
+              {/* Posts Feed / List */}
+              {postsError && (
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs rounded-xl border border-rose-200 dark:border-rose-800">
+                  {postsError}
+                </div>
+              )}
+
+              {postsLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className={`${adminCardClass} p-5 animate-pulse space-y-3`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-800" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-4 w-32 bg-slate-200 dark:bg-gray-800 rounded" />
+                          <div className="h-3 w-20 bg-slate-200 dark:bg-gray-800 rounded" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-3/4 bg-slate-200 dark:bg-gray-800 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : adminPostsList.filter(p => {
+                  const q = postSearchQuery.toLowerCase()
+                  return (
+                    (p.caption && p.caption.toLowerCase().includes(q)) ||
+                    (p.user?.name && p.user.name.toLowerCase().includes(q)) ||
+                    (p.user?.username && p.user.username.toLowerCase().includes(q))
+                  )
+                }).length === 0 ? (
+                <div className={`${adminCardClass} py-16 text-center text-slate-400 dark:text-gray-500`}>
+                  <FileText size={36} className="mx-auto mb-2 text-slate-300 dark:text-gray-600" />
+                  <p className="font-semibold text-sm">No posts found</p>
+                  <p className="text-xs mt-1">No posts match the search query.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {adminPostsList
+                    .filter(p => {
+                      const q = postSearchQuery.toLowerCase()
+                      return (
+                        (p.caption && p.caption.toLowerCase().includes(q)) ||
+                        (p.user?.name && p.user.name.toLowerCase().includes(q)) ||
+                        (p.user?.username && p.user.username.toLowerCase().includes(q))
+                      )
+                    })
+                    .map(p => {
+                      const postId = p.id || p._id
+                      return (
+                        <div
+                          key={postId}
+                          className={`${adminCardClass} p-5 transition-all duration-150 hover:shadow-md`}
+                        >
+                          {/* Top Author Row */}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                style={{ backgroundColor: p.user?.avatarColor || '#6366f1' }}
+                              >
+                                {p.user?.initials || p.user?.name?.slice(0, 2)?.toUpperCase() || 'U'}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-slate-900 dark:text-white text-sm">
+                                    {p.user?.name || 'Unknown User'}
+                                  </span>
+                                  {p.user?.username && (
+                                    <span className="text-xs text-slate-400 dark:text-gray-500 font-mono">
+                                      @{p.user.username}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-slate-400 dark:text-gray-500">
+                                  {p.createdAt ? new Date(p.createdAt).toLocaleDateString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }) : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Moderation Actions */}
+                            <button
+                              disabled={deletingPostId === postId}
+                              onClick={() => handleDeletePost(postId)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 size={13} />
+                              {deletingPostId === postId ? 'Deleting...' : 'Delete Post'}
+                            </button>
+                          </div>
+
+                          {/* Caption */}
+                          {p.caption && (
+                            <p className="text-slate-800 dark:text-gray-200 text-sm mt-3 whitespace-pre-wrap leading-relaxed">
+                              {p.caption}
+                            </p>
+                          )}
+
+                          {/* Media Preview */}
+                          {p.imageUrl && (
+                            <div className="mt-3 rounded-xl overflow-hidden max-w-md border border-slate-200 dark:border-gray-800 bg-slate-100 dark:bg-gray-800">
+                              <img
+                                src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:3001${p.imageUrl}`}
+                                alt="Post media"
+                                className="w-full h-auto max-h-72 object-cover"
+                                onError={e => { e.currentTarget.style.display = 'none' }}
+                              />
+                            </div>
+                          )}
+
+                          {/* Tags */}
+                          {Array.isArray(p.tags) && p.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {p.tags.map((tag, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md"
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Stats footer */}
+                          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-gray-800 text-xs font-medium text-slate-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1.5">
+                              <Heart size={14} className="text-rose-500" />
+                              {p.likeCount ?? p.likes ?? 0} Likes
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <MessageSquare size={14} className="text-indigo-500" />
+                              {p.commentCount ?? 0} Comments
+                            </span>
+                            <span className="ml-auto text-[11px] text-slate-400 dark:text-gray-600 font-mono">
+                              ID: {postId}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
             </motion.div>
           ) : (
             /* Temporary placeholder for future dedicated pages */

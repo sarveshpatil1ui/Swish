@@ -22,32 +22,49 @@ export default function ProtectedRoute({ children, dashboardOnly = false, allowe
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
-  if (
-  requirePasswordChange &&
-  currentUser?.role === 'college_admin' &&
-  !currentUser?.mustChangePassword
-) {
-  return <Navigate to="/home" replace />
-}
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
 
- if (allowedRoles && !allowedRoles.includes(currentUser?.role)) {
-  if (currentUser?.role === 'admin') {
+  if (
+    requirePasswordChange &&
+    currentUser?.role === 'college_admin' &&
+    !currentUser?.mustChangePassword
+  ) {
+    return <Navigate to="/home" replace />
+  }
+
+  // Dashboard-only routes (/admin, /admin/pending-requests, etc.)
+  if (dashboardOnly) {
+    if (!isAdmin) {
+      return <Navigate to="/home" replace />
+    }
+    return children
+  }
+
+  // Role-restricted routes
+  if (allowedRoles) {
+    const isAllowed = allowedRoles.includes(currentUser?.role) || (allowedRoles.includes('admin') && isAdmin)
+    if (!isAllowed) {
+      if (isAdmin) {
+        return <Navigate to="/admin" replace />
+      }
+      if (currentUser?.role === 'college_admin') {
+        return <Navigate to="/college-admin" replace />
+      }
+      if (currentUser?.role === 'faculty') {
+        return <Navigate to="/faculty" replace />
+      }
+      return <Navigate to="/home" replace />
+    }
+    return children
+  }
+
+  // General student shell routes (/home, /messages, /explore, etc.)
+  // Admins must stay in the admin portal and not access student feed / direct messages
+  if (isAdmin) {
     return <Navigate to="/admin" replace />
   }
-
   if (currentUser?.role === 'college_admin') {
     return <Navigate to="/college-admin" replace />
-  }
-
-  if (currentUser?.role === 'faculty') {
-    return <Navigate to="/faculty" replace />
-  }
-
-  return <Navigate to="/home" replace />
-}
-
-  if (dashboardOnly && currentUser?.role !== 'admin') {
-    return <Navigate to="/home" replace />
   }
 
   return children

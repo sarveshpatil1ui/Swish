@@ -48,7 +48,7 @@ const UserSchema = new Schema(
 
     email:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role:         { type: String, enum: ['student', 'faculty', 'admin', 'college_admin'], required: true },
+    role:         { type: String, enum: ['student', 'faculty', 'admin', 'college_admin', 'main_admin'], required: true },
 
     isEmailVerified: { type: Boolean, default: false },
     otpHash:         { type: String, default: null },

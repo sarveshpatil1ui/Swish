@@ -261,8 +261,9 @@ router.delete('/:postId', requireAuth, async (req, res) => {
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
-    // Ownership check — only the post author can delete
-    if (post.user.toString() !== req.user.id) {
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    // Ownership check — author or admin can delete
+    if (post.user.toString() !== req.user.id && !isAdmin) {
       return res.status(403).json({ ok: false, error: 'You can only delete your own posts.' })
     }
 
@@ -272,9 +273,13 @@ router.delete('/:postId', requireAuth, async (req, res) => {
     // Remove the post itself
     await Post.findByIdAndDelete(post._id)
 
-    // Decrement user's post count
-    req.user.posts = Math.max(0, req.user.posts - 1)
-    await req.user.save()
+    // Decrement author's post count
+    if (post.user.toString() === req.user.id) {
+      req.user.posts = Math.max(0, req.user.posts - 1)
+      await req.user.save()
+    } else {
+      await User.findByIdAndUpdate(post.user, { $inc: { posts: -1 } })
+    }
 
     res.json({ ok: true, postId: req.params.postId })
   } catch (err) {

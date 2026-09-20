@@ -31,7 +31,7 @@ export async function requireAuth(req, res, next) {
     }
 
     // Check institution active status for non-admin users
-    if (user.role !== 'admin' && user.email) {
+    if (user.role !== 'admin' && user.role !== 'main_admin' && user.email) {
       const emailDomain = user.email.split('@')[1]
       if (emailDomain) {
         const college = await College.findOne({ domain: emailDomain.toLowerCase() })
@@ -66,7 +66,9 @@ export function requireRole(...roles) {
     if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Not authenticated.' })
     }
-    if (!roles.includes(req.user.role)) {
+    const userRole = req.user.role
+    const isAllowed = roles.includes(userRole) || (roles.includes('admin') && userRole === 'main_admin')
+    if (!isAllowed) {
       return res.status(403).json({
         ok: false,
         error: `Access denied. Required role: ${roles.join(' or ')}.`,

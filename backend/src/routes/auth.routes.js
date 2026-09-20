@@ -30,7 +30,7 @@ function computeInitials(name) {
 
 function avatarColorForRole(role) {
   if (role === 'faculty') return '#10b981'
-  if (role === 'admin')   return '#ef4444'
+  if (role === 'admin' || role === 'main_admin') return '#ef4444'
   return '#6366f1'
 }
 
@@ -60,7 +60,7 @@ function setAuthCookie(res, user) {
 
 /** Returns the role-specific post-login path. */
 function redirectPathForRole(role) {
-  if (role === 'admin')         return '/admin'
+  if (role === 'admin' || role === 'main_admin') return '/admin'
   if (role === 'college_admin') return '/college-admin'
   if (role === 'faculty')       return '/faculty'
   return '/home'
@@ -514,7 +514,7 @@ router.post(
       }
 
       // Check institution active status for non-admin users
-      if (user.role !== 'admin' && user.email) {
+      if (user.role !== 'admin' && user.role !== 'main_admin' && user.email) {
         const emailDomain = user.email.split('@')[1]
         if (emailDomain) {
           const college = await College.findOne({ domain: emailDomain.toLowerCase() })
