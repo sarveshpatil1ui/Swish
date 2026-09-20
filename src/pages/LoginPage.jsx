@@ -109,7 +109,7 @@ export default function LoginPage() {
   const fillDemo = (role = 'student') => {
     if (role === 'admin') {
       setEmail('admin@swish.com')
-      setPassword('admin123')
+      setPassword('SwishAdmin@2026')
     } else if (role === 'faculty') {
       setEmail('faculty@campus.edu')
       setPassword('faculty123')
