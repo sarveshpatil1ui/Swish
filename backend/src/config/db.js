@@ -8,8 +8,10 @@ export async function connectDB() {
 
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      // These are the recommended settings for Mongoose 8+
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000,   // fail fast if no server
+      socketTimeoutMS:          45000,  // drop dead sockets after 45s
+      maxPoolSize:              10,     // limit connections (Render free tier)
+      heartbeatFrequencyMS:     10000, // detect dropped connections faster
     })
     isConnected = true
     console.log('✅  MongoDB connected:', mongoose.connection.host)

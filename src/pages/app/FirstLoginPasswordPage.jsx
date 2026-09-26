@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getStoredToken } from '../../utils/auth'
 import {
   LockKeyhole,
   Eye,
@@ -83,12 +84,16 @@ export default function FirstLoginPasswordPage() {
     try {
       setLoading(true)
 
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const token = getStoredToken()
+
       const response = await fetch(
-        'http://localhost:3001/api/auth/change-password',
+        `${API_BASE}/api/auth/change-password`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
           credentials: 'include',
           body: JSON.stringify({

@@ -12,7 +12,7 @@
 import { randomInt } from 'crypto'
 import bcrypt from 'bcryptjs'
 
-const BCRYPT_ROUNDS = 10
+const BCRYPT_ROUNDS = 8  // OTP only: short-lived (10min) + attempt-limited (5 max) — 8 rounds is sufficient
 const OTP_LENGTH = 6
 
 /**

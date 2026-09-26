@@ -9,6 +9,8 @@ import {
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 const CAMPUS_TYPES = [
   'University / Deemed University',
   'Engineering & Technology Institute',
@@ -188,7 +190,7 @@ export default function CollegeOnboardingPage() {
 
     setOtpLoading(true)
     try {
-      const res = await fetch('http://localhost:3001/api/onboarding/request-otp', {
+      const res = await fetch(`${API_BASE}/api/onboarding/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +225,7 @@ export default function CollegeOnboardingPage() {
 
     setOtpLoading(true)
     try {
-      const res = await fetch('http://localhost:3001/api/onboarding/verify-otp', {
+      const res = await fetch(`${API_BASE}/api/onboarding/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -348,7 +350,7 @@ export default function CollegeOnboardingPage() {
 
     // ── 2. Request secure upload signature from backend ────────────────────
     const signatureRes = await fetch(
-      'http://localhost:3001/api/onboarding/proof-upload-signature',
+      `${API_BASE}/api/onboarding/proof-upload-signature`,
       {
         method: 'POST',
         headers: {
@@ -408,7 +410,7 @@ export default function CollegeOnboardingPage() {
 
     // ── 4. Submit onboarding request to backend ────────────────────────────
     const submitRes = await fetch(
-      'http://localhost:3001/api/onboarding/submit',
+      `${API_BASE}/api/onboarding/submit`,
       {
         method: 'POST',
         headers: {

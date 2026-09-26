@@ -20,9 +20,15 @@ export function initSocket(app) {
     cors: {
       origin: (origin, cb) => {
         if (!origin) return cb(null, true)
+        // Hardcoded production origins (mirrors Express CORS config)
+        const HARDCODED = new Set([
+          'https://swishh-5b494.web.app',
+          'https://swishh-5b494.firebaseapp.com',
+        ])
+        if (HARDCODED.has(origin)) return cb(null, true)
         if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true)
         if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true)
-        const allowed = (process.env.CLIENT_ORIGIN || '').split(',').map(s => s.trim())
+        const allowed = (process.env.CLIENT_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean)
         if (allowed.includes(origin)) return cb(null, true)
         cb(new Error('Socket CORS: origin not allowed'))
       },

@@ -336,82 +336,8 @@ router.post(
     }
   }
 )
-router.post(
-  '/change-password',
-  requireAuth,
-  async (req, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body
-
-      if (
-        typeof currentPassword !== 'string' ||
-        typeof newPassword !== 'string'
-      ) {
-        return res.status(400).json({
-          ok: false,
-          error: 'Current password and new password are required.',
-        })
-      }
-
-      if (!newPassword.trim()) {
-        return res.status(400).json({
-          ok: false,
-          error: 'New password cannot be empty.',
-        })
-      }
-
-      if (newPassword.length < 8) {
-        return res.status(400).json({
-          ok: false,
-          error: 'New password must be at least 8 characters long.',
-        })
-      }
-
-      if (currentPassword === newPassword) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            'New password must be different from the current password.',
-        })
-      }
-
-      const user = req.user
-
-      const passwordMatches = await bcrypt.compare(
-        currentPassword,
-        user.passwordHash
-      )
-
-      if (!passwordMatches) {
-        return res.status(401).json({
-          ok: false,
-          error: 'Current password is incorrect.',
-        })
-      }
-
-      user.passwordHash = await bcrypt.hash(
-        newPassword,
-        12
-      )
-
-      user.mustChangePassword = false
-
-      await user.save()
-
-      return res.status(200).json({
-        ok: true,
-        message: 'Password changed successfully.',
-      })
-    } catch (err) {
-      console.error('[POST /api/auth/change-password]', err)
-
-      return res.status(500).json({
-        ok: false,
-        error: 'Unable to change password.',
-      })
-    }
-  }
-)
+// NOTE: The change-password route is defined below after /login and /me.
+// It was previously duplicated here without input validation — that duplicate has been removed.
 
 router.post(
   '/login',
@@ -537,7 +463,10 @@ router.post(
         user.otpExpiresAt = otpExpiresAt()
         user.otpAttempts  = 0
         await user.save()
-        await sendOtpEmail(normalizedEmail, user.name, otp)
+        // Fire-and-forget — don't let a slow SMTP server block the 403 response
+        sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr =>
+          console.error('[login sendOtpEmail failed]', mErr.message)
+        )
 
         return res.status(403).json({
           ok: false,
@@ -576,7 +505,10 @@ router.post('/logout', (_req, res) => {
   res.clearCookie('swish_token', {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    // MUST match the sameSite value used in setAuthCookie:
+    // 'none' in production (cross-origin Firebase→Render), 'lax' in dev.
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path:     '/',
   })
   return res.status(200).json({ ok: true, message: 'Logged out successfully.' })
 })
