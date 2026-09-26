@@ -7,4 +7,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    include: ['socket.io-client'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/socket\.io-client/, /node_modules/],
+    },
+  },
 })
