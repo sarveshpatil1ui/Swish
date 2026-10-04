@@ -10,11 +10,18 @@ import { useSwish } from '../context/SwishContext'
 export default function ProtectedRoute({ children, dashboardOnly = false, allowedRoles,requirePasswordChange = false }) {
   const { isAuthenticated, currentUser, authLoading } = useSwish()
 
-  // While the /api/auth/me call is in-flight, show nothing (prevents flash redirect)
+  // While the /api/auth/me call is in-flight, show a clear loading state
+  // instead of a blank screen (prevents flash redirect).
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-3 bg-white dark:bg-gray-950"
+        role="status"
+        aria-live="polite"
+        aria-label="Checking your session"
+      >
         <div className="w-8 h-8 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+        <p className="text-sm text-slate-500 dark:text-gray-400">Checking your session…</p>
       </div>
     )
   }
