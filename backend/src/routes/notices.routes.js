@@ -8,6 +8,7 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 
 import Notice from '../models/Notice.js'
+import College from '../models/College.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -27,22 +28,30 @@ function handleValidationErrors(req, res) {
 }
 
 // Middleware to ensure user can only access their college's notices
-function requireCollegeAccess(req, res, next) {
-  if (req.user.role === 'admin') {
+async function requireCollegeAccess(req, res, next) {
+  if (req.user.role === 'admin' || req.user.role === 'main_admin') {
     // Super admin can access all
     return next()
   }
   if (req.user.role === 'college_admin') {
     // College admin can only access their own college
+    if (!req.user.collegeId) {
+      return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+    }
     req.collegeId = req.user.collegeId
-    req.collegeName = req.user.college
+    let collegeName = req.user.college
+    if (!collegeName || collegeName === req.user.collegeId.toString()) {
+      const col = await College.findById(req.user.collegeId)
+      if (col) collegeName = col.name
+    }
+    req.collegeName = collegeName || ''
     return next()
   }
   return res.status(403).json({ ok: false, error: 'Access denied.' })
 }
 
 // ── GET /api/notices ─────────────────────────────────────────────────────────
-// Get notices for the college admin's college
+// Get all notices for college admin (drafts + published)
 router.get('/', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { collegeId: req.collegeId }
@@ -54,8 +63,82 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin'), requireColle
   }
 })
 
+// ── GET /api/notices/college ─────────────────────────────────────────────────
+// Get published, active notices for the authenticated student/faculty/college_admin
+// Strict server-enforced college isolation using req.user.collegeId
+router.get('/college', requireAuth, async (req, res) => {
+  try {
+    // Determine user's college strictly from backend authenticated session
+    const userCollegeId = req.user.collegeId
+    if (!userCollegeId) {
+      return res.status(200).json({ ok: true, notices: [] })
+    }
+
+    const now = new Date()
+
+    // Base filter: strictly authenticated user's college, published, and not expired
+    const filter = {
+      collegeId: userCollegeId,
+      published: true,
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $gt: now } }
+      ]
+    }
+
+    // Role-based target audience filtering
+    if (req.user.role === 'student') {
+      const audienceOr = [
+        { targetAudience: 'all' },
+        { targetAudience: 'students' },
+        { targetAudience: null },
+        { targetAudience: { $exists: false } },
+      ]
+      if (req.user.dept) {
+        audienceOr.push({ targetAudience: 'department', department: req.user.dept })
+      }
+      filter.$and = [{ $or: audienceOr }]
+    } else if (req.user.role === 'faculty') {
+      const audienceOr = [
+        { targetAudience: 'all' },
+        { targetAudience: 'faculty' },
+        { targetAudience: null },
+        { targetAudience: { $exists: false } },
+      ]
+      if (req.user.dept) {
+        audienceOr.push({ targetAudience: 'department', department: req.user.dept })
+      }
+      filter.$and = [{ $or: audienceOr }]
+    }
+
+    const notices = await Notice.find(filter)
+      .populate('createdBy', 'name email designation role')
+      .sort({ createdAt: -1 })
+      .lean()
+
+    // Sort by priority (urgent > high > medium > low), then date descending
+    const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 }
+    notices.sort((a, b) => {
+      const pDiff = (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2)
+      if (pDiff !== 0) return pDiff
+      return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)
+    })
+
+    return res.status(200).json({
+      ok: true,
+      notices: notices.map(n => ({
+        ...n,
+        id: n._id.toString(),
+      }))
+    })
+  } catch (err) {
+    console.error('[GET /api/notices/college]', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch college notices.' })
+  }
+})
+
 // ── POST /api/notices ────────────────────────────────────────────────────────
-// Create a new notice
+// Create a new notice (college_admin or admin)
 router.post(
   '/',
   requireAuth,
@@ -74,11 +157,27 @@ router.post(
     try {
       const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
 
+      // Never trust client-supplied collegeId: strictly use authenticated admin's collegeId
+      const targetCollegeId = (req.user.role === 'admin' || req.user.role === 'main_admin')
+        ? (req.body.collegeId || req.collegeId)
+        : req.user.collegeId
+
+      if (!targetCollegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: No associated college found.' })
+      }
+
+      let colName = req.collegeName
+      if (!colName) {
+        const col = await College.findById(targetCollegeId)
+        if (col) colName = col.name
+      }
+      if (!colName) colName = 'College'
+
       const notice = await Notice.create({
         title: title.trim(),
         content: content.trim(),
-        collegeId: req.collegeId,
-        college: req.collegeName,
+        collegeId: targetCollegeId,
+        college: colName,
         departmentId: departmentId || null,
         department: department || null,
         targetAudience: targetAudience || 'all',
@@ -99,21 +198,36 @@ router.post(
 )
 
 // ── GET /api/notices/:id ─────────────────────────────────────────────────────
-// Get a specific notice
-router.get('/:id', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+// Get a specific notice (detail view)
+router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const filter = req.user.role === 'admin' 
-      ? { _id: req.params.id }
-      : { _id: req.params.id, collegeId: req.collegeId }
-    
-    const notice = await Notice.findOne(filter)
+    const notice = await Notice.findById(req.params.id)
+      .populate('createdBy', 'name email designation role')
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
+
+    // Super admin can access any notice
+    if (req.user.role === 'admin' || req.user.role === 'main_admin') {
+      return res.status(200).json({ ok: true, notice: notice.toJSON() })
+    }
+
+    // Enforce strict college boundary
+    if (!req.user.collegeId || !notice.collegeId.equals(req.user.collegeId)) {
+      return res.status(403).json({ ok: false, error: 'Access denied: You can only view notices from your college.' })
+    }
+
+    // Students and faculty can only view published notices
+    if ((req.user.role === 'student' || req.user.role === 'faculty') && !notice.published) {
+      return res.status(403).json({ ok: false, error: 'Access denied: Notice is not published.' })
     }
 
     return res.status(200).json({ ok: true, notice: notice.toJSON() })
   } catch (err) {
     console.error('[GET /notices/:id]', err)
+    if (err.name === 'CastError') {
+      return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
     res.status(500).json({ ok: false, error: 'Failed to fetch notice.' })
   }
 })

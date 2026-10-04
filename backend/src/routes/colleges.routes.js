@@ -13,8 +13,10 @@ import { body, query, validationResult } from 'express-validator'
 
 import College from '../models/College.js'
 import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
-import { requireAuth } from '../middleware/auth.middleware.js'
-import { requireRole } from '../middleware/auth.middleware.js'
+import User from '../models/User.js'
+import Department from '../models/Department.js'
+import Notice from '../models/Notice.js'
+import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
@@ -62,6 +64,75 @@ router.get('/my-college', requireAuth, requireRole('college_admin'), async (req,
   } catch (err) {
     console.error('[GET /colleges/my-college]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch college.' })
+  }
+})
+
+// ── GET /api/colleges/dashboard ─────────────────────────────────────────────
+// College admin dashboard statistics
+router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const filter = {}
+    const deptFilter = {}
+    const noticeFilter = {}
+    
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+      }
+      filter.collegeId = req.user.collegeId
+      deptFilter.collegeId = req.user.collegeId
+      noticeFilter.collegeId = req.user.collegeId
+    } else if (req.user.role === 'admin' && req.query.collegeId) {
+      filter.collegeId = req.query.collegeId
+      deptFilter.collegeId = req.query.collegeId
+      noticeFilter.collegeId = req.query.collegeId
+    }
+    
+    const now = new Date()
+
+    const [
+      totalStudents,
+      totalFaculty,
+      activeStudents,
+      activeFaculty,
+      suspendedStudents,
+      suspendedFaculty,
+      totalDepartments,
+      activeNotices,
+    ] = await Promise.all([
+      User.countDocuments({ ...filter, role: 'student' }),
+      User.countDocuments({ ...filter, role: 'faculty' }),
+      User.countDocuments({ ...filter, role: 'student', suspended: false, deactivated: false }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: false, deactivated: false }),
+      User.countDocuments({ ...filter, role: 'student', suspended: true }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: true }),
+      Department.countDocuments(deptFilter),
+      Notice.countDocuments({
+        ...noticeFilter,
+        published: true,
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $gt: now } }
+        ]
+      }),
+    ])
+    
+    res.json({
+      ok: true,
+      stats: {
+        totalStudents,
+        activeStudents,
+        suspendedStudents,
+        totalFaculty,
+        activeFaculty,
+        suspendedFaculty,
+        totalDepartments,
+        activeNotices,
+      }
+    })
+  } catch (err) {
+    console.error('[GET /colleges/dashboard]', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch dashboard statistics.' })
   }
 })
 

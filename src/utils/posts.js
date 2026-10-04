@@ -46,6 +46,7 @@ export function normalizePost(raw) {
     createdAt: formatRelativeTime(raw.createdAt),
     rawCreatedAt: raw.createdAt,
     imageUrl: resolveImageUrl(raw.imageUrl),
+    imagePublicId: raw.imagePublicId ?? null,
     ...FALLBACK_GRADIENT,
     caption: raw.caption ?? '',
     tags: raw.tags ?? [],

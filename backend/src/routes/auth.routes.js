@@ -146,6 +146,7 @@ router.post(
       const emailDomain = normalizedEmail.split('@')[1]
       const isAdminEmail = normalizedEmail === 'admin@swish.com'
       let collegeName = ''
+      let collegeId = null
       if (!isAdminEmail) {
         const college = await College.findOne({ domain: emailDomain, active: true })
         if (!college) {
@@ -155,6 +156,7 @@ router.post(
           })
         }
         collegeName = college.name || ''
+        collegeId = college._id
       } else {
         collegeName = 'Swish Admin'
       }
@@ -183,6 +185,7 @@ router.post(
         role,
         dept,
         college:      collegeName,
+        collegeId:    collegeId,
         isEmailVerified: false,
         otpHash,
         otpExpiresAt:    otpExpiresAt(),

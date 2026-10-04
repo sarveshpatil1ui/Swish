@@ -8,6 +8,7 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 
 import Department from '../models/Department.js'
+import College from '../models/College.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -27,15 +28,23 @@ function handleValidationErrors(req, res) {
 }
 
 // Middleware to ensure user can only access their college's departments
-function requireCollegeAccess(req, res, next) {
-  if (req.user.role === 'admin') {
+async function requireCollegeAccess(req, res, next) {
+  if (req.user.role === 'admin' || req.user.role === 'main_admin') {
     // Super admin can access all
     return next()
   }
   if (req.user.role === 'college_admin') {
     // College admin can only access their own college
+    if (!req.user.collegeId) {
+      return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+    }
     req.collegeId = req.user.collegeId
-    req.collegeName = req.user.college
+    let collegeName = req.user.college
+    if (!collegeName || collegeName === req.user.collegeId.toString()) {
+      const col = await College.findById(req.user.collegeId)
+      if (col) collegeName = col.name
+    }
+    req.collegeName = collegeName || ''
     return next()
   }
   return res.status(403).json({ ok: false, error: 'Access denied.' })
@@ -197,5 +206,25 @@ router.patch(
     }
   }
 )
+
+// ── DELETE /api/departments/:id ───────────────────────────────────────────────
+// Delete a department (college_admin or admin)
+router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+  try {
+    const filter = (req.user.role === 'admin' || req.user.role === 'main_admin')
+      ? { _id: req.params.id }
+      : { _id: req.params.id, collegeId: req.collegeId }
+    
+    const department = await Department.findOneAndDelete(filter)
+    if (!department) {
+      return res.status(404).json({ ok: false, error: 'Department not found.' })
+    }
+
+    return res.status(200).json({ ok: true, message: 'Department deleted successfully.' })
+  } catch (err) {
+    console.error('[DELETE /departments/:id]', err)
+    res.status(500).json({ ok: false, error: 'Failed to delete department.' })
+  }
+})
 
 export default router

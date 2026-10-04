@@ -46,7 +46,7 @@ export default function FacultyManagement() {
       const res = await apiToggleUserStatus(userId)
       if (res.ok) {
         setFaculty(prev => prev.map(f => 
-          f.id === userId ? { ...f, suspended: res.user.suspended } : f
+          (f.id === userId || f._id === userId) ? { ...f, suspended: res.user.suspended } : f
         ))
       } else {
         console.error('[FacultyManagement] Failed to update faculty status:', res.error)

@@ -331,7 +331,7 @@ router.post(
         passwordHash,
         role: 'college_admin',
         isEmailVerified: true,
-        college: college._id.toString(),
+        college: college.name,
         collegeId: college._id,
         mustChangePassword: true,
         designation: designation ? designation.trim() : '',
@@ -649,7 +649,7 @@ router.post(
 
         isEmailVerified: true,
 
-        college: college._id.toString(),
+        college: college.name,
 
         collegeId: college._id,
 

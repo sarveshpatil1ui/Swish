@@ -4,6 +4,8 @@ import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import { uploadProfilePhoto } from '../middleware/upload.middleware.js'
 import User from '../models/User.js'
 import Follow from '../models/Follow.js'
+import Department from '../models/Department.js'
+import Notice from '../models/Notice.js'
 
 const router = Router()
 
@@ -90,6 +92,105 @@ router.get('/all', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[GET /api/users/all]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch users.' })
+  }
+})
+
+// ── GET /api/users ───────────────────────────────────────────────────────────
+router.get('/', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
+  try {
+    const filter = {}
+    
+    // College admin can only see users from their college
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+      }
+      filter.collegeId = req.user.collegeId
+    } else if (req.user.role === 'faculty') {
+      if (!req.user.collegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: Faculty has no associated college.' })
+      }
+      filter.collegeId = req.user.collegeId
+      filter.role = 'student' // faculty only views students
+    } else if (req.user.role === 'admin' && req.query.collegeId) {
+      filter.collegeId = req.query.collegeId
+    }
+    
+    const users = await User.find(filter).sort({ createdAt: -1 })
+    res.json({ ok: true, users })
+  } catch (err) {
+    console.error('[GET /api/users] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch users.' })
+  }
+})
+
+// ── GET /api/users/stats ─────────────────────────────────────────────────────
+// Get dynamic statistics for college admin dashboard
+router.get('/stats', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const filter = {}
+    const deptFilter = {}
+    const noticeFilter = {}
+    
+    // College admin can only see stats from their college
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+      }
+      filter.collegeId = req.user.collegeId
+      deptFilter.collegeId = req.user.collegeId
+      noticeFilter.collegeId = req.user.collegeId
+    } else if (req.user.role === 'admin' && req.query.collegeId) {
+      filter.collegeId = req.query.collegeId
+      deptFilter.collegeId = req.query.collegeId
+      noticeFilter.collegeId = req.query.collegeId
+    }
+    
+    const now = new Date()
+
+    const [
+      totalStudents,
+      totalFaculty,
+      activeStudents,
+      activeFaculty,
+      suspendedStudents,
+      suspendedFaculty,
+      totalDepartments,
+      activeNotices,
+    ] = await Promise.all([
+      User.countDocuments({ ...filter, role: 'student' }),
+      User.countDocuments({ ...filter, role: 'faculty' }),
+      User.countDocuments({ ...filter, role: 'student', suspended: false, deactivated: false }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: false, deactivated: false }),
+      User.countDocuments({ ...filter, role: 'student', suspended: true }),
+      User.countDocuments({ ...filter, role: 'faculty', suspended: true }),
+      Department.countDocuments(deptFilter),
+      Notice.countDocuments({
+        ...noticeFilter,
+        published: true,
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $gt: now } }
+        ]
+      }),
+    ])
+    
+    res.json({
+      ok: true,
+      stats: {
+        totalStudents,
+        activeStudents,
+        suspendedStudents,
+        totalFaculty,
+        activeFaculty,
+        suspendedFaculty,
+        totalDepartments,
+        activeNotices,
+      }
+    })
+  } catch (err) {
+    console.error('[GET /api/users/stats] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch user statistics.' })
   }
 })
 
@@ -255,64 +356,12 @@ router.post('/upload-photo', requireAuth, (req, res) => {
   })
 })
 
-router.get('/', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
-  try {
-    const filter = {}
-    
-    // College admin can only see users from their college
-    if (req.user.role === 'college_admin' && req.user.collegeId) {
-      filter.collegeId = req.user.collegeId
-    }
-    
-    const users = await User.find(filter).sort({ createdAt: -1 })
-    res.json({ ok: true, users })
-  } catch (err) {
-    console.error('[GET /api/users] Error:', err)
-    res.status(500).json({ ok: false, error: 'Failed to fetch users.' })
-  }
-})
 
-// ── GET /api/users/stats ─────────────────────────────────────────────────────
-// Get user statistics for college admin dashboard
-router.get('/stats', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
-  try {
-    const filter = {}
-    
-    // College admin can only see stats from their college
-    if (req.user.role === 'college_admin' && req.user.collegeId) {
-      filter.collegeId = req.user.collegeId
-    }
-    
-    const [totalStudents, totalFaculty, activeStudents, activeFaculty, suspendedStudents, suspendedFaculty] = await Promise.all([
-      User.countDocuments({ ...filter, role: 'student' }),
-      User.countDocuments({ ...filter, role: 'faculty' }),
-      User.countDocuments({ ...filter, role: 'student', suspended: false }),
-      User.countDocuments({ ...filter, role: 'faculty', suspended: false }),
-      User.countDocuments({ ...filter, role: 'student', suspended: true }),
-      User.countDocuments({ ...filter, role: 'faculty', suspended: true }),
-    ])
-    
-    res.json({
-      ok: true,
-      stats: {
-        totalStudents,
-        totalFaculty,
-        activeStudents,
-        activeFaculty,
-        suspendedStudents,
-        suspendedFaculty,
-      }
-    })
-  } catch (err) {
-    console.error('[GET /api/users/stats] Error:', err)
-    res.status(500).json({ ok: false, error: 'Failed to fetch user statistics.' })
-  }
-})
 router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
   try {
     const { id } = req.params
 
-    if (id === req.user.id) {
+    if (id === req.user.id || id === req.user._id.toString()) {
       return res.status(403).json({ ok: false, error: 'You cannot suspend your own account.' })
     }
 
@@ -323,26 +372,31 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'colleg
 
     // College admin can only manage users from their college
     if (req.user.role === 'college_admin') {
-      if (!targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
         return res.status(403).json({ ok: false, error: 'You can only manage users from your college.' })
       }
-      // College admin cannot manage other college admins
-      if (targetUser.role === 'college_admin') {
-        return res.status(403).json({ ok: false, error: 'College admins cannot manage other college admins.' })
+      // College admin cannot manage other college admins or super admins
+      if (targetUser.role === 'college_admin' || targetUser.role === 'admin' || targetUser.role === 'main_admin') {
+        return res.status(403).json({ ok: false, error: 'College admins cannot manage admin accounts.' })
       }
     }
 
-    if (req.user.role === 'faculty' && targetUser.role !== 'student') {
-      return res.status(403).json({ ok: false, error: 'Faculty can only manage student accounts.' })
+    if (req.user.role === 'faculty') {
+      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'You can only manage users from your college.' })
+      }
+      if (targetUser.role !== 'student') {
+        return res.status(403).json({ ok: false, error: 'Faculty can only manage student accounts.' })
+      }
     }
-    if (req.user.role === 'admin' && targetUser.role === 'admin') {
+    if ((req.user.role === 'admin' || req.user.role === 'main_admin') && (targetUser.role === 'admin' || targetUser.role === 'main_admin')) {
       return res.status(403).json({ ok: false, error: 'Admins cannot suspend other admins.' })
     }
 
     targetUser.suspended = !targetUser.suspended
     await targetUser.save()
 
-    res.json({ ok: true, user: targetUser })
+    res.json({ ok: true, user: targetUser.toJSON() })
   } catch (err) {
     console.error('[PATCH /api/users/:id/status] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to update user status.' })

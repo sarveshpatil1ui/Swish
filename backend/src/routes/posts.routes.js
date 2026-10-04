@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { uploadPostPhoto } from '../middleware/upload.middleware.js'
+import { uploadPostImage, deletePostImage } from '../services/cloudinary.service.js'
 import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
@@ -54,8 +55,15 @@ router.post(
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
-    if (validationError) return
+    if (validationError) {
+      if (req.file?.buffer) {
+        req.file.buffer = null
+        delete req.file.buffer
+      }
+      return
+    }
 
+    let uploadedAsset = null
     try {
       const { caption = '' } = req.body
       let tags = req.body.tags || []
@@ -69,14 +77,33 @@ router.post(
       }
 
       let imageUrl = req.body.imageUrl || null
+      let imagePublicId = null
+
       if (req.file) {
-        imageUrl = `/uploads/posts/${req.file.filename}`
+        try {
+          uploadedAsset = await uploadPostImage(req.file.buffer)
+          imageUrl = uploadedAsset.secureUrl
+          imagePublicId = uploadedAsset.publicId
+        } catch (uploadErr) {
+          console.error('[POST /api/posts] Cloudinary upload error:', uploadErr)
+          return res.status(502).json({
+            ok: false,
+            error: 'Failed to upload image. Please try again.',
+          })
+        } finally {
+          // Immediately free up memory buffer so it is not retained
+          if (req.file) {
+            req.file.buffer = null
+            delete req.file.buffer
+          }
+        }
       }
 
       const post = await Post.create({
         user: req.user.id,
         caption,
         imageUrl,
+        imagePublicId,
         tags: Array.isArray(tags) ? tags : [],
       })
       req.user.posts += 1
@@ -85,6 +112,10 @@ router.post(
       const populated = await post.populate('user', 'name username initials avatarColor')
       res.status(201).json({ ok: true, post: serializePost(populated, req.user.id) })
     } catch (err) {
+      // Clean up orphaned Cloudinary asset if MongoDB document creation failed
+      if (uploadedAsset?.publicId) {
+        deletePostImage(uploadedAsset.publicId).catch(() => {})
+      }
       console.error('[POST /api/posts] Error:', err)
       res.status(500).json({ ok: false, error: 'Failed to create post.' })
     }
@@ -269,6 +300,13 @@ router.delete('/:postId', requireAuth, async (req, res) => {
 
     // Cascade: remove all comments on this post
     await Comment.deleteMany({ post: post._id })
+
+    // Clean up Cloudinary asset if post has one
+    if (post.imagePublicId) {
+      await deletePostImage(post.imagePublicId).catch(err => {
+        console.warn('[DELETE /api/posts] Failed to delete Cloudinary asset:', err)
+      })
+    }
 
     // Remove the post itself
     await Post.findByIdAndDelete(post._id)

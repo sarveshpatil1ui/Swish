@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
+import CollegeNoticePanel from '../../components/app/CollegeNoticePanel'
 
 function StatCard({
   icon: Icon,
@@ -505,6 +506,11 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             ================================================== */}
 
             <div className="space-y-6">
+
+              {/* ================================================
+                  COLLEGE NOTICES
+              ================================================= */}
+              <CollegeNoticePanel />
 
               {/* ================================================
                   STUDENTS BY DEPARTMENT

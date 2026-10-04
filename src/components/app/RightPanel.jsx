@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { TrendingUp, UserPlus, Hash } from 'lucide-react'
+import CollegeNoticePanel from './CollegeNoticePanel'
 
 // No backend API yet for trending topics or suggested users — will be populated once built
 const trendingTopics = []
@@ -19,6 +20,8 @@ export default function RightPanel() {
 
   return (
     <aside className="hidden xl:flex flex-col w-72 flex-shrink-0 sticky top-6 h-fit space-y-5 py-6 pr-4">
+      {/* College Notices Panel */}
+      <CollegeNoticePanel />
 
       {/* Trending Topics */}
       <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5">

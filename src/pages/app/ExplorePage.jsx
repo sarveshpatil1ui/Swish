@@ -3,18 +3,26 @@ import { Link } from 'react-router-dom'
 import { Search, TrendingUp, X, UserX, Loader2, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
+import { getStoredToken } from '../../utils/auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+function authHeaders(extra = {}) {
+  const token = getStoredToken()
+  const h = { ...extra }
+  if (token) h['Authorization'] = `Bearer ${token}`
+  return h
+}
+
 async function apiFetch(path) {
-  const res = await fetch(`${API}${path}`, { credentials: 'include' })
+  const res = await fetch(`${API}${path}`, { credentials: 'include', headers: authHeaders() })
   return res.json().catch(() => ({ ok: false }))
 }
 
 async function apiPost(path, body) {
   const res = await fetch(`${API}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     credentials: 'include',
     body: JSON.stringify(body),
   })
@@ -22,7 +30,7 @@ async function apiPost(path, body) {
 }
 
 async function apiDelete(path) {
-  const res = await fetch(`${API}${path}`, { method: 'DELETE', credentials: 'include' })
+  const res = await fetch(`${API}${path}`, { method: 'DELETE', credentials: 'include', headers: authHeaders() })
   return res.json().catch(() => ({ ok: false }))
 }
 

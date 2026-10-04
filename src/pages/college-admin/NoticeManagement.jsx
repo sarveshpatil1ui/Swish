@@ -93,10 +93,11 @@ export default function NoticeManagement() {
       return
     }
 
+    const noticeId = editingNotice.id || editingNotice._id
     try {
-      const res = await apiUpdateNotice(editingNotice.id, formData)
+      const res = await apiUpdateNotice(noticeId, formData)
       if (res.ok) {
-        setNotices(prev => prev.map(n => n.id === editingNotice.id ? res.notice : n))
+        setNotices(prev => prev.map(n => (n.id === noticeId || n._id === noticeId) ? res.notice : n))
         setEditingNotice(null)
         resetForm()
       } else {
@@ -113,7 +114,7 @@ export default function NoticeManagement() {
     try {
       const res = await apiDeleteNotice(id)
       if (res.ok) {
-        setNotices(prev => prev.filter(n => n.id !== id))
+        setNotices(prev => prev.filter(n => n.id !== id && n._id !== id))
       } else {
         console.error('[NoticeManagement] Failed to delete notice:', res.error)
       }
@@ -126,7 +127,7 @@ export default function NoticeManagement() {
     try {
       const res = await apiPublishNotice(id)
       if (res.ok) {
-        setNotices(prev => prev.map(n => n.id === id ? res.notice : n))
+        setNotices(prev => prev.map(n => (n.id === id || n._id === id) ? res.notice : n))
       } else {
         console.error('[NoticeManagement] Failed to toggle publish status:', res.error)
       }

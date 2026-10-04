@@ -141,8 +141,16 @@ export async function apiUploadProfilePhoto(file) {
   const formData = new FormData()
   formData.append('photo', file)
 
+  // FormData requests cannot use apiFetch (which sets Content-Type: application/json).
+  // Must add the Authorization header manually so the backend receives the Bearer token
+  // even when cross-origin cookies are unavailable (production: Firebase → Render).
+  const token = getStoredToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
   const res = await fetch(`${BASE_URL}/api/users/upload-photo`, {
     method: 'POST',
+    headers,
     credentials: 'include',
     body: formData,
   })
@@ -179,8 +187,16 @@ export async function apiCreatePost({ caption, imageFile, tags }) {
   if (imageFile) formData.append('photo', imageFile)
   if (tags && tags.length) formData.append('tags', JSON.stringify(tags))
 
+  // FormData requests cannot use apiFetch (which sets Content-Type: application/json).
+  // Must add the Authorization header manually so the backend receives the Bearer token
+  // even when cross-origin cookies are unavailable (production: Firebase → Render).
+  const token = getStoredToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
   const res = await fetch(`${BASE_URL}/api/posts`, {
     method: 'POST',
+    headers,
     credentials: 'include',
     body: formData,
   })
@@ -217,6 +233,74 @@ export async function apiDeletePost(postId) {
 /** On success: { ok: true, commentId, commentCount } */
 export async function apiDeleteComment(postId, commentId) {
   return apiFetch(`/api/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
+}
+
+/** On success: { ok: true, stories: Array } */
+export async function apiGetStories() {
+  return apiFetch('/api/stories')
+}
+
+/** On success: { ok: true, story } */
+export async function apiCreateStory({ imageFile, caption, expiresAt }) {
+  const formData = new FormData()
+  if (imageFile) formData.append('photo', imageFile)
+  if (caption) formData.append('caption', caption)
+  if (expiresAt) formData.append('expiresAt', expiresAt)
+
+  const token = getStoredToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${BASE_URL}/api/stories`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+  data._status = res.status
+  return data
+}
+
+/** On success: { ok: true, story } */
+export async function apiGetStoryById(storyId) {
+  return apiFetch(`/api/stories/${storyId}`)
+}
+
+/** On success: { ok: true, viewsCount } */
+export async function apiRecordStoryView(storyId) {
+  return apiFetch(`/api/stories/${storyId}/view`, { method: 'POST' })
+}
+
+/** On success: { ok: true, storyId, viewsCount, viewers: Array } */
+export async function apiGetStoryViewers(storyId) {
+  return apiFetch(`/api/stories/${storyId}/viewers`)
+}
+
+/** On success: { ok: true, story } */
+export async function apiUpdateStory(storyId, { imageFile, caption }) {
+  const formData = new FormData()
+  if (imageFile) formData.append('photo', imageFile)
+  if (caption !== undefined) formData.append('caption', caption)
+
+  const token = getStoredToken()
+  const headers = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${BASE_URL}/api/stories/${storyId}`, {
+    method: 'PUT',
+    headers,
+    credentials: 'include',
+    body: formData,
+  })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+  data._status = res.status
+  return data
+}
+
+/** On success: { ok: true, storyId } */
+export async function apiDeleteStory(storyId) {
+  return apiFetch(`/api/stories/${storyId}`, { method: 'DELETE' })
 }
 
 /** On success: { ok: true, users: Array } */
@@ -276,9 +360,25 @@ export async function apiToggleDepartment(id) {
   return apiFetch(`/api/departments/${id}/toggle`, { method: 'PATCH' })
 }
 
+export async function apiDeleteDepartment(id) {
+  return apiFetch(`/api/departments/${id}`, { method: 'DELETE' })
+}
+
+export async function apiGetCollegeDashboard() {
+  return apiFetch('/api/colleges/dashboard')
+}
+
 // ── Notices API ───────────────────────────────────────────────────────────────
 export async function apiGetNotices() {
   return apiFetch('/api/notices')
+}
+
+export async function apiGetCollegeNotices() {
+  return apiFetch('/api/notices/college')
+}
+
+export async function apiGetNoticeById(id) {
+  return apiFetch(`/api/notices/${id}`)
 }
 
 export async function apiCreateNotice(data) {

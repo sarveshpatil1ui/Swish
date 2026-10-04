@@ -8,14 +8,18 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
+import { getStoredToken } from '../../utils/auth'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 async function api(path, opts = {}) {
+  const token = getStoredToken()
+  const headers = { 'Content-Type': 'application/json', ...opts.headers }
+  if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(`${API}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
     credentials: 'include',
     ...opts,
+    headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   })
   return res.json().catch(() => ({ ok: false, error: 'Unexpected response.' }))

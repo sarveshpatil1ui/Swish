@@ -46,7 +46,7 @@ export default function StudentManagement() {
       const res = await apiToggleUserStatus(userId)
       if (res.ok) {
         setStudents(prev => prev.map(s => 
-          s.id === userId ? { ...s, suspended: res.user.suspended } : s
+          (s.id === userId || s._id === userId) ? { ...s, suspended: res.user.suspended } : s
         ))
       } else {
         console.error('[StudentManagement] Failed to update student status:', res.error)

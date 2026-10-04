@@ -20,6 +20,7 @@ import {
   apiGetUsers, apiToggleUserStatus,
   apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
+  apiGetStories, apiCreateStory, apiUpdateStory, apiDeleteStory,
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
   apiFetchFollowers, apiFetchFollowing,
   apiGetColleges, apiAddCollege, apiToggleCollege,
@@ -174,11 +175,50 @@ export function SwishProvider({ children }) {
     }
   }
 
+  // ── Stories (FR-Stories) ───────────────────────────────────────────────────
+  const [stories, setStories] = useState([])
+  const [storiesLoading, setStoriesLoading] = useState(false)
+
+  const fetchStories = async () => {
+    setStoriesLoading(true)
+    try {
+      const res = await apiGetStories()
+      if (res.ok) setStories(res.stories || [])
+    } catch (err) {
+      console.error('Failed to fetch stories:', err)
+    } finally {
+      setStoriesLoading(false)
+    }
+  }
+
+  const createStory = async ({ imageFile, caption, expiresAt }) => {
+    const res = await apiCreateStory({ imageFile, caption, expiresAt })
+    if (!res.ok) return { ok: false, error: res.error || 'Failed to create story.' }
+    setStories(prev => [res.story, ...prev])
+    return { ok: true, story: res.story }
+  }
+
+  const updateStory = async (storyId, { imageFile, caption }) => {
+    const res = await apiUpdateStory(storyId, { imageFile, caption })
+    if (!res.ok) return { ok: false, error: res.error || 'Failed to update story.' }
+    setStories(prev => prev.map(s => s.id === storyId ? res.story : s))
+    return { ok: true, story: res.story }
+  }
+
+  const deleteStory = async (storyId) => {
+    const res = await apiDeleteStory(storyId)
+    if (!res.ok) return { ok: false, error: res.error || 'Failed to delete story.' }
+    setStories(prev => prev.filter(s => s.id !== storyId))
+    return { ok: true }
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchPosts()
+      fetchStories()
     } else {
       setPosts([])
+      setStories([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
@@ -534,6 +574,13 @@ const domainApproved = async (email) => {
         deleteComment,
         hidePost,
         showPost,
+        // Stories
+        stories,
+        storiesLoading,
+        fetchStories,
+        createStory,
+        updateStory,
+        deleteStory,
         // Follow (FR-07)
         followUser,
         unfollowUser,

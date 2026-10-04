@@ -15,6 +15,7 @@ import departmentsRoutes from './routes/departments.routes.js'
 import noticesRoutes     from './routes/notices.routes.js'
 import onboardingRoutes  from './routes/onboarding.routes.js'
 import adminRoutes       from './routes/admin.routes.js'
+import storiesRoutes     from './routes/stories.routes.js'
 
 const app  = express()
 const PORT = process.env.PORT || 3001
@@ -94,6 +95,7 @@ app.use('/api/departments', departmentsRoutes)
 app.use('/api/notices',     noticesRoutes)
 app.use('/api/onboarding',  onboardingRoutes)
 app.use('/api/admin',       adminRoutes)
+app.use('/api/stories',     storiesRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })

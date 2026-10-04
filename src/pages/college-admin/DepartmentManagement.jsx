@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, Building2, Plus, Edit, Trash2, ToggleRight, ToggleLeft, User } from 'lucide-react'
-import { apiGetDepartments, apiCreateDepartment, apiUpdateDepartment, apiToggleDepartment } from '../../utils/auth'
+import { apiGetDepartments, apiCreateDepartment, apiUpdateDepartment, apiToggleDepartment, apiDeleteDepartment } from '../../utils/auth'
 
 export default function DepartmentManagement() {
   const [departments, setDepartments] = useState([])
@@ -98,12 +98,26 @@ export default function DepartmentManagement() {
     try {
       const res = await apiToggleDepartment(id)
       if (res.ok) {
-        setDepartments(prev => prev.map(d => d.id === id ? res.department : d))
+        setDepartments(prev => prev.map(d => (d.id === id || d._id === id) ? res.department : d))
       } else {
         console.error('[DepartmentManagement] Failed to toggle department status:', res.error)
       }
     } catch (err) {
       console.error('[DepartmentManagement] Error toggling department:', err)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this department?')) return
+    try {
+      const res = await apiDeleteDepartment(id)
+      if (res.ok) {
+        setDepartments(prev => prev.filter(d => d.id !== id && d._id !== id))
+      } else {
+        console.error('[DepartmentManagement] Failed to delete department:', res.error)
+      }
+    } catch (err) {
+      console.error('[DepartmentManagement] Error deleting department:', err)
     }
   }
 
@@ -295,7 +309,7 @@ export default function DepartmentManagement() {
                           <Edit size={16} className="text-slate-600 dark:text-gray-400" />
                         </button>
                         <button
-                          onClick={() => handleToggle(dept.id)}
+                          onClick={() => handleToggle(dept.id || dept._id)}
                           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title={dept.active ? 'Deactivate' : 'Activate'}
                         >
@@ -304,6 +318,13 @@ export default function DepartmentManagement() {
                           ) : (
                             <ToggleRight size={16} className="text-emerald-600 dark:text-emerald-400" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(dept.id || dept._id)}
+                          className="p-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} className="text-rose-600 dark:text-rose-400" />
                         </button>
                       </div>
                     </td>
