@@ -6,7 +6,7 @@ import {
   Mail, Lock, Heart, Users, Shield, Trophy, CheckCircle, RefreshCw,
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
-import { apiVerifyOtp, apiResendOtp } from '../utils/auth'
+import { apiVerifyOtp, apiResendOtp, redirectPathForRole } from '../utils/auth'
 
 // ── Tiny animated activity chip for the left panel ───────────────────────────
 function ActivityChip({ delay, children }) {
@@ -52,7 +52,7 @@ export default function LoginPage() {
     const result = await login(email, password)
     setLoading(false)
     if (result.ok) {
-      navigate(result.redirectTo)
+      navigate(result.redirectTo || redirectPathForRole(result.role), { replace: true })
     } else if (result.pendingVerification) {
       // Account exists but email not verified — show OTP step
       setPendingEmail(result.email || email.trim().toLowerCase())
@@ -90,7 +90,7 @@ export default function LoginPage() {
     setOtpLoading(false)
     if (result.ok) {
       onVerified(result.user)
-      navigate(result.redirectTo)
+      navigate(result.redirectTo || redirectPathForRole(result.user?.role), { replace: true })
     } else {
       setOtpError(result.error || 'Invalid or expired code.')
       if (result.expired) startResendCooldown(0)

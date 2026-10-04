@@ -339,7 +339,11 @@ export function SwishProvider({ children }) {
     }
     setCurrentUser(userWithPrefs)
     setIsAuthenticated(true)
-    return { ok: true, role: userWithPrefs.role, redirectTo: result.redirectTo }
+    return {
+      ok: true,
+      role: userWithPrefs.role,
+      redirectTo: result.redirectTo || redirectPathForRole(userWithPrefs.role),
+    }
   }
 
   // ── register ──────────────────────────────────────────────────────────────

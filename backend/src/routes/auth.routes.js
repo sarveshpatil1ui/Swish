@@ -359,11 +359,21 @@ router.post(
       // ── Demo user bypass for development/testing ─────────────────────────────
       const adminExpectedPass = (process.env.ADMIN_PASSWORD || 'SwishAdmin@2026').trim()
       const DEMO_USERS = {
-        'admin@swish.com': { password: adminExpectedPass, role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' },
+        'admin@swish.com':       { password: adminExpectedPass, role: 'admin',         college: '',            name: 'Admin User',         initials: 'AU', avatarColor: '#ef4444' },
+        'rahul@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Rahul Sharma',       initials: 'RS', avatarColor: '#6366f1', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024001' },
+        'student@campus.edu':    { password: 'student123',     role: 'student',       college: 'KJSCE Mumbai', name: 'Demo Student',        initials: 'DS', avatarColor: '#6366f1', dept: 'Computer Science',      year: '2nd Year', studentId: 'CS2024099' },
+        'priya@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Priya Desai',         initials: 'PD', avatarColor: '#ec4899', dept: 'Computer Science',      year: '3rd Year', studentId: 'CS2024042' },
+        'arjun@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Arjun Mehta',         initials: 'AM', avatarColor: '#f59e0b', dept: 'Electronics',             year: '4th Year', studentId: 'EC2023015' },
+        'sneha@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Sneha Iyer',          initials: 'SI', avatarColor: '#14b8a6', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024037' },
+        'faculty@campus.edu':    { password: 'faculty123',     role: 'faculty',       college: 'KJSCE Mumbai', name: 'Demo Faculty',         initials: 'DF', avatarColor: '#10b981', dept: 'Computer Science',      designation: 'Assistant Professor', employeeId: 'EMP2024001' },
+        'collegeadmin@campus.edu': { password: 'college123',   role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', dept: 'Administration', designation: 'College Administrator' },
       }
 
       const demoUser = DEMO_USERS[normalizedEmail]
-      const isDemoPasswordMatch = demoUser && (password === demoUser.password || (normalizedEmail === 'admin@swish.com' && password === 'admin123'))
+      const isDemoPasswordMatch = demoUser && (
+        password === demoUser.password ||
+        (normalizedEmail === 'admin@swish.com' && password === 'admin123')
+      )
       if (isDemoPasswordMatch) {
         // First try to find the database user created by seed script
         const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })
@@ -409,7 +419,11 @@ router.post(
           isEmailVerified: true,
           isDemo: true,
           mustChangePassword: false,
+          ...(demoUser.dept && { dept: demoUser.dept }),
+          ...(demoUser.year && { year: demoUser.year }),
+          ...(demoUser.studentId && { studentId: demoUser.studentId }),
           ...(demoUser.designation && { designation: demoUser.designation }),
+          ...(demoUser.employeeId && { employeeId: demoUser.employeeId }),
         }
 
         const result = await User.findOneAndUpdate(
