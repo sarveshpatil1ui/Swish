@@ -124,11 +124,11 @@ router.post(
           existing.otpExpiresAt = otpExpiresAt()
           existing.otpAttempts  = 0
           await existing.save()
-          try {
-            await sendOtpEmail(normalizedEmail, existing.name, otp)
-          } catch (mErr) {
+
+          // Send OTP email in background to avoid blocking HTTP response
+          sendOtpEmail(normalizedEmail, existing.name, otp).catch(mErr => {
             console.error('[sendOtpEmail failed]', mErr.message)
-          }
+          })
           return res.status(200).json({
             ok: true,
             pendingVerification: true,
@@ -200,11 +200,10 @@ router.post(
         }),
       })
 
-      try {
-        await sendOtpEmail(normalizedEmail, user.name, otp)
-      } catch (mErr) {
+      // Send OTP email in background to avoid blocking HTTP response
+      sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr => {
         console.error('[sendOtpEmail failed]', mErr.message)
-      }
+      })
 
       return res.status(201).json({
         ok: true,
@@ -323,11 +322,10 @@ router.post(
       user.otpAttempts  = 0
       await user.save()
 
-      try {
-        await sendOtpEmail(normalizedEmail, user.name, otp)
-      } catch (mErr) {
-        console.error('[sendOtpEmail failed]', mErr.message)
-      }
+      // Send OTP email in background to avoid blocking HTTP response
+      sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr => {
+        console.error('[resend-otp sendOtpEmail failed]', mErr.message)
+      })
 
       return res.status(200).json({
         ok: true,

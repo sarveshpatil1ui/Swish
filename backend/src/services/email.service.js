@@ -27,10 +27,18 @@ function getTransporter() {
     return null
   }
 
+  const port = Number(process.env.SMTP_PORT) || 587
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465
+
   _transporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
     host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
-    port:   Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
+    port,
+    secure,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,

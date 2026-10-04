@@ -77,11 +77,12 @@ router.post(
         })
       }
 
-      await sendOtpEmail(
+      // Send OTP email in background to avoid blocking HTTP response
+      sendOtpEmail(
         normalizedEmail,
         adminName && adminName.trim() ? adminName.trim() : 'Campus Administrator',
         otp
-      )
+      ).catch(mErr => console.error('[onboarding sendOtpEmail failed]', mErr.message))
 
       return res.status(200).json({
         ok: true,

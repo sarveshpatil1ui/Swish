@@ -1,0 +1,325 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - link "Swish Home" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]: Swish
+      - navigation "Main navigation" [ref=e12]:
+        - button "Home" [ref=e13] [cursor=pointer]
+        - button "Features" [ref=e14] [cursor=pointer]
+        - button "How it works" [ref=e15] [cursor=pointer]
+        - button "About" [ref=e16] [cursor=pointer]
+      - generic [ref=e17]:
+        - button "Switch to dark mode" [ref=e18]
+        - link "Login" [ref=e22] [cursor=pointer]:
+          - /url: /login
+        - link "Register Your College" [ref=e23] [cursor=pointer]:
+          - /url: /college-onboarding
+  - main [ref=e24]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]: Verified campus users only
+        - heading "Your Campus. Your Community. Your Swish." [level=1] [ref=e34]
+        - paragraph [ref=e35]: A private social space built exclusively for your campus. Share moments, celebrate achievements, connect with classmates, and discover what's happening around you.
+        - generic [ref=e36]:
+          - link "Register Your College" [ref=e37] [cursor=pointer]:
+            - /url: /college-onboarding
+          - button "Explore Swish" [ref=e40]
+        - paragraph [ref=e41]:
+          - text: Is your college not on Swish yet?
+          - link "Register your college →" [ref=e42] [cursor=pointer]:
+            - /url: /college-onboarding
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: AS
+            - generic [ref=e46]: KM
+            - generic [ref=e47]: RJ
+            - generic [ref=e48]: PP
+          - paragraph [ref=e49]: 2,400+ campus members already joined
+      - generic [ref=e51]:
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e56]: PS
+              - generic [ref=e57]:
+                - paragraph [ref=e58]: Priya Singhal
+                - paragraph [ref=e59]: Computer Science · 2nd Year
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - paragraph [ref=e62]: "47"
+                - paragraph [ref=e63]: Posts
+              - generic [ref=e64]:
+                - paragraph [ref=e65]: "312"
+                - paragraph [ref=e66]: Followers
+              - generic [ref=e67]:
+                - paragraph [ref=e68]: "98"
+                - paragraph [ref=e69]: Following
+            - button "Follow" [ref=e70]
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e73]:
+                - generic [ref=e74]: RS
+                - generic [ref=e75]:
+                  - paragraph [ref=e76]: Rahul Sharma
+                  - paragraph [ref=e77]: IT · 3rd Year
+              - button "Follow" [ref=e78]
+            - generic [ref=e79]:
+              - generic [ref=e87]: Campus Hackathon 2026
+              - generic [ref=e88]: 🏆 1st Place
+              - generic [ref=e89]:
+                - generic [ref=e90]: "#Hackathon"
+                - generic [ref=e91]: "#Build"
+            - paragraph [ref=e93]: From idea to first place 🏆 What a day! Grateful for the team 🔥
+            - generic [ref=e94]:
+              - button "128" [ref=e95]
+              - button "24" [ref=e99]
+        - generic [ref=e103]:
+          - generic [ref=e104]: ❤️
+          - paragraph [ref=e105]: Priya liked your post
+        - generic [ref=e106]:
+          - generic [ref=e107]: 👤
+          - paragraph [ref=e108]: Aarav started following you
+    - generic [ref=e111]:
+      - generic [ref=e112]:
+        - paragraph [ref=e113]: Why Swish?
+        - heading "Built for your campus, not the entire internet." [level=2] [ref=e114]
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - heading "Verified Community" [level=3] [ref=e121]
+          - paragraph [ref=e122]: Only verified campus email holders can join — no outsiders, no anonymous accounts.
+        - generic [ref=e123]:
+          - heading "Campus Connections" [level=3] [ref=e128]
+          - paragraph [ref=e129]: Connect with students, faculty, clubs, and your entire academic community.
+        - generic [ref=e130]:
+          - heading "Safe & Moderated" [level=3] [ref=e134]
+          - paragraph [ref=e135]: Built-in reporting and admin moderation keeps the environment respectful.
+    - generic [ref=e137]:
+      - generic [ref=e138]:
+        - paragraph [ref=e139]: Features
+        - heading "Everything your campus community needs." [level=2] [ref=e140]
+        - paragraph [ref=e141]: From sharing moments to discovering events — all the social tools your campus needs, nothing it doesn't.
+      - generic [ref=e142]:
+        - generic [ref=e143]:
+          - heading "Share Campus Moments" [level=3] [ref=e148]
+          - paragraph [ref=e149]: Post photos, achievements, event highlights and updates with your campus community.
+          - generic [ref=e150]:
+            - generic [ref=e151]: Photos
+            - generic [ref=e152]: Achievements
+            - generic [ref=e153]: Events
+            - generic [ref=e154]: Updates
+        - generic [ref=e155]:
+          - heading "Engage" [level=3] [ref=e159]
+          - paragraph [ref=e160]: Like and comment on posts from across your campus.
+        - generic [ref=e161]:
+          - heading "Follow People" [level=3] [ref=e168]
+          - paragraph [ref=e169]: Follow classmates, faculty, and campus profiles.
+        - generic [ref=e170]:
+          - heading "Explore" [level=3] [ref=e175]
+          - paragraph [ref=e176]: Discover trending posts, events, and people on your campus.
+        - generic [ref=e177]:
+          - heading "Stay Updated" [level=3] [ref=e182]
+          - paragraph [ref=e183]: Get notified instantly for likes, comments, and new followers.
+        - generic [ref=e184]:
+          - heading "Built-in Moderation" [level=3] [ref=e189]
+          - paragraph [ref=e190]: Report content and trust that admins keep the space appropriate.
+    - generic [ref=e192]:
+      - generic [ref=e193]:
+        - paragraph [ref=e194]: Product
+        - heading "A social experience designed for campus life." [level=2] [ref=e195]
+        - paragraph [ref=e196]: Built with real campus workflows in mind — not a one-size-fits-all social feed.
+      - generic [ref=e197]:
+        - generic [ref=e198]:
+          - generic [ref=e199]: app.swish.campus
+          - generic [ref=e205]:
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: S
+                - generic [ref=e210]: Swish
+              - generic [ref=e211]: Home
+              - generic [ref=e216]: Explore
+              - generic [ref=e221]: Create
+              - generic [ref=e225]:
+                - generic [ref=e229]: Notifications
+                - generic [ref=e230]: "3"
+              - generic [ref=e231]: Profile
+            - generic [ref=e236]:
+              - generic [ref=e237]:
+                - paragraph [ref=e238]: Campus Feed
+                - generic [ref=e239]: Following
+              - generic [ref=e240]:
+                - generic [ref=e241]:
+                  - generic [ref=e242]: AK
+                  - generic [ref=e243]:
+                    - paragraph [ref=e244]: Ananya Kapoor
+                    - paragraph [ref=e245]: Design · Final Year
+                - generic [ref=e246]:
+                  - generic [ref=e247]: 🎨
+                  - generic [ref=e248]: "#DesignFest"
+                - generic [ref=e249]:
+                  - paragraph [ref=e250]: Showcased our UI project at DesignFest today! The feedback was incredible 🙌
+                  - generic [ref=e251]:
+                    - generic [ref=e252]: "94"
+                    - generic [ref=e255]: "17"
+              - generic [ref=e258]:
+                - generic [ref=e259]:
+                  - generic [ref=e260]: RV
+                  - generic [ref=e261]:
+                    - paragraph [ref=e262]: Rohan Verma
+                    - paragraph [ref=e263]: Mechanical · 2nd Year
+                - generic [ref=e264]:
+                  - generic [ref=e265]: 🤖
+                  - generic [ref=e266]: "#Robotics"
+                - generic [ref=e267]:
+                  - paragraph [ref=e268]: Robotics club session — built something wild today. More soon!
+                  - generic [ref=e269]:
+                    - generic [ref=e270]: "71"
+                    - generic [ref=e273]: "9"
+        - generic [ref=e276]:
+          - generic [ref=e277]: ❤️
+          - generic [ref=e278]:
+            - paragraph [ref=e279]: Priya liked your post
+            - paragraph [ref=e280]: 2 minutes ago
+        - generic [ref=e281]:
+          - generic [ref=e282]: 🔥
+          - generic [ref=e283]:
+            - paragraph [ref=e284]: Campus Hackathon trending
+            - paragraph [ref=e285]: 128 posts this week
+        - generic [ref=e286]:
+          - generic [ref=e287]: 👤
+          - generic [ref=e288]:
+            - paragraph [ref=e289]: Aarav started following you
+            - paragraph [ref=e290]: Just now
+    - generic [ref=e292]:
+      - generic [ref=e293]:
+        - paragraph [ref=e294]: How it works
+        - heading "Join your campus in three simple steps." [level=2] [ref=e295]
+      - generic [ref=e298]:
+        - generic [ref=e299]:
+          - generic [ref=e300]:
+            - generic [ref=e301]: "01"
+            - generic [ref=e302]: Verify
+          - paragraph [ref=e303]: Sign up with your campus email. Your institutional credentials confirm your identity — no outsiders allowed.
+        - generic [ref=e304]:
+          - generic [ref=e305]:
+            - generic [ref=e306]: "02"
+            - generic [ref=e307]: Connect
+          - paragraph [ref=e308]: Set up your profile and follow classmates, faculty, and campus clubs that matter to you.
+        - generic [ref=e309]:
+          - generic [ref=e310]:
+            - generic [ref=e311]: "03"
+            - generic [ref=e312]: Share
+          - paragraph [ref=e313]: Post moments, achievements, and updates. Your audience is your campus community.
+    - generic [ref=e316]:
+      - generic [ref=e317]:
+        - paragraph [ref=e318]: Community
+        - heading "One community. Every side of campus life." [level=2] [ref=e319]
+        - paragraph [ref=e320]: Whether you're sharing a project win, discovering a campus event, celebrating your team, or simply keeping up with friends — Swish brings campus life together.
+        - generic [ref=e321]:
+          - generic [ref=e322]: Private
+          - generic [ref=e323]: Verified
+          - generic [ref=e324]: Moderated
+          - generic [ref=e325]: Campus-only
+      - generic [ref=e326]:
+        - generic [ref=e327]:
+          - generic [ref=e328]: 🎓
+          - heading "Students" [level=3] [ref=e329]
+          - paragraph [ref=e330]: Share projects, celebrate wins, and stay connected with batchmates across departments.
+          - text: 2,100+ students
+        - generic [ref=e331]:
+          - generic [ref=e332]: 👨‍🏫
+          - heading "Faculty" [level=3] [ref=e333]
+          - paragraph [ref=e334]: Engage with students beyond the classroom and share academic insights.
+          - text: 180+ faculty
+        - generic [ref=e335]:
+          - generic [ref=e336]: 🏆
+          - heading "Clubs & Communities" [level=3] [ref=e337]
+          - paragraph [ref=e338]: Keep members updated and grow your club with event posts and announcements.
+          - text: 60+ clubs
+        - generic [ref=e339]:
+          - generic [ref=e340]: 🎉
+          - heading "Campus Events" [level=3] [ref=e341]
+          - paragraph [ref=e342]: Discover upcoming fests, hackathons, and social gatherings on campus.
+          - text: Events daily
+    - generic [ref=e345]:
+      - generic [ref=e347]:
+        - paragraph [ref=e361]: 🔒 End-to-end verified
+        - paragraph [ref=e363]: ✅ Campus-only access
+      - generic [ref=e364]:
+        - generic [ref=e365]:
+          - paragraph [ref=e366]: Privacy & Security
+          - heading "Your campus. Your privacy." [level=2] [ref=e367]
+          - paragraph [ref=e368]: Swish is designed with privacy and campus safety as core principles — not afterthoughts.
+        - generic [ref=e369]:
+          - generic [ref=e376]:
+            - paragraph [ref=e377]: Verified Campus Access
+            - paragraph [ref=e378]: Only users with valid campus credentials can create an account.
+          - generic [ref=e384]:
+            - paragraph [ref=e385]: Secure Authentication
+            - paragraph [ref=e386]: JWT-based auth with role-based access control for all users.
+          - generic [ref=e391]:
+            - paragraph [ref=e392]: Role-Based Permissions
+            - paragraph [ref=e393]: Students, faculty, and admins each have distinct access levels.
+          - generic [ref=e403]:
+            - paragraph [ref=e404]: Protected Image Uploads
+            - paragraph [ref=e405]: Images are processed securely and never publicly indexed.
+          - generic [ref=e410]:
+            - paragraph [ref=e411]: Content Reporting
+            - paragraph [ref=e412]: Report inappropriate content directly from any post.
+          - generic [ref=e418]:
+            - paragraph [ref=e419]: Admin Moderation
+            - paragraph [ref=e420]: Trained campus admins review reports and manage user safety.
+    - generic [ref=e423]:
+      - generic [ref=e424]:
+        - generic [ref=e425]: Now accepting campus applications
+        - heading "Ready to make your campus more connected?" [level=2] [ref=e428]
+        - paragraph [ref=e429]: Join the social network built exclusively for your campus community. Verified, private, and designed for student life.
+        - generic [ref=e430]:
+          - link "Join Swish" [ref=e431] [cursor=pointer]:
+            - /url: /college-onboarding
+          - link "Already a member? Log in" [ref=e434] [cursor=pointer]:
+            - /url: /login
+      - generic [ref=e435]:
+        - generic [ref=e436]: 🔒 Campus-verified only
+        - generic [ref=e437]: 🎓 Students & Faculty
+        - generic [ref=e438]: 🛡️ Moderated community
+  - contentinfo "Footer" [ref=e439]:
+    - generic [ref=e440]:
+      - generic [ref=e441]:
+        - generic [ref=e442]:
+          - link "Swish home" [ref=e443] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e447]: Swish
+          - paragraph [ref=e448]: Your Campus. Your Community.
+          - paragraph [ref=e449]: A private social network for verified campus communities.
+        - generic [ref=e450]:
+          - paragraph [ref=e451]: Product
+          - list [ref=e452]:
+            - listitem [ref=e453]:
+              - button "Home" [ref=e454]
+            - listitem [ref=e455]:
+              - button "Explore" [ref=e456]
+            - listitem [ref=e457]:
+              - button "Features" [ref=e458]
+            - listitem [ref=e459]:
+              - button "About" [ref=e460]
+        - generic [ref=e461]:
+          - paragraph [ref=e462]: Legal
+          - list [ref=e463]:
+            - listitem [ref=e464]:
+              - button "Privacy Policy" [ref=e465]
+            - listitem [ref=e466]:
+              - button "Terms of Service" [ref=e467]
+            - listitem [ref=e468]:
+              - button "Campus Guidelines" [ref=e469]
+        - generic [ref=e470]:
+          - paragraph [ref=e471]: Platform
+          - list [ref=e472]:
+            - listitem [ref=e473]:
+              - button "How it Works" [ref=e474]
+            - listitem [ref=e475]:
+              - button "Security" [ref=e476]
+            - listitem [ref=e477]:
+              - button "Community" [ref=e478]
+      - generic [ref=e479]:
+        - paragraph [ref=e480]: © 2026 Swish. Built for campus communities.
+        - paragraph [ref=e481]: Crafted with ♥ for students

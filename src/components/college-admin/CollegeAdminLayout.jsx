@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -45,28 +45,58 @@ export default function CollegeAdminLayout() {
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300">
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-slate-600 dark:text-gray-400"
+            aria-label="Open menu"
           >
-            <Menu size={20} className="text-slate-600 dark:text-gray-400" />
+            <Menu size={20} />
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
               <Zap size={14} className="text-white fill-white" />
             </div>
             <div>
-              <h1 className="text-slate-900 dark:text-white font-semibold text-sm">
+              <h1 className="text-slate-900 dark:text-white font-semibold text-sm leading-tight">
                 Swish
               </h1>
-              <p className="text-slate-500 dark:text-gray-500 text-xs">
+              <p className="text-slate-500 dark:text-gray-400 text-[11px] leading-tight">
                 College Admin
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Right actions: Theme toggle + Account Profile */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={toggle}
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 active:scale-90 transition-all"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {dark ? (
+                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <Sun size={18} className="text-amber-400" />
+                </motion.span>
+              ) : (
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <Moon size={18} className="text-slate-600" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+
+          <Link
+            to="/college-admin/profile"
+            aria-label="Admin Profile"
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold ring-2 ring-indigo-500/20 active:scale-95 transition-transform"
+          >
+            {currentUser?.initials || 'A'}
+          </Link>
         </div>
       </div>
 
