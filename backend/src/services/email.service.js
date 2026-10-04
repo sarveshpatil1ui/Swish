@@ -48,18 +48,99 @@ function getTransporter() {
   return _transporter
 }
 
+export function hasEmailProvider() {
+  if (process.env.RESEND_API_KEY) return true
+  if (process.env.BREVO_API_KEY) return true
+  const hasCredentials = process.env.SMTP_USER && process.env.SMTP_PASS &&
+    !process.env.SMTP_USER.includes('your-gmail')
+  return !!hasCredentials
+}
+
+/**
+ * Universal email dispatcher:
+ * 1. Resend HTTP API (Port 443 / HTTPS - works on Render Free tier)
+ * 2. Brevo HTTP API (Port 443 / HTTPS - works on Render Free tier)
+ * 3. Nodemailer SMTP (Localhost or unblocked hosts)
+ */
+export async function dispatchEmail({ to, subject, html, text }) {
+  const from = process.env.EMAIL_FROM || '"Swish Campus 🎓" <noreply@swish.com>'
+
+  // 1. Resend HTTP API (Port 443 HTTPS)
+  if (process.env.RESEND_API_KEY) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM || from,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      console.error('[Resend Error]', data)
+      throw new Error(data.message || 'Resend email dispatch failed')
+    }
+    return data
+  }
+
+  // 2. Brevo HTTP API (Port 443 HTTPS)
+  if (process.env.BREVO_API_KEY) {
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'swishh.project@gmail.com'
+    const senderName = process.env.BREVO_SENDER_NAME || 'Swish Campus 🎓'
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      console.error('[Brevo Error]', data)
+      throw new Error(data.message || 'Brevo email dispatch failed')
+    }
+    return data
+  }
+
+  // 3. Nodemailer SMTP (Fallback for localhost)
+  const transporter = getTransporter()
+  if (transporter) {
+    return await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      text,
+    })
+  }
+
+  throw new Error('No email provider configured and transporter unavailable.')
+}
+
 /**
  * Sends the OTP email.
- * If SMTP is not configured, logs the OTP to the console instead.
+ * If SMTP/HTTP API is not configured, logs the OTP to the console instead.
  *
  * @param {string} to    - recipient email address
  * @param {string} name  - recipient display name
  * @param {string} otp   - 6-digit plain-text OTP (before it's hashed in DB)
  */
 export async function sendOtpEmail(to, name, otp) {
-  const transporter = getTransporter()
-
-  if (!transporter) {
+  if (!hasEmailProvider()) {
     // Dev fallback — log to console
     console.log(`\n📬  [DEV EMAIL — OTP not actually sent]`)
     console.log(`  To:   ${to}`)
@@ -152,8 +233,7 @@ export async function sendOtpEmail(to, name, otp) {
 </html>
   `.trim()
 
-  await transporter.sendMail({
-    from,
+  await dispatchEmail({
     to,
     subject: `${otp} is your Swish verification code`,
     html,
@@ -177,9 +257,7 @@ export async function sendCollegeAdminCredentialsEmail(
   loginId,
   temporaryPassword
 ) {
-  const transporter = getTransporter()
-
-  if (!transporter) {
+  if (!hasEmailProvider()) {
     console.log(`\n📬 [DEV EMAIL — CREDENTIALS not actually sent]`)
     console.log(`  To:                 ${to}`)
     console.log(`  Name:               ${name}`)
@@ -430,8 +508,7 @@ Regards,
 SWISH Administration
   `.trim()
 
-  await transporter.sendMail({
-    from,
+  await dispatchEmail({
     to,
     subject: `Welcome to SWISH — College Registration Approved`,
     html,
@@ -452,9 +529,7 @@ export async function sendCollegeRegistrationRejectedEmail(
   collegeName,
   reason
 ) {
-  const transporter = getTransporter()
-
-  if (!transporter) {
+  if (!hasEmailProvider()) {
     console.log(`\n📬 [DEV EMAIL — REJECTION not actually sent]`)
     console.log(`  To:       ${to}`)
     console.log(`  Name:     ${name}`)
@@ -587,8 +662,7 @@ Regards,
 SWISH Administration
   `.trim()
 
-  await transporter.sendMail({
-    from,
+  await dispatchEmail({
     to,
     subject: `Update regarding your ${collegeName} registration request`,
     html,
