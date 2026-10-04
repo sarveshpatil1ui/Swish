@@ -8,21 +8,51 @@ import nodemailer from 'nodemailer'
 
 let _transporter = null
 
+// HTTPS email provider (Resend). Works on hosts that block outbound SMTP
+// ports (e.g. Render free tier). Takes priority over SMTP when RESEND_API_KEY is set.
+function createResendTransport() {
+  return {
+    async sendMail({ from, to, subject, html, text }) {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 10000)
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ from, to: [to], subject, html, text }),
+          signal: ctrl.signal,
+        })
+        if (!res.ok) {
+          const body = await res.text().catch(() => '')
+          throw new Error(`Resend API ${res.status}: ${body.slice(0, 200)}`)
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+  }
+}
+
 function getTransporter() {
   if (_transporter) return _transporter
+
+  if (process.env.RESEND_API_KEY) {
+    _transporter = createResendTransport()
+    return _transporter
+  }
 
   const isDev = process.env.NODE_ENV !== 'production'
   const hasCredentials = process.env.SMTP_USER && process.env.SMTP_PASS &&
     !process.env.SMTP_USER.includes('your-gmail')
 
   if (!hasCredentials) {
-    // No credentials: use a no-op transporter that logs instead of sending
-    if (isDev) {
-      console.warn(
-        '⚠️  [Email] SMTP credentials not set. Emails will be logged to console.\n' +
-        '   Set SMTP_USER and SMTP_PASS in backend/.env to send real emails.'
-      )
-    }
+    console.warn(
+      '[Email] No RESEND_API_KEY or SMTP credentials set. Emails are only logged to console' +
+      (isDev ? '.' : ' — users will NOT receive OTPs in production!')
+    )
     _transporter = null
     return null
   }
@@ -35,6 +65,10 @@ function getTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Fail fast instead of hanging ~2 min when the SMTP port is blocked
+    connectionTimeout: 8000,
+    greetingTimeout:   8000,
+    socketTimeout:     10000,
   })
 
   return _transporter
