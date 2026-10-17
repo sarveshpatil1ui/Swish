@@ -106,10 +106,9 @@ router.post(
         imagePublicId,
         tags: Array.isArray(tags) ? tags : [],
       })
-      req.user.posts += 1
-      await req.user.save()
+      await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })
 
-      const populated = await post.populate('user', 'name username initials avatarColor')
+      const populated = await post.populate('user', 'name username initials avatarColor profilePhoto')
       res.status(201).json({ ok: true, post: serializePost(populated, req.user.id) })
     } catch (err) {
       // Clean up orphaned Cloudinary asset if MongoDB document creation failed
@@ -124,11 +123,31 @@ router.post(
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const posts = await Post.find({})
-      .sort({ createdAt: -1 })
-      .populate('user', 'name username initials avatarColor')
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
+    const cursor = req.query.cursor // ISO date string of last-seen createdAt
 
-    res.json({ ok: true, posts: posts.map(p => serializePost(p, req.user.id)) })
+    const filter = cursor
+      ? { createdAt: { $lt: new Date(cursor) } }
+      : {}
+
+    const posts = await Post.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit + 1)
+      .populate('user', 'name username initials avatarColor profilePhoto')
+
+    const hasMore = posts.length > limit
+    if (hasMore) posts.pop()
+
+    const nextCursor = hasMore && posts.length > 0
+      ? posts[posts.length - 1].createdAt.toISOString()
+      : null
+
+    res.json({
+      ok: true,
+      posts: posts.map(p => serializePost(p, req.user.id)),
+      nextCursor,
+      hasMore,
+    })
   } catch (err) {
     console.error('[GET /api/posts] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch posts.' })
@@ -259,8 +278,12 @@ router.post(
         text: req.body.text,
       })
 
-      post.commentCount += 1
-      await post.save()
+      // Atomic increment
+      const updatedPost = await Post.findByIdAndUpdate(
+        req.params.postId,
+        { $inc: { commentCount: 1 } },
+        { new: true }
+      )
 
       res.status(201).json({
         ok: true,
@@ -273,7 +296,7 @@ router.post(
           text: comment.text,
           createdAt: comment.createdAt,
         },
-        commentCount: post.commentCount,
+        commentCount: updatedPost ? updatedPost.commentCount : 1,
       })
     } catch (err) {
       console.error('[POST /api/posts/:postId/comments] Error:', err)
@@ -311,13 +334,10 @@ router.delete('/:postId', requireAuth, async (req, res) => {
     // Remove the post itself
     await Post.findByIdAndDelete(post._id)
 
-    // Decrement author's post count
-    if (post.user.toString() === req.user.id) {
-      req.user.posts = Math.max(0, req.user.posts - 1)
-      await req.user.save()
-    } else {
-      await User.findByIdAndUpdate(post.user, { $inc: { posts: -1 } })
-    }
+    // Decrement author's post count atomically
+    await User.findByIdAndUpdate(post.user, [
+      { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } }
+    ])
 
     res.json({ ok: true, postId: req.params.postId })
   } catch (err) {
@@ -351,11 +371,18 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res) => {
 
     await Comment.findByIdAndDelete(comment._id)
 
-    // Decrement comment count
-    post.commentCount = Math.max(0, post.commentCount - 1)
-    await post.save()
+    // Decrement comment count atomically
+    const updatedPost = await Post.findByIdAndUpdate(
+      req.params.postId,
+      [{ $set: { commentCount: { $max: [0, { $subtract: ['$commentCount', 1] }] } } }],
+      { new: true }
+    )
 
-    res.json({ ok: true, commentId: req.params.commentId, commentCount: post.commentCount })
+    res.json({
+      ok: true,
+      commentId: req.params.commentId,
+      commentCount: updatedPost ? updatedPost.commentCount : 0,
+    })
   } catch (err) {
     console.error('[DELETE /api/posts/:postId/comments/:commentId] Error:', err)
     if (err.name === 'CastError') {

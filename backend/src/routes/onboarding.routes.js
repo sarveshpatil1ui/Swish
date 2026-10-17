@@ -7,6 +7,7 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import crypto from 'crypto'
+import rateLimit from 'express-rate-limit'
 
 import CollegeOnboardingOtp from '../models/CollegeOnboardingOtp.js'
 import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
@@ -19,6 +20,14 @@ import {
   otpExpiresAt,
 } from '../services/otp.service.js'
 import { createProofUploadSignature } from '../services/cloudinary.service.js'
+
+const onboardingOtpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests. Please wait 10 minutes.' },
+})
 
 const router = Router()
 
@@ -38,6 +47,7 @@ function handleValidationErrors(req, res) {
 // ── POST /api/onboarding/request-otp ─────────────────────────────────────────
 router.post(
   '/request-otp',
+  onboardingOtpLimiter,
   [
     body('officialEmail')
       .trim().normalizeEmail()
@@ -77,12 +87,19 @@ router.post(
         })
       }
 
-      // Send OTP email in background to avoid blocking HTTP response
-      sendOtpEmail(
-        normalizedEmail,
-        adminName && adminName.trim() ? adminName.trim() : 'Campus Administrator',
-        otp
-      ).catch(mErr => console.error('[onboarding sendOtpEmail failed]', mErr.message))
+      try {
+        await sendOtpEmail(
+          normalizedEmail,
+          adminName && adminName.trim() ? adminName.trim() : 'Campus Administrator',
+          otp
+        )
+      } catch (mErr) {
+        console.error('[onboarding sendOtpEmail failed]', mErr.message)
+        return res.status(502).json({
+          ok: false,
+          error: 'Failed to deliver verification code. Please check your official email address or try again shortly.',
+        })
+      }
 
       return res.status(200).json({
         ok: true,
@@ -98,6 +115,7 @@ router.post(
 // ── POST /api/onboarding/verify-otp ──────────────────────────────────────────
 router.post(
   '/verify-otp',
+  onboardingOtpLimiter,
   [
     body('officialEmail')
       .trim().normalizeEmail()

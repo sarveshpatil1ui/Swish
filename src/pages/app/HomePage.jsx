@@ -50,13 +50,14 @@ function NoResults({ query }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { currentUser: user } = useSwish()
-  const [posts,       setPosts]       = useState([])
+  const { currentUser: user, posts, postsLoading, fetchPosts } = useSwish()
   const [showCreate,  setShowCreate]  = useState(false)
   const [searchParams]               = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '')
 
-  const handlePublish = (newPost) => setPosts(prev => [newPost, ...prev])
+  useEffect(() => {
+    fetchPosts()
+  }, [])
 
   // Sync URL ?q= param → search bar whenever the user navigates
   // (e.g., clicking a trending topic in the right panel)
@@ -72,15 +73,19 @@ export default function HomePage() {
   const wordQ     = rawQ.replace(/^#/, '')
 
   const filteredPosts = hasSearch
-    ? posts.filter(p =>
-        p.userName.toLowerCase().includes(rawQ) ||
-        p.caption.toLowerCase().includes(wordQ) ||   // caption search ignores #
-        p.tags.some(tag => {
-          const tagWord = tag.toLowerCase().replace('#', '')
-          // Bi-directional partial: "#CampusHackathon" ↔ "#Hackathon" both match
-          return tagWord.includes(wordQ) || wordQ.includes(tagWord)
-        })
-      )
+    ? posts.filter(p => {
+        const userName = (p.userName || '').toLowerCase()
+        const caption  = (p.caption || '').toLowerCase()
+        const tags     = Array.isArray(p.tags) ? p.tags : []
+        return (
+          userName.includes(rawQ) ||
+          caption.includes(wordQ) ||
+          tags.some(tag => {
+            const tagWord = (tag || '').toLowerCase().replace('#', '')
+            return tagWord.includes(wordQ) || wordQ.includes(tagWord)
+          })
+        )
+      })
     : posts
 
   const noResults = hasSearch && filteredPosts.length === 0
@@ -154,13 +159,29 @@ export default function HomePage() {
           )}
 
           {/* ── Posts ────────────────────────────────────────────────── */}
-          {noResults ? (
+          {postsLoading && posts.length === 0 ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(n => (
+                <div key={n} className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-gray-800" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-slate-200 dark:bg-gray-800 rounded w-1/3" />
+                      <div className="h-3 bg-slate-200 dark:bg-gray-800 rounded w-1/4" />
+                    </div>
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-gray-800 rounded w-3/4 mb-3" />
+                  <div className="h-48 bg-slate-200 dark:bg-gray-800 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : noResults ? (
             <NoResults query={searchQuery} />
           ) : filteredPosts.length === 0 && !hasSearch ? (
             <EmptyFeed onCreatePost={() => setShowCreate(true)} />
           ) : (
             filteredPosts.map(post => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.id || post._id} post={post} />
             ))
           )}
 
@@ -182,7 +203,6 @@ export default function HomePage() {
       {showCreate && (
         <CreatePostModal
           onClose={() => setShowCreate(false)}
-          onPublish={handlePublish}
         />
       )}
     </>

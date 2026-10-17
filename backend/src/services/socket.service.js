@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
+import { isOriginAllowed } from '../config/cors.js'
 
 // ── In-memory online users: userId → Set<socketId> (handles multiple tabs) ────
 const onlineUsers = new Map()
@@ -19,18 +20,11 @@ export function initSocket(app) {
   _io = new Server(httpServer, {
     cors: {
       origin: (origin, cb) => {
-        if (!origin) return cb(null, true)
-        // Hardcoded production origins (mirrors Express CORS config)
-        const HARDCODED = new Set([
-          'https://swishh-5b494.web.app',
-          'https://swishh-5b494.firebaseapp.com',
-        ])
-        if (HARDCODED.has(origin)) return cb(null, true)
-        if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true)
-        if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return cb(null, true)
-        const allowed = (process.env.CLIENT_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean)
-        if (allowed.includes(origin)) return cb(null, true)
-        cb(new Error('Socket CORS: origin not allowed'))
+        if (isOriginAllowed(origin)) {
+          cb(null, true)
+        } else {
+          cb(new Error('Socket CORS: origin not allowed'))
+        }
       },
       credentials: true,
       methods: ['GET', 'POST'],
@@ -152,49 +146,17 @@ export function initSocket(app) {
       }
     })
 
-    // ── Typing indicator ──────────────────────────────────────────────────────
-    socket.on('typing:start', async ({ convId }) => {
+    // ── Typing indicator (direct room broadcast — no DB reads per keystroke) ──
+    socket.on('typing:start', ({ convId }) => {
+      if (!convId) return
       const payload = { convId, userId, name: socket.user.name }
       socket.to(`conv:${convId}`).emit('typing:start', payload)
-      try {
-        const conv = await Conversation.findById(convId).select('participants').lean()
-        if (!conv) return
-        for (const pid of conv.participants) {
-          const pidStr = pid.toString()
-          if (pidStr === userId) continue
-          const socketIds = onlineUsers.get(pidStr)
-          if (socketIds) {
-            for (const sid of socketIds) {
-              const targetSocket = _io.sockets.sockets.get(sid)
-              if (targetSocket && !targetSocket.rooms.has(`conv:${convId}`)) {
-                targetSocket.emit('typing:start', payload)
-              }
-            }
-          }
-        }
-      } catch { /* ignore */ }
     })
 
-    socket.on('typing:stop', async ({ convId }) => {
+    socket.on('typing:stop', ({ convId }) => {
+      if (!convId) return
       const payload = { convId, userId }
       socket.to(`conv:${convId}`).emit('typing:stop', payload)
-      try {
-        const conv = await Conversation.findById(convId).select('participants').lean()
-        if (!conv) return
-        for (const pid of conv.participants) {
-          const pidStr = pid.toString()
-          if (pidStr === userId) continue
-          const socketIds = onlineUsers.get(pidStr)
-          if (socketIds) {
-            for (const sid of socketIds) {
-              const targetSocket = _io.sockets.sockets.get(sid)
-              if (targetSocket && !targetSocket.rooms.has(`conv:${convId}`)) {
-                targetSocket.emit('typing:stop', payload)
-              }
-            }
-          }
-        }
-      } catch { /* ignore */ }
     })
 
     // ── Mark messages as read ─────────────────────────────────────────────────

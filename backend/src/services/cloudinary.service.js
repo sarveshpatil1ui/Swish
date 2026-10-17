@@ -171,6 +171,10 @@ export async function uploadPostImage(buffer, options = {}) {
       {
         folder,
         resource_type: 'image',
+        quality: 'auto',
+        fetch_format: 'auto',
+        width: 1200,
+        crop: 'limit',
         ...options,
       },
       (error, result) => {
@@ -230,6 +234,10 @@ export async function uploadStoryImage(buffer, options = {}) {
       {
         folder,
         resource_type: 'image',
+        quality: 'auto',
+        fetch_format: 'auto',
+        width: 1080,
+        crop: 'limit',
         ...options,
       },
       (error, result) => {

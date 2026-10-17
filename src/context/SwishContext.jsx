@@ -24,6 +24,7 @@ import {
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
   apiFetchFollowers, apiFetchFollowing,
   apiGetColleges, apiAddCollege, apiToggleCollege,
+  apiChangePassword,
   loadColleges, saveColleges,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
@@ -437,15 +438,17 @@ const domainApproved = async (email) => {
   }
 
   // ── changePassword ────────────────────────────────────────────────────────
-  // TODO: replace with POST /api/auth/change-password
-  const changePassword = (_currentPassword, newPassword) => {
+  const changePassword = async (currentPassword, newPassword) => {
     if (!currentUser) return { ok: false, error: 'Not authenticated.' }
     if (!newPassword || newPassword.length < 8) {
       return { ok: false, error: 'New password must be at least 8 characters.' }
     }
-    // Password change will be sent to the backend API when implemented
-    console.warn('[changePassword] Backend API not yet implemented — password not actually changed.')
-    return { ok: true }
+    const res = await apiChangePassword(currentPassword, newPassword)
+    if (res.ok) {
+      setMustChangePassword(false)
+      setCurrentUser(u => (u ? { ...u, mustChangePassword: false } : null))
+    }
+    return res
   }
 
   // ── deactivateAccount ─────────────────────────────────────────────────────

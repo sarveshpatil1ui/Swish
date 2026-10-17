@@ -31,6 +31,8 @@ const StoryViewSchema = new Schema(
 // Unique compound index so a user viewing the same story multiple times counts as ONE view
 StoryViewSchema.index({ story: 1, viewer: 1 }, { unique: true })
 StoryViewSchema.index({ story: 1, viewedAt: -1 })
+// Auto-expire story views after 48 hours to prevent orphaned documents when stories expire
+StoryViewSchema.index({ createdAt: 1 }, { expireAfterSeconds: 48 * 3600 })
 
 StoryViewSchema.set('toJSON', {
   virtuals: true,

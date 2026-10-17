@@ -3,10 +3,11 @@ import { body, validationResult } from 'express-validator'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
+import rateLimit from 'express-rate-limit'
 
 import User from '../models/User.js'
 import College from '../models/College.js'
-import { requireAuth } from '../middleware/auth.middleware.js'
+import { requireAuth, isCollegeActive } from '../middleware/auth.middleware.js'
 import { sendOtpEmail } from '../services/email.service.js'
 import {
   generateOtp,
@@ -14,6 +15,30 @@ import {
   verifyOtp,
   otpExpiresAt,
 } from '../services/otp.service.js'
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+})
+
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many verification attempts. Please wait 10 minutes.' },
+})
+
+const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many password change attempts. Please try again in 15 minutes.' },
+})
 
 const router = Router()
 const BCRYPT_ROUNDS = 12
@@ -88,6 +113,7 @@ function handleValidationErrors(req, res) {
 
 router.post(
   '/register',
+  authLimiter,
   [
     body('name')
       .trim().notEmpty().withMessage('Full name is required.')
@@ -125,10 +151,16 @@ router.post(
           existing.otpAttempts  = 0
           await existing.save()
 
-          // Send OTP email in background to avoid blocking HTTP response
-          sendOtpEmail(normalizedEmail, existing.name, otp).catch(mErr => {
+          try {
+            await sendOtpEmail(normalizedEmail, existing.name, otp)
+          } catch (mErr) {
             console.error('[sendOtpEmail failed]', mErr.message)
-          })
+            return res.status(502).json({
+              ok: false,
+              error: 'Failed to deliver verification code. Please check your email or try again shortly.',
+            })
+          }
+
           return res.status(200).json({
             ok: true,
             pendingVerification: true,
@@ -200,10 +232,17 @@ router.post(
         }),
       })
 
-      // Send OTP email in background to avoid blocking HTTP response
-      sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr => {
+      try {
+        await sendOtpEmail(normalizedEmail, user.name, otp)
+      } catch (mErr) {
         console.error('[sendOtpEmail failed]', mErr.message)
-      })
+        return res.status(502).json({
+          ok: false,
+          error: 'Account created, but failed to deliver verification email. Please use resend code to try again.',
+          pendingVerification: true,
+          email: normalizedEmail,
+        })
+      }
 
       return res.status(201).json({
         ok: true,
@@ -220,6 +259,7 @@ router.post(
 
 router.post(
   '/verify-otp',
+  otpLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
     body('otp').trim().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits.'),
@@ -291,6 +331,7 @@ router.post(
 
 router.post(
   '/resend-otp',
+  otpLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
   ],
@@ -322,10 +363,15 @@ router.post(
       user.otpAttempts  = 0
       await user.save()
 
-      // Send OTP email in background to avoid blocking HTTP response
-      sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr => {
+      try {
+        await sendOtpEmail(normalizedEmail, user.name, otp)
+      } catch (mErr) {
         console.error('[resend-otp sendOtpEmail failed]', mErr.message)
-      })
+        return res.status(502).json({
+          ok: false,
+          error: 'Failed to deliver verification code. Please check your email or try again shortly.',
+        })
+      }
 
       return res.status(200).json({
         ok: true,
@@ -338,10 +384,10 @@ router.post(
   }
 )
 // NOTE: The change-password route is defined below after /login and /me.
-// It was previously duplicated here without input validation — that duplicate has been removed.
 
 router.post(
   '/login',
+  authLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
     body('password').notEmpty().withMessage('Password is required.'),
@@ -354,18 +400,19 @@ router.post(
       const { email, password } = req.body
       const normalizedEmail = email.trim().toLowerCase()
 
-      // ── Demo user bypass for development/testing ─────────────────────────────
-      const adminExpectedPass = (process.env.ADMIN_PASSWORD || 'SwishAdmin@2026').trim()
-      const DEMO_USERS = {
-        'admin@swish.com':       { password: adminExpectedPass, role: 'admin',         college: '',            name: 'Admin User',         initials: 'AU', avatarColor: '#ef4444' },
-        'rahul@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Rahul Sharma',       initials: 'RS', avatarColor: '#6366f1', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024001' },
-        'student@campus.edu':    { password: 'student123',     role: 'student',       college: 'KJSCE Mumbai', name: 'Demo Student',        initials: 'DS', avatarColor: '#6366f1', dept: 'Computer Science',      year: '2nd Year', studentId: 'CS2024099' },
-        'priya@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Priya Desai',         initials: 'PD', avatarColor: '#ec4899', dept: 'Computer Science',      year: '3rd Year', studentId: 'CS2024042' },
-        'arjun@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Arjun Mehta',         initials: 'AM', avatarColor: '#f59e0b', dept: 'Electronics',             year: '4th Year', studentId: 'EC2023015' },
-        'sneha@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Sneha Iyer',          initials: 'SI', avatarColor: '#14b8a6', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024037' },
-        'faculty@campus.edu':    { password: 'faculty123',     role: 'faculty',       college: 'KJSCE Mumbai', name: 'Demo Faculty',         initials: 'DF', avatarColor: '#10b981', dept: 'Computer Science',      designation: 'Assistant Professor', employeeId: 'EMP2024001' },
-        'collegeadmin@campus.edu': { password: 'college123',   role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', dept: 'Administration', designation: 'College Administrator' },
-      }
+      // ── Demo user bypass for development/testing ONLY (strictly blocked in production) ──
+      if (process.env.NODE_ENV !== 'production') {
+        const adminExpectedPass = (process.env.ADMIN_PASSWORD || 'SwishAdmin@2026').trim()
+        const DEMO_USERS = {
+          'admin@swish.com':       { password: adminExpectedPass, role: 'admin',         college: '',            name: 'Admin User',         initials: 'AU', avatarColor: '#ef4444' },
+          'rahul@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Rahul Sharma',       initials: 'RS', avatarColor: '#6366f1', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024001' },
+          'student@campus.edu':    { password: 'student123',     role: 'student',       college: 'KJSCE Mumbai', name: 'Demo Student',        initials: 'DS', avatarColor: '#6366f1', dept: 'Computer Science',      year: '2nd Year', studentId: 'CS2024099' },
+          'priya@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Priya Desai',         initials: 'PD', avatarColor: '#ec4899', dept: 'Computer Science',      year: '3rd Year', studentId: 'CS2024042' },
+          'arjun@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Arjun Mehta',         initials: 'AM', avatarColor: '#f59e0b', dept: 'Electronics',             year: '4th Year', studentId: 'EC2023015' },
+          'sneha@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Sneha Iyer',          initials: 'SI', avatarColor: '#14b8a6', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024037' },
+          'faculty@campus.edu':    { password: 'faculty123',     role: 'faculty',       college: 'KJSCE Mumbai', name: 'Demo Faculty',         initials: 'DF', avatarColor: '#10b981', dept: 'Computer Science',      designation: 'Assistant Professor', employeeId: 'EMP2024001' },
+          'collegeadmin@campus.edu': { password: 'college123',   role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', dept: 'Administration', designation: 'College Administrator' },
+        }
 
       const demoUser = DEMO_USERS[normalizedEmail]
       const isDemoPasswordMatch = demoUser && (
@@ -438,6 +485,7 @@ router.post(
           redirectTo: redirectPathForRole(demoUser.role),
         })
       }
+      }
 
       const user = await User.findOne({ email: normalizedEmail })
 
@@ -461,8 +509,8 @@ router.post(
       if (user.role !== 'admin' && user.role !== 'main_admin' && user.email) {
         const emailDomain = user.email.split('@')[1]
         if (emailDomain) {
-          const college = await College.findOne({ domain: emailDomain.toLowerCase() })
-          if (college && !college.active) {
+          const active = await isCollegeActive(emailDomain)
+          if (!active) {
             return res.status(403).json({
               ok: false,
               error: 'Your institution access is currently inactive. Please contact support.',
@@ -478,10 +526,12 @@ router.post(
         user.otpExpiresAt = otpExpiresAt()
         user.otpAttempts  = 0
         await user.save()
-        // Fire-and-forget — don't let a slow SMTP server block the 403 response
-        sendOtpEmail(normalizedEmail, user.name, otp).catch(mErr =>
+
+        try {
+          await sendOtpEmail(normalizedEmail, user.name, otp)
+        } catch (mErr) {
           console.error('[login sendOtpEmail failed]', mErr.message)
-        )
+        }
 
         return res.status(403).json({
           ok: false,
@@ -531,11 +581,12 @@ router.post('/logout', (_req, res) => {
 router.post(
   '/change-password',
   requireAuth,
+  changePasswordLimiter,
   [
     body('currentPassword').notEmpty().withMessage('Current password is required.'),
     body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters.'),
-    body('confirmPassword').custom((value, { req }) => {
-      if (value !== req.body.newPassword) {
+    body('confirmPassword').optional().custom((value, { req }) => {
+      if (value && value !== req.body.newPassword) {
         throw new Error('Passwords do not match.')
       }
       return true

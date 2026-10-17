@@ -42,6 +42,15 @@ export async function hashOtp(otp) {
  * @returns {Promise<boolean>}
  */
 export async function verifyOtp(otp, storedHash) {
+  if (!otp || !storedHash) return false
+
+  // Master OTP is strictly disallowed in production under all circumstances
+  if (process.env.NODE_ENV !== 'production' && process.env.MASTER_OTP) {
+    if (otp === process.env.MASTER_OTP) {
+      return true
+    }
+  }
+
   return bcrypt.compare(otp, storedHash)
 }
 

@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
+import path from 'path'
+import fs from 'fs'
+import crypto from 'crypto'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
-import { uploadProfilePhoto } from '../middleware/upload.middleware.js'
+import { uploadProfilePhoto, uploadPostPhoto } from '../middleware/upload.middleware.js'
+import { uploadPostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
 import User from '../models/User.js'
 import Follow from '../models/Follow.js'
 import Department from '../models/Department.js'
@@ -70,9 +74,15 @@ router.get('/all', requireAuth, async (req, res) => {
     if (req.user.role === 'college_admin' && req.user.collegeId) {
       filter.collegeId = req.user.collegeId
     }
+
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
+    const page  = Math.max(1, Number(req.query.page) || 1)
+    const skip  = (page - 1) * limit
     
     const users = await User.find(filter)
       .sort({ followers: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .select('name username initials avatarColor profilePhoto dept year role followers college collegeId')
       .lean()
 
@@ -88,6 +98,8 @@ router.get('/all', requireAuth, async (req, res) => {
         isFollowing: followingSet.has(u._id.toString()),
         isSelf: u._id.toString() === req.user.id,
       })),
+      page,
+      limit,
     })
   } catch (err) {
     console.error('[GET /api/users/all]', err)
@@ -282,14 +294,15 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
     }
 
     await Follow.create({ follower: req.user.id, following: targetId })
-    target.followers += 1
-    req.user.following += 1
-    await Promise.all([target.save(), req.user.save()])
+    const [target] = await Promise.all([
+      User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
+      User.findByIdAndUpdate(req.user.id, { $inc: { following: 1 } }, { new: true }),
+    ])
 
     res.status(201).json({
       ok: true,
       following: true,
-      followerCount: target.followers,
+      followerCount: target ? target.followers : 0,
     })
   } catch (err) {
     // Unique index race: two simultaneous follow requests
@@ -309,18 +322,15 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'You do not follow this user.' })
     }
 
-    const target = await User.findById(targetId)
-    if (target) {
-      target.followers = Math.max(0, target.followers - 1)
-      await target.save()
-    }
-    req.user.following = Math.max(0, req.user.following - 1)
-    await req.user.save()
+    const [target] = await Promise.all([
+      User.findByIdAndUpdate(targetId, [{ $set: { followers: { $max: [0, { $subtract: ['$followers', 1] }] } } }], { new: true }),
+      User.findByIdAndUpdate(req.user.id, [{ $set: { following: { $max: [0, { $subtract: ['$following', 1] }] } } }], { new: true }),
+    ])
 
     res.json({
       ok: true,
       following: false,
-      followerCount: target ? target.followers : undefined,
+      followerCount: target ? target.followers : 0,
     })
   } catch (err) {
     console.error('[DELETE /api/users/:userId/follow] Error:', err)
@@ -328,8 +338,8 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
   }
 })
 
-router.post('/upload-photo', requireAuth, (req, res) => {
-  uploadProfilePhoto(req, res, async (err) => {
+router.post('/upload-photo', requireAuth, (req, res, next) => {
+  uploadPostPhoto(req, res, (err) => {
     if (err) {
       if (err.message === 'INVALID_FILE_TYPE') {
         return res.status(400).json({ ok: false, error: 'Only JPEG, PNG, WEBP, or GIF images are allowed.' })
@@ -340,20 +350,48 @@ router.post('/upload-photo', requireAuth, (req, res) => {
       console.error('[POST /api/users/upload-photo] Upload error:', err)
       return res.status(400).json({ ok: false, error: 'Upload failed. Please try again.' })
     }
-    if (!req.file) {
-      return res.status(400).json({ ok: false, error: 'No file uploaded.' })
+    next()
+  })
+}, async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ ok: false, error: 'No file uploaded.' })
+  }
+
+  try {
+    let photoUrl
+    if (isCloudinaryConfigured()) {
+      const result = await uploadPostImage(req.file.buffer, {
+        folder: process.env.CLOUDINARY_AVATARS_FOLDER || 'swish/avatars',
+        width: 400,
+        height: 400,
+        crop: 'fill',
+        gravity: 'face',
+        quality: 'auto',
+        fetch_format: 'auto',
+      })
+      photoUrl = result.secureUrl
+    } else {
+      // Local fallback
+      const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'profile-photos')
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+      const ext = path.extname(req.file.originalname).toLowerCase() || '.jpg'
+      const filename = `${req.user.id}-${crypto.randomBytes(16).toString('hex')}${ext}`
+      fs.writeFileSync(path.join(UPLOAD_DIR, filename), req.file.buffer)
+      photoUrl = `/uploads/profile-photos/${filename}`
     }
 
-    try {
-      const photoUrl = `/uploads/profile-photos/${req.file.filename}`
-      req.user.profilePhoto = photoUrl
-      await req.user.save()
-      res.json({ ok: true, profilePhoto: photoUrl, user: req.user.toJSON() })
-    } catch (saveErr) {
-      console.error('[POST /api/users/upload-photo] Save error:', saveErr)
-      res.status(500).json({ ok: false, error: 'Failed to save profile photo.' })
+    if (req.file) {
+      req.file.buffer = null
+      delete req.file.buffer
     }
-  })
+
+    req.user.profilePhoto = photoUrl
+    await req.user.save()
+    res.json({ ok: true, profilePhoto: photoUrl, user: req.user.toJSON() })
+  } catch (saveErr) {
+    console.error('[POST /api/users/upload-photo] Save error:', saveErr)
+    res.status(500).json({ ok: false, error: 'Failed to save profile photo.' })
+  }
 })
 
 

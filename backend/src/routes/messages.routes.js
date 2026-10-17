@@ -48,9 +48,36 @@ router.get('/', async (req, res) => {
   }
 })
 
+// ── GET /api/messages/users/search?q= — search users to start a chat ─────────
+// MUST be defined before /:convId to avoid route shadowing
+router.get('/users/search', async (req, res) => {
+  try {
+    const q = req.query.q?.trim()
+    if (!q || q.length < 1) return res.json({ ok: true, users: [] })
+
+    const regex = new RegExp(q, 'i')
+    const users = await User.find({
+      _id:  { $ne: req.user._id },
+      $or:  [{ name: regex }, { username: regex }],
+      deactivated: false,
+    })
+      .limit(10)
+      .select('name username initials avatarColor profilePhoto')
+      .lean()
+
+    res.json({ ok: true, users: users.map(u => ({ ...u, id: u._id.toString() })) })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Search failed.' })
+  }
+})
+
 // ── GET /api/messages/:convId — get all messages in a conversation ────────────
 router.get('/:convId', async (req, res) => {
   try {
+    if (!req.params.convId || req.params.convId.length !== 24) {
+      return res.status(404).json({ ok: false, error: 'Invalid conversation ID.' })
+    }
+
     const conv = await Conversation.findOne({
       _id:          req.params.convId,
       participants: req.user._id,
@@ -154,28 +181,6 @@ router.post('/:convId/send', async (req, res) => {
   } catch (err) {
     console.error('[POST /messages/:convId/send]', err)
     res.status(500).json({ ok: false, error: 'Failed to send message.' })
-  }
-})
-
-// ── GET /api/messages/users/search?q= — search users to start a chat ─────────
-router.get('/users/search', async (req, res) => {
-  try {
-    const q = req.query.q?.trim()
-    if (!q || q.length < 1) return res.json({ ok: true, users: [] })
-
-    const regex = new RegExp(q, 'i')
-    const users = await User.find({
-      _id:  { $ne: req.user._id },
-      $or:  [{ name: regex }, { username: regex }],
-      deactivated: false,
-    })
-      .limit(10)
-      .select('name username initials avatarColor profilePhoto')
-      .lean()
-
-    res.json({ ok: true, users: users.map(u => ({ ...u, id: u._id.toString() })) })
-  } catch (err) {
-    res.status(500).json({ ok: false, error: 'Search failed.' })
   }
 })
 

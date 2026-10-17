@@ -31,12 +31,17 @@ export default function ProtectedRoute({ children, dashboardOnly = false, allowe
   }
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
 
+  // ── Enforce temporary password change for college_admin on first login ────────
+  if (currentUser?.role === 'college_admin' && currentUser?.mustChangePassword && !requirePasswordChange) {
+    return <Navigate to="/first-login" replace />
+  }
+
   if (
     requirePasswordChange &&
     currentUser?.role === 'college_admin' &&
     !currentUser?.mustChangePassword
   ) {
-    return <Navigate to="/home" replace />
+    return <Navigate to="/college-admin" replace />
   }
 
   // Dashboard-only routes (/admin, /admin/pending-requests, etc.)

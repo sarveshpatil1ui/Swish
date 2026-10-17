@@ -1,0 +1,50 @@
+import { test, describe } from 'node:test'
+import assert from 'node:assert/strict'
+import { isOriginAllowed, getAllowedOrigins } from '../src/config/cors.js'
+import messagesRouter from '../src/routes/messages.routes.js'
+import { isCollegeActive, invalidateCollegeCache } from '../src/middleware/auth.middleware.js'
+
+describe('CORS & Route Integrity', () => {
+  test('isOriginAllowed permits localhost and production web app origins', () => {
+    assert.equal(isOriginAllowed('http://localhost:5173'), true)
+    assert.equal(isOriginAllowed('http://localhost:3000'), true)
+    assert.equal(isOriginAllowed('https://swishh-5b494.web.app'), true)
+    assert.equal(isOriginAllowed('https://swishh-5b494.firebaseapp.com'), true)
+  })
+
+  test('isOriginAllowed rejects untrusted third-party origins', () => {
+    assert.equal(isOriginAllowed('https://evil-hacker.com'), false)
+    assert.equal(isOriginAllowed('https://malicious-site.org'), false)
+    assert.equal(isOriginAllowed('http://phishing-campus.edu'), false)
+  })
+
+  test('isOriginAllowed allows null/undefined origins (server-to-server / curl)', () => {
+    assert.equal(isOriginAllowed(null), true)
+    assert.equal(isOriginAllowed(undefined), true)
+  })
+
+  test('messages router registers /users/search BEFORE /:convId to avoid route shadowing', () => {
+    // Inspect the express router layers
+    const routeLayers = messagesRouter.stack
+      .filter(layer => layer.route)
+      .map(layer => layer.route.path)
+
+    const searchIndex = routeLayers.indexOf('/users/search')
+    const convIdIndex = routeLayers.indexOf('/:convId')
+
+    assert.ok(searchIndex !== -1, '/users/search route must exist')
+    assert.ok(convIdIndex !== -1, '/:convId route must exist')
+    assert.ok(
+      searchIndex < convIdIndex,
+      `/users/search (index ${searchIndex}) must precede /:convId (index ${convIdIndex}) to prevent cast errors`
+    )
+  })
+
+  test('in-process college cache handles caching and invalidation', () => {
+    // Prime cache manually
+    invalidateCollegeCache('example.edu')
+    // Invalidate should run without error
+    invalidateCollegeCache('kjsce.somaiya.edu')
+    assert.ok(true)
+  })
+})

@@ -2,6 +2,33 @@ import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import College from '../models/College.js'
 
+// In-process TTL cache: domain -> { active, expiresAt }
+const _collegeCache = new Map()
+const COLLEGE_CACHE_TTL_MS = 60_000 // 1 minute
+
+export async function isCollegeActive(domain) {
+  if (!domain) return true
+  const normDomain = domain.toLowerCase()
+  const now = Date.now()
+  const cached = _collegeCache.get(normDomain)
+  if (cached && cached.expiresAt > now) {
+    return cached.active
+  }
+
+  const college = await College.findOne({ domain: normDomain }).lean()
+  const active = college ? Boolean(college.active) : true // unknown domain defaults to not blocking
+  _collegeCache.set(normDomain, { active, expiresAt: now + COLLEGE_CACHE_TTL_MS })
+  return active
+}
+
+export function invalidateCollegeCache(domain) {
+  if (domain) {
+    _collegeCache.delete(domain.toLowerCase())
+  } else {
+    _collegeCache.clear()
+  }
+}
+
 export async function requireAuth(req, res, next) {
   try {
     const authHeader = req.headers.authorization
@@ -36,8 +63,8 @@ export async function requireAuth(req, res, next) {
     if (user.role !== 'admin' && user.role !== 'main_admin' && user.email) {
       const emailDomain = user.email.split('@')[1]
       if (emailDomain) {
-        const college = await College.findOne({ domain: emailDomain.toLowerCase() })
-        if (college && !college.active) {
+        const active = await isCollegeActive(emailDomain)
+        if (!active) {
           return res.status(403).json({
             ok: false,
             error: 'Your institution access is currently inactive. Please contact support.',

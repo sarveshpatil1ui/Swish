@@ -64,76 +64,97 @@ export function hasEmailProvider() {
  */
 export async function dispatchEmail({ to, subject, html, text }) {
   const from = process.env.EMAIL_FROM || '"Swish Campus 🎓" <noreply@swish.com>'
+  const errors = []
 
   // 1. Resend HTTP API (Port 443 HTTPS)
   if (process.env.RESEND_API_KEY) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM || from,
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html,
-        text,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      console.error('[Resend Error]', data)
-      throw new Error(data.message || 'Resend email dispatch failed')
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || from,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html,
+          text,
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        return { ok: true, provider: 'resend', data }
+      }
+      console.error('[Resend Error]', data?.message || data)
+      errors.push(`Resend: ${data?.message || res.statusText}`)
+    } catch (err) {
+      console.error('[Resend Exception]', err.message)
+      errors.push(`Resend: ${err.message}`)
     }
-    return data
   }
 
   // 2. Brevo HTTP API (Port 443 HTTPS)
   if (process.env.BREVO_API_KEY) {
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'swishh.project@gmail.com'
-    const senderName = process.env.BREVO_SENDER_NAME || 'Swish Campus 🎓'
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': process.env.BREVO_API_KEY,
-        'Content-Type': 'application/json',
-        'accept': 'application/json',
-      },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-        textContent: text,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      console.error('[Brevo Error]', data)
-      throw new Error(data.message || 'Brevo email dispatch failed')
+    try {
+      const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'swishh.project@gmail.com'
+      const senderName = process.env.BREVO_SENDER_NAME || 'Swish Campus 🎓'
+      const recipientEmail = Array.isArray(to) ? to[0] : to
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: recipientEmail }],
+          subject,
+          htmlContent: html,
+          textContent: text,
+        }),
+        signal: AbortSignal.timeout(10000),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        return { ok: true, provider: 'brevo', data }
+      }
+      console.error('[Brevo Error]', data?.message || data)
+      errors.push(`Brevo: ${data?.message || res.statusText}`)
+    } catch (err) {
+      console.error('[Brevo Exception]', err.message)
+      errors.push(`Brevo: ${err.message}`)
     }
-    return data
   }
 
   // 3. Nodemailer SMTP (Fallback for localhost)
   const transporter = getTransporter()
   if (transporter) {
-    return await transporter.sendMail({
-      from,
-      to,
-      subject,
-      html,
-      text,
-    })
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+        text,
+      })
+      return { ok: true, provider: 'smtp', info }
+    } catch (err) {
+      console.error('[SMTP Error]', err.message)
+      errors.push(`SMTP: ${err.message}`)
+    }
   }
 
-  throw new Error('No email provider configured and transporter unavailable.')
+  const failureDetail = errors.length > 0 ? errors.join('; ') : 'No configured email provider available.'
+  throw new Error(`Email dispatch failed: ${failureDetail}`)
 }
 
 /**
  * Sends the OTP email.
- * If SMTP/HTTP API is not configured, logs the OTP to the console instead.
+ * If SMTP/HTTP API is not configured, logs the OTP in dev mode or throws in production.
  *
  * @param {string} to    - recipient email address
  * @param {string} name  - recipient display name
@@ -141,13 +162,16 @@ export async function dispatchEmail({ to, subject, html, text }) {
  */
 export async function sendOtpEmail(to, name, otp) {
   if (!hasEmailProvider()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email delivery service is unavailable. Please contact system administrator.')
+    }
     // Dev fallback — log to console
     console.log(`\n📬  [DEV EMAIL — OTP not actually sent]`)
     console.log(`  To:   ${to}`)
     console.log(`  Name: ${name}`)
     console.log(`  OTP:  ${otp}`)
     console.log(`  (Expires in ${process.env.OTP_EXPIRES_MINUTES || 10} minutes)\n`)
-    return
+    return { ok: true, devMode: true }
   }
 
   const from = process.env.EMAIL_FROM || '"Swish Campus 🎓" <noreply@swish.com>'

@@ -16,7 +16,7 @@ import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
 import User from '../models/User.js'
 import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
-import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
+import { requireAuth, requireRole, invalidateCollegeCache } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
@@ -293,6 +293,7 @@ router.patch(
 
       college.active = !college.active
       await college.save()
+      invalidateCollegeCache(college.domain)
 
       return res.status(200).json({ ok: true, college: college.toJSON() })
     } catch (err) {
@@ -346,6 +347,7 @@ router.put(
       if (description !== undefined) college.description = description.trim()
 
       await college.save()
+      invalidateCollegeCache(college.domain)
 
       return res.status(200).json({ ok: true, college: college.toJSON() })
     } catch (err) {

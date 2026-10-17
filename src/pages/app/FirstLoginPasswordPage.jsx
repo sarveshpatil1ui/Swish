@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStoredToken } from '../../utils/auth'
+import { useSwish } from '../../context/SwishContext'
 import {
   LockKeyhole,
   Eye,
@@ -38,6 +38,7 @@ function PasswordInput({
 }
 export default function FirstLoginPasswordPage() {
   const navigate = useNavigate()
+  const { changePassword } = useSwish()
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -84,30 +85,11 @@ export default function FirstLoginPasswordPage() {
     try {
       setLoading(true)
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const token = getStoredToken()
+      const result = await changePassword(currentPassword, newPassword)
 
-      const response = await fetch(
-        `${API_BASE}/api/auth/change-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-          }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok || !data.ok) {
+      if (!result.ok) {
         throw new Error(
-          data.error || 'Unable to change password.'
+          result.error || 'Unable to change password.'
         )
       }
 
