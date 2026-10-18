@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStoredToken } from '../../utils/auth'
+import { apiFetch } from '../../utils/auth'
 import {
   ArrowLeft,
   Building2,
@@ -20,8 +20,6 @@ const adminCardClass =
 const adminButtonClass =
   'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-
 export default function PendingRequestsPage() {
   const navigate = useNavigate()
 
@@ -34,23 +32,10 @@ export default function PendingRequestsPage() {
     try {
       setLoading(true)
 
-      const token = getStoredToken()
-      const headers = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
+      const data = await apiFetch('/api/admin/pending-requests')
 
-      const response = await fetch(
-        `${API_BASE}/api/admin/pending-requests`,
-        {
-          method: 'GET',
-          headers,
-          credentials: 'include',
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok || !data.ok) {
-        if (!isRetry && response.status === 401) {
+      if (!data.ok) {
+        if (!isRetry && data._status === 401) {
           setTimeout(() => loadPendingRequests(true), 500)
           return
         }

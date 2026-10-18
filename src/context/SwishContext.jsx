@@ -16,7 +16,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 
 import {
-  apiLogin, apiRegister, apiLogout, apiMe,apiCheckCollegeDomain,
+  apiLogin, apiRegister, apiLogout, apiMe, apiCheckCollegeDomain,
   apiGetUsers, apiToggleUserStatus,
   apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,

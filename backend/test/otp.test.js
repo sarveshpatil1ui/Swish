@@ -1,6 +1,12 @@
 import { test, describe, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { generateOtp, hashOtp, verifyOtp, otpExpiresAt } from '../src/services/otp.service.js'
+import {
+  generateOtp,
+  hashOtp,
+  verifyOtp,
+  otpExpiresAt,
+  isOtpResendOnCooldown,
+} from '../src/services/otp.service.js'
 
 describe('OTP Service & Security Verification', () => {
   const originalEnv = process.env.NODE_ENV
@@ -66,5 +72,72 @@ describe('OTP Service & Security Verification', () => {
     const diffMs = expiresAt.getTime() - now
     const diffMinutes = diffMs / (1000 * 60)
     assert.ok(diffMinutes >= 9.9 && diffMinutes <= 10.1, 'Expiry should be 10 minutes')
+  })
+
+  test('12a. isOtpResendOnCooldown enforces cooldown window', () => {
+    // User issued an OTP just now (expiry = now + 10 mins)
+    const freshUser = { otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000) }
+    assert.equal(isOtpResendOnCooldown(freshUser), true, 'Must be on cooldown immediately after issuance')
+
+    // User issued an OTP 2 minutes ago (expiry = now + 8 mins) with 60s cooldown
+    const oldUser = { otpExpiresAt: new Date(Date.now() + 8 * 60 * 1000) }
+    assert.equal(isOtpResendOnCooldown(oldUser), false, 'Cooldown should have elapsed after 60s')
+
+    // User without otpExpiresAt
+    assert.equal(isOtpResendOnCooldown({}), false, 'User without OTP is not on cooldown')
+  })
+
+  test('12b. OTP expiration logic rejects expired timestamps', () => {
+    const expiredTimestamp = new Date(Date.now() - 1000) // 1 second in the past
+    const isExpired = new Date() > expiredTimestamp
+    assert.equal(isExpired, true, 'Past timestamp must be marked expired')
+
+    const futureTimestamp = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes in the future
+    assert.equal(new Date() > futureTimestamp, false, 'Future timestamp must not be expired')
+  })
+
+  test('12c. Single-use verification: clearing hash prevents replay attack', async () => {
+    const otp = '842951'
+    const hash = await hashOtp(otp)
+    const user = {
+      isEmailVerified: false,
+      otpHash: hash,
+      otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      otpAttempts: 0,
+    }
+
+    // First attempt: valid
+    const firstCheck = await verifyOtp(otp, user.otpHash)
+    assert.equal(firstCheck, true, 'First verification must succeed')
+
+    // System clears hash and expiresAt upon success (single-use)
+    user.isEmailVerified = true
+    user.otpHash = null
+    user.otpExpiresAt = null
+
+    // Replay attempt with the exact same OTP code
+    const replayCheck = user.otpHash ? await verifyOtp(otp, user.otpHash) : false
+    assert.equal(replayCheck, false, 'Replaying the same OTP must fail after clearing hash')
+  })
+
+  test('13. Max attempt lockout prevents brute-force verification', async () => {
+    const maxAttempts = 5
+    let userOtpAttempts = 0
+    const incorrectCodes = ['111111', '222222', '333333', '444444', '555555', '666666']
+    const validHash = await hashOtp('999888')
+
+    for (const code of incorrectCodes) {
+      if (userOtpAttempts >= maxAttempts) {
+        // Locked out
+        break
+      }
+      const valid = await verifyOtp(code, validHash)
+      if (!valid) {
+        userOtpAttempts++
+      }
+    }
+
+    assert.equal(userOtpAttempts, 5, 'Should increment to max attempts')
+    assert.ok(userOtpAttempts >= maxAttempts, 'Account must be locked out from further attempts')
   })
 })

@@ -1,182 +1,320 @@
 // backend/src/services/email.service.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Sends transactional emails via Gmail SMTP (Nodemailer).
-// In development, if SMTP credentials are not set, logs the OTP to console
-// so you can test without configuring email.
+// Transactional email delivery via Google Gmail API (HTTPS REST) using OAuth 2.0.
+//
+// Architecture:
+//   Swish Backend → Gmail REST API (v1 / users.messages.send) → Recipient Inbox
+//
+// Security & Reliability Rules:
+//   • Pure HTTPS over port 443 — no SMTP ports (25, 465, 587) used.
+//   • Authentication via OAuth 2.0 refresh tokens (GMAIL_REFRESH_TOKEN).
+//   • Automatic token refresh managed by official googleapis OAuth2 client.
+//   • RFC 2822 MIME multipart/alternative (plain-text + HTML) with base64url encoding.
+//   • Authorized dedicated Gmail sender identity (GMAIL_SENDER_EMAIL).
+//   • Strict bounded timeouts (default 12 seconds) to avoid blocking requests.
+//   • Uncertain delivery state handled gracefully on timeout (no blind resends).
+//   • Privacy-safe structured logging: OTPs, passwords, refresh tokens, and
+//     client secrets are NEVER logged or exposed.
+//   • Zero fallback to Resend, Brevo, Mailgun, or legacy SMTP.
 // ─────────────────────────────────────────────────────────────────────────────
-import nodemailer from 'nodemailer'
 
-let _transporter = null
+import { google } from 'googleapis'
 
-function getTransporter() {
-  if (_transporter) return _transporter
+// ── Bounded Request Timeout Helper ───────────────────────────────────────────
+function requestTimeoutMs() {
+  return Number(process.env.GMAIL_REQUEST_TIMEOUT_MS || process.env.EMAIL_REQUEST_TIMEOUT_MS) || 12000
+}
 
-  const isDev = process.env.NODE_ENV !== 'production'
-  const hasCredentials = process.env.SMTP_USER && process.env.SMTP_PASS &&
-    !process.env.SMTP_USER.includes('your-gmail')
+// ── HTML Entity Escaper for Template Safety ──────────────────────────────────
+export function escapeHtml(str) {
+  if (!str) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
 
-  if (!hasCredentials) {
-    // No credentials: use a no-op transporter that logs instead of sending
-    if (isDev) {
-      console.warn(
-        '⚠️  [Email] SMTP credentials not set. Emails will be logged to console.\n' +
-        '   Set SMTP_USER and SMTP_PASS in backend/.env to send real emails.'
-      )
-    }
-    _transporter = null
+// ── Privacy-Safe Structured Logger ───────────────────────────────────────────
+function _log(level, event, extra = {}) {
+  const entry = {
+    ts:       new Date().toISOString(),
+    svc:      'email',
+    provider: 'gmail_api',
+    event,
+    ...extra,
+  }
+  // Guarantee sensitive credentials and bodies are never logged
+  delete entry.apiKey
+  delete entry.otp
+  delete entry.password
+  delete entry.temporaryPassword
+  delete entry.refreshToken
+  delete entry.clientSecret
+  delete entry.clientId
+  delete entry.html
+  delete entry.text
+  delete entry.raw
+
+  if (level === 'error') console.error('[Email]', JSON.stringify(entry))
+  else if (level === 'warn') console.warn('[Email]', JSON.stringify(entry))
+  else console.log('[Email]', JSON.stringify(entry))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// hasEmailProvider
+// Returns true if all required Gmail API OAuth 2.0 credentials are configured.
+const UNCONFIGURED_GMAIL_PLACEHOLDERS = new Set([
+  'your-google-oauth-client-id',
+  'your-google-oauth-client-secret',
+  'your-google-oauth-refresh-token',
+  'your-dedicated-gmail-address',
+  'your-google-oauth2-client-id.apps.googleusercontent.com',
+  'gocspx-your-google-oauth2-client-secret',
+  '1//0g-your-google-oauth2-refresh-token',
+])
+
+export function hasEmailProvider() {
+  const clientId     = (process.env.GMAIL_CLIENT_ID || '').trim()
+  const clientSecret = (process.env.GMAIL_CLIENT_SECRET || '').trim()
+  const refreshToken = (process.env.GMAIL_REFRESH_TOKEN || '').trim()
+  const senderEmail  = (process.env.GMAIL_SENDER_EMAIL || '').trim()
+
+  if (!clientId || !clientSecret || !refreshToken || !senderEmail) {
+    return false
+  }
+
+  const values = [clientId, clientSecret, refreshToken, senderEmail]
+  const isPlaceholder = values.some(
+    v => UNCONFIGURED_GMAIL_PLACEHOLDERS.has(v.toLowerCase()) || v.toLowerCase().startsWith('your-')
+  )
+  return !isPlaceholder
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// createOAuth2Client
+// Initializes a googleapis OAuth2 client with the refresh token.
+// ─────────────────────────────────────────────────────────────────────────────
+export function createOAuth2Client() {
+  const clientId     = process.env.GMAIL_CLIENT_ID
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN
+
+  if (!clientId || !clientSecret || !refreshToken) {
     return null
   }
 
-  const port = Number(process.env.SMTP_PORT) || 587
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465
+  const oauth2Client = new google.auth.OAuth2(
+    clientId.trim(),
+    clientSecret.trim()
+  )
 
-  _transporter = nodemailer.createTransport({
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    rateDelta: 1000,
-    rateLimit: 5,
-    host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
-    port,
-    secure,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+  oauth2Client.setCredentials({
+    refresh_token: refreshToken.trim(),
   })
 
-  return _transporter
+  return oauth2Client
 }
 
-export function hasEmailProvider() {
-  if (process.env.RESEND_API_KEY) return true
-  if (process.env.BREVO_API_KEY) return true
-  const hasCredentials = process.env.SMTP_USER && process.env.SMTP_PASS &&
-    !process.env.SMTP_USER.includes('your-gmail')
-  return !!hasCredentials
+// ─────────────────────────────────────────────────────────────────────────────
+// buildMimeMessage
+// Constructs a compliant RFC 2822 multipart/alternative email message with
+// plain-text and HTML components, UTF-8 subject encoding, and standard boundaries.
+// ─────────────────────────────────────────────────────────────────────────────
+export function buildMimeMessage({ to, from, subject, text, html }) {
+  const boundary = `swish_boundary_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+
+  const lines = [
+    `From: ${from}`,
+    `To: ${Array.isArray(to) ? to.join(', ') : to}`,
+    `Subject: ${utf8Subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(text, 'utf-8').toString('base64'),
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(html, 'utf-8').toString('base64'),
+    '',
+    `--${boundary}--`,
+  ]
+
+  return lines.join('\r\n')
 }
 
-/**
- * Universal email dispatcher:
- * 1. Resend HTTP API (Port 443 / HTTPS - works on Render Free tier)
- * 2. Brevo HTTP API (Port 443 / HTTPS - works on Render Free tier)
- * 3. Nodemailer SMTP (Localhost or unblocked hosts)
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// encodeBase64Url
+// Encodes a string into URL-safe base64 (RFC 4648 §5) as required by Gmail API.
+// ─────────────────────────────────────────────────────────────────────────────
+export function encodeBase64Url(str) {
+  return Buffer.from(str, 'utf-8').toString('base64url')
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// dispatchEmail
+// Sends an email using the Gmail REST API (v1 / users.messages.send).
+// ─────────────────────────────────────────────────────────────────────────────
 export async function dispatchEmail({ to, subject, html, text }) {
-  const from = process.env.EMAIL_FROM || '"Swish Campus 🎓" <noreply@swish.com>'
-  const errors = []
+  const startedAt = Date.now()
+  const senderEmail = (process.env.GMAIL_SENDER_EMAIL || '').trim()
 
-  // 1. Resend HTTP API (Port 443 HTTPS)
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM || from,
-          to: Array.isArray(to) ? to : [to],
-          subject,
-          html,
-          text,
-        }),
-        signal: AbortSignal.timeout(10000),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        return { ok: true, provider: 'resend', data }
+  if (!hasEmailProvider()) {
+    _log('error', 'dispatch_failed_missing_config')
+    throw new Error(
+      'Gmail API is not configured. Missing required environment variables: ' +
+      'GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL.'
+    )
+  }
+
+  const senderName = (process.env.GMAIL_SENDER_NAME || 'Swish Campus').trim()
+  const from = `"${senderName}" <${senderEmail}>`
+
+  const mimeMessage = buildMimeMessage({
+    to,
+    from,
+    subject,
+    text,
+    html,
+  })
+
+  const raw = encodeBase64Url(mimeMessage)
+
+  const auth = createOAuth2Client()
+  const gmail = google.gmail({ version: 'v1', auth })
+
+  _log('info', 'dispatch_start', { recipient: Array.isArray(to) ? to[0] : to })
+
+  const timeoutMs = requestTimeoutMs()
+
+  try {
+    const res = await gmail.users.messages.send(
+      {
+        userId: 'me',
+        requestBody: { raw },
+      },
+      {
+        timeout: timeoutMs,
       }
-      console.error('[Resend Error]', data?.message || data)
-      errors.push(`Resend: ${data?.message || res.statusText}`)
-    } catch (err) {
-      console.error('[Resend Exception]', err.message)
-      errors.push(`Resend: ${err.message}`)
-    }
-  }
+    )
 
-  // 2. Brevo HTTP API (Port 443 HTTPS)
-  if (process.env.BREVO_API_KEY) {
-    try {
-      const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'swishh.project@gmail.com'
-      const senderName = process.env.BREVO_SENDER_NAME || 'Swish Campus 🎓'
-      const recipientEmail = Array.isArray(to) ? to[0] : to
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': process.env.BREVO_API_KEY,
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-        body: JSON.stringify({
-          sender: { name: senderName, email: senderEmail },
-          to: [{ email: recipientEmail }],
-          subject,
-          htmlContent: html,
-          textContent: text,
-        }),
-        signal: AbortSignal.timeout(10000),
+    const durationMs = Date.now() - startedAt
+    const messageId = res?.data?.id
+
+    if (res?.status >= 200 && res?.status < 300) {
+      _log('info', 'accepted', {
+        messageId,
+        durationMs,
       })
-      const data = await res.json()
-      if (res.ok) {
-        return { ok: true, provider: 'brevo', data }
-      }
-      console.error('[Brevo Error]', data?.message || data)
-      errors.push(`Brevo: ${data?.message || res.statusText}`)
-    } catch (err) {
-      console.error('[Brevo Exception]', err.message)
-      errors.push(`Brevo: ${err.message}`)
+      return { ok: true, provider: 'gmail_api', messageId }
     }
-  }
 
-  // 3. Nodemailer SMTP (Fallback for localhost)
-  const transporter = getTransporter()
-  if (transporter) {
-    try {
-      const info = await transporter.sendMail({
-        from,
-        to,
-        subject,
-        html,
-        text,
-      })
-      return { ok: true, provider: 'smtp', info }
-    } catch (err) {
-      console.error('[SMTP Error]', err.message)
-      errors.push(`SMTP: ${err.message}`)
+    _log('warn', 'rejected', {
+      status: res?.status,
+      durationMs,
+    })
+    throw new Error(`Gmail API returned status ${res?.status}`)
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+
+    // Timeout detection (Axios/Gaxios ECONNABORTED, ETIMEDOUT, or AbortError)
+    const isTimeout =
+      err.code === 'ECONNABORTED' ||
+      err.code === 'ETIMEDOUT' ||
+      err.name === 'AbortError' ||
+      err.message?.toLowerCase().includes('timeout')
+
+    if (isTimeout) {
+      _log('warn', 'timeout', { timeoutMs, durationMs })
+      const timeoutErr = new Error('Email delivery timed out; delivery status is uncertain.')
+      timeoutErr.category = 'uncertain'
+      timeoutErr.uncertain = true
+      throw timeoutErr
     }
-  }
 
-  const failureDetail = errors.length > 0 ? errors.join('; ') : 'No configured email provider available.'
-  throw new Error(`Email dispatch failed: ${failureDetail}`)
+    // Google API HTTP status code classification
+    const status = err.response?.status || err.status
+    if (status === 401 || status === 403) {
+      _log('error', 'auth_failure', { status, durationMs })
+      throw new Error(`Gmail API authentication failed (${status}): check client credentials and refresh token.`)
+    }
+
+    if (status === 429) {
+      _log('warn', 'rate_limit', { status, durationMs })
+      throw new Error('Gmail API rate limit exceeded. Please retry after a brief delay.')
+    }
+
+    _log('error', 'dispatch_error', {
+      errCode: err.code,
+      status,
+      durationMs,
+    })
+    throw new Error(err.message || 'Failed to dispatch email via Gmail API.')
+  }
 }
 
-/**
- * Sends the OTP email.
- * If SMTP/HTTP API is not configured, logs the OTP in dev mode or throws in production.
- *
- * @param {string} to    - recipient email address
- * @param {string} name  - recipient display name
- * @param {string} otp   - 6-digit plain-text OTP (before it's hashed in DB)
- */
-export async function sendOtpEmail(to, name, otp) {
+// ─────────────────────────────────────────────────────────────────────────────
+// sendOtpEmail
+// Primary entrypoint for OTP delivery across registration, resend, and onboarding.
+// Supports both signature styles:
+//   - sendOtpEmail(to, name, otp)
+//   - sendOtpEmail({ to, name, otp, expiresInMinutes })
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendOtpEmail(toOrOptions, maybeName, maybeOtp) {
+  let to, name, otp, expiresInMinutes
+
+  if (typeof toOrOptions === 'object' && toOrOptions !== null) {
+    to = toOrOptions.to
+    name = toOrOptions.name || 'Swish User'
+    otp = toOrOptions.otp
+    expiresInMinutes = toOrOptions.expiresInMinutes || process.env.OTP_EXPIRES_MINUTES || 10
+  } else {
+    to = toOrOptions
+    name = maybeName || 'Swish User'
+    otp = maybeOtp
+    expiresInMinutes = process.env.OTP_EXPIRES_MINUTES || 10
+  }
+
   if (!hasEmailProvider()) {
     if (process.env.NODE_ENV === 'production') {
+      _log('error', 'production_no_email_provider')
       throw new Error('Email delivery service is unavailable. Please contact system administrator.')
     }
-    // Dev fallback — log to console
-    console.log(`\n📬  [DEV EMAIL — OTP not actually sent]`)
+    // Development fallback: safe diagnostic log (raw OTP value redacted for security)
+    console.log('\n📬  [DEV EMAIL — OTP not actually sent]')
     console.log(`  To:   ${to}`)
     console.log(`  Name: ${name}`)
-    console.log(`  OTP:  ${otp}`)
-    console.log(`  (Expires in ${process.env.OTP_EXPIRES_MINUTES || 10} minutes)\n`)
+    console.log(`  OTP:  [redacted — check MASTER_OTP or sendOtpEmail caller for local testing]`)
+    console.log(`  (Expires in ${expiresInMinutes} minutes)\n`)
     return { ok: true, devMode: true }
   }
 
-  const from = process.env.EMAIL_FROM || '"Swish Campus 🎓" <noreply@swish.com>'
+  const html = buildOtpHtml(name, otp, expiresInMinutes)
+  const text = buildOtpText(name, otp, expiresInMinutes)
 
-  const html = `
+  return dispatchEmail({
+    to,
+    subject: `${otp} is your Swish verification code`,
+    html,
+    text,
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OTP Email Templates
+// ─────────────────────────────────────────────────────────────────────────────
+export function buildOtpHtml(name, otp, expiresMinutes) {
+  const safeName = escapeHtml(name)
+
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -188,64 +326,44 @@ export async function sendOtpEmail(to, name, otp) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0"
-               style="background:#ffffff;border-radius:20px;overflow:hidden;
-                      box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
-                        padding:32px 40px;text-align:center;">
-              <span style="font-size:28px;font-weight:900;color:#fff;
-                           letter-spacing:-0.5px;">⚡ Swish</span>
-              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">
-                Campus Social Network
-              </p>
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px 40px;text-align:center;">
+              <span style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">⚡ Swish</span>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Campus Social Network</p>
             </td>
           </tr>
-
           <!-- Body -->
           <tr>
-            <td style="padding:40px 40px 32px;">
-              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;
-                         color:#1e293b;letter-spacing:-0.3px;">
-                Verify your email address
-              </h2>
-              <p style="margin:0 0 28px;color:#64748b;font-size:15px;line-height:1.6;">
-                Hi <strong>${name}</strong>, welcome to Swish! 🎉<br/>
-                Use the one-time code below to verify your campus email and
-                activate your account.
+            <td style="padding:36px 40px;">
+              <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#1e293b;">Verify your email address</h2>
+              <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+                Hi ${safeName},<br/><br/>
+                Use the verification code below to complete your registration.
               </p>
 
               <!-- OTP Box -->
-              <div style="background:#f8fafc;border:2px dashed #e2e8f0;
-                          border-radius:16px;padding:28px;text-align:center;
-                          margin-bottom:28px;">
-                <p style="margin:0 0 8px;color:#94a3b8;font-size:12px;
-                           font-weight:600;text-transform:uppercase;letter-spacing:1px;">
-                  Your verification code
-                </p>
-                <span style="font-size:42px;font-weight:900;letter-spacing:10px;
-                             color:#4f46e5;font-family:'Courier New',monospace;">
+              <div style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+                <span style="font-family:'Courier New',Courier,monospace;font-size:38px;font-weight:900;color:#4f46e5;letter-spacing:10px;display:inline-block;">
                   ${otp}
                 </span>
                 <p style="margin:12px 0 0;color:#94a3b8;font-size:13px;">
-                  Expires in <strong>${process.env.OTP_EXPIRES_MINUTES || 10} minutes</strong>
+                  Expires in <strong>${expiresMinutes} minutes</strong>
                 </p>
               </div>
 
               <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.6;">
                 If you didn't create a Swish account, you can safely ignore this email.
-                Do not share this code with anyone.
+                <strong>Do not share this code with anyone.</strong>
               </p>
             </td>
           </tr>
-
           <!-- Footer -->
           <tr>
-            <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #f1f5f9;">
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
-                © ${new Date().getFullYear()} Swish Campus Network · For your campus only
+            <td style="background:#f8fafc;padding:18px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                © ${new Date().getFullYear()} Swish Campus Network · Sent securely via Gmail API
               </p>
             </td>
           </tr>
@@ -256,24 +374,26 @@ export async function sendOtpEmail(to, name, otp) {
 </body>
 </html>
   `.trim()
-
-  await dispatchEmail({
-    to,
-    subject: `${otp} is your Swish verification code`,
-    html,
-    text: `Your Swish verification code is: ${otp}\nIt expires in ${process.env.OTP_EXPIRES_MINUTES || 10} minutes.`,
-  })
 }
-/**
- * Sends College Admin account credentials after a college
- * registration request has been approved by the Main Admin.
- *
- * @param {string} to                 - College Admin email
- * @param {string} name               - College Admin name
- * @param {string} collegeName        - Approved college name
- * @param {string} loginId            - College Admin login ID
- * @param {string} temporaryPassword   - Temporary password
- */
+
+export function buildOtpText(name, otp, expiresMinutes) {
+  return `
+Hi ${name},
+
+Your Swish verification code is: ${otp}
+
+This code expires in ${expiresMinutes} minutes.
+
+Do not share this code with anyone. If you did not create a Swish account, you can safely ignore this email.
+
+— Swish Campus Network
+  `.trim()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendCollegeAdminCredentialsEmail
+// Sends College Admin account credentials upon approval by Main Admin.
+// ─────────────────────────────────────────────────────────────────────────────
 export async function sendCollegeAdminCredentialsEmail(
   to,
   name,
@@ -282,19 +402,22 @@ export async function sendCollegeAdminCredentialsEmail(
   temporaryPassword
 ) {
   if (!hasEmailProvider()) {
-    console.log(`\n📬 [DEV EMAIL — CREDENTIALS not actually sent]`)
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email delivery service is unavailable. Please contact system administrator.')
+    }
+    console.log('\n📬 [DEV EMAIL — CREDENTIALS not actually sent]')
     console.log(`  To:                 ${to}`)
     console.log(`  Name:               ${name}`)
     console.log(`  College:            ${collegeName}`)
-    console.log(`  Login ID:            ${loginId}`)
-    console.log(`  Temporary Password:  ${temporaryPassword}`)
-    console.log(`  First login:         Password change required\n`)
-    return
+    console.log(`  Login ID:           ${loginId}`)
+    console.log(`  Temporary Password: [redacted]`)
+    console.log(`  First login:        Password change required\n`)
+    return { ok: true, devMode: true }
   }
 
-  const from =
-    process.env.EMAIL_FROM ||
-    '"Swish Campus 🎓" <noreply@swish.com>'
+  const safeName = escapeHtml(name)
+  const safeCollegeName = escapeHtml(collegeName)
+  const safeLoginId = escapeHtml(loginId)
 
   const html = `
 <!DOCTYPE html>
@@ -304,201 +427,42 @@ export async function sendCollegeAdminCredentialsEmail(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your Swish College Admin Account</title>
 </head>
-
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
-
-  <table width="100%" cellpadding="0" cellspacing="0"
-         style="background:#f1f5f9;padding:40px 16px;">
-
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
     <tr>
       <td align="center">
-
-        <table width="520" cellpadding="0" cellspacing="0"
-               style="background:#ffffff;border-radius:20px;overflow:hidden;
-                      box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
+        <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
           <tr>
-            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);
-                       padding:32px 40px;text-align:center;">
-
-              <span style="font-size:28px;font-weight:900;color:#fff;
-                           letter-spacing:-0.5px;">
-                ⚡ Swish
-              </span>
-
-              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">
-                Campus Social Network
-              </p>
-
+            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:32px 40px;text-align:center;">
+              <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px;">⚡ Swish</span>
+              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Campus Social Network</p>
             </td>
           </tr>
-
-          <!-- Body -->
           <tr>
             <td style="padding:40px 40px 32px;">
-
-              <h2 style="margin:0 0 10px;font-size:22px;font-weight:700;
-                         color:#1e293b;letter-spacing:-0.3px;">
-                College Registration Approved
-              </h2>
-
+              <h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1e293b;">College Registration Approved</h2>
               <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.6;">
-                Hi <strong>${name}</strong>,
-                <br/><br/>
-                We are pleased to inform you that
-                <strong>${collegeName}</strong> has been successfully
-                registered and approved on SWISH.
+                Hi <strong>${safeName}</strong>,<br/><br/>
+                Your registration request for <strong>${safeCollegeName}</strong> has been approved. Below are your administrator login credentials:
               </p>
-
-              <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.6;">
-                Your college is now an approved SWISH institution.
-                Users with your official college email domain can now
-                register on SWISH and join your college community.
-              </p>
-
-              <!-- College Registration -->
-              <div style="background:#f8fafc;border:1px solid #e2e8f0;
-                          border-radius:16px;padding:24px;margin-bottom:24px;">
-
-                <p style="margin:0 0 16px;color:#475569;font-size:13px;
-                          font-weight:700;text-transform:uppercase;
-                          letter-spacing:0.8px;">
-                  College Registration
-                </p>
-
-                <table width="100%" cellpadding="0" cellspacing="0">
-
-                  <tr>
-                    <td style="padding:8px 0;color:#64748b;font-size:14px;">
-                      College
-                    </td>
-
-                    <td style="padding:8px 0;color:#1e293b;font-size:14px;
-                               font-weight:700;text-align:right;">
-                      ${collegeName}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:8px 0;color:#64748b;font-size:14px;">
-                      Status
-                    </td>
-
-                    <td style="padding:8px 0;color:#059669;font-size:14px;
-                               font-weight:700;text-align:right;">
-                      Successfully Registered
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:8px 0;color:#64748b;font-size:14px;">
-                      Official Domain
-                    </td>
-
-                    <td style="padding:8px 0;color:#1e293b;font-size:14px;
-                               font-weight:700;text-align:right;">
-                      ${loginId.split('@')[1]}
-                    </td>
-                  </tr>
-
-                </table>
-
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:24px;">
+                <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Login ID:</strong> <code>${safeLoginId}</code></p>
+                <p style="margin:0;font-size:14px;color:#475569;"><strong>Temporary Password:</strong> <code>${temporaryPassword}</code></p>
               </div>
-
-              <!-- Credentials -->
-              <div style="background:#f8fafc;border:1px solid #e2e8f0;
-                          border-radius:16px;padding:24px;margin-bottom:24px;">
-
-                <p style="margin:0 0 16px;color:#475569;font-size:13px;
-                          font-weight:700;text-transform:uppercase;
-                          letter-spacing:0.8px;">
-                  College Administrator Account
-                </p>
-
-                <p style="margin:0 0 16px;color:#64748b;font-size:14px;
-                           line-height:1.6;">
-                  Your College Administrator account has been created
-                  successfully.
-                </p>
-
-                <table width="100%" cellpadding="0" cellspacing="0">
-
-                  <tr>
-                    <td style="padding:8px 0;color:#64748b;font-size:14px;">
-                      Login ID
-                    </td>
-
-                    <td style="padding:8px 0;color:#1e293b;font-size:14px;
-                               font-weight:700;text-align:right;">
-                      ${loginId}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:8px 0;color:#64748b;font-size:14px;">
-                      Temporary Password
-                    </td>
-
-                    <td style="padding:8px 0;color:#4f46e5;font-size:14px;
-                               font-weight:700;text-align:right;
-                               font-family:'Courier New',monospace;">
-                      ${temporaryPassword}
-                    </td>
-                  </tr>
-
-                </table>
-
-              </div>
-
-              <!-- First Login Notice -->
-              <div style="background:#eef2ff;border:1px solid #c7d2fe;
-                          border-radius:14px;padding:18px;margin-bottom:24px;">
-
-                <p style="margin:0;color:#3730a3;font-size:14px;
-                          line-height:1.6;">
-
-                  <strong>Important:</strong>
-                  This is a temporary password. You must change it
-                  when you log in for the first time.
-
-                </p>
-
-              </div>
-
-              <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6;">
-                Please keep your credentials secure and do not share them
-                with anyone. After changing your password, use your new
-                password for future logins.
+              <p style="margin:0;color:#ef4444;font-size:13px;line-height:1.6;">
+                <strong>Important:</strong> You must change your temporary password upon your first login.
               </p>
-
-              <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
-                Welcome to SWISH. We look forward to having
-                <strong>${collegeName}</strong> as part of our campus community.
-              </p>
-
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
-            <td style="background:#f8fafc;padding:20px 40px;
-                       border-top:1px solid #f1f5f9;">
-
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
-                © ${new Date().getFullYear()} Swish Campus Network · For your campus only
-              </p>
-
+            <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">© ${new Date().getFullYear()} Swish Campus Network</p>
             </td>
           </tr>
-
         </table>
-
       </td>
     </tr>
-
   </table>
-
 </body>
 </html>
   `.trim()
@@ -506,47 +470,29 @@ export async function sendCollegeAdminCredentialsEmail(
   const text = `
 Hello ${name},
 
-We are pleased to inform you that ${collegeName} has been successfully registered and approved on SWISH.
-
-Your college is now an approved SWISH institution. Users with your official college email domain can now register on SWISH and join your college community.
-
-COLLEGE REGISTRATION
-College: ${collegeName}
-Status: Successfully Registered
-Official Domain: ${loginId.split('@')[1]}
-
-COLLEGE ADMINISTRATOR ACCOUNT
-Your College Administrator account has been created successfully.
+Your registration request for ${collegeName} has been approved by the Swish Administration.
 
 Login ID: ${loginId}
 Temporary Password: ${temporaryPassword}
 
-IMPORTANT:
-This is a temporary password. You must change it when you log in for the first time.
-
-Please keep your credentials secure and do not share them with anyone. After changing your password, use your new password for future logins.
-
-Welcome to SWISH. We look forward to having ${collegeName} as part of our campus community.
+IMPORTANT: You must change your password upon your first login.
 
 Regards,
-SWISH Administration
+Swish Administration
   `.trim()
 
-  await dispatchEmail({
+  return dispatchEmail({
     to,
     subject: `Welcome to SWISH — College Registration Approved`,
     html,
     text,
   })
 }
-/**
- * Sends an email when a college registration request is rejected.
- *
- * @param {string} to           - requester/official email
- * @param {string} name         - requester name
- * @param {string} collegeName  - college name
- * @param {string} reason       - rejection reason saved by Main Admin
- */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendCollegeRegistrationRejectedEmail
+// Sends notification when a college onboarding request is rejected.
+// ─────────────────────────────────────────────────────────────────────────────
 export async function sendCollegeRegistrationRejectedEmail(
   to,
   name,
@@ -554,17 +500,20 @@ export async function sendCollegeRegistrationRejectedEmail(
   reason
 ) {
   if (!hasEmailProvider()) {
-    console.log(`\n📬 [DEV EMAIL — REJECTION not actually sent]`)
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email delivery service is unavailable. Please contact system administrator.')
+    }
+    console.log('\n📬 [DEV EMAIL — REJECTION not actually sent]')
     console.log(`  To:       ${to}`)
     console.log(`  Name:     ${name}`)
     console.log(`  College:  ${collegeName}`)
     console.log(`  Reason:   ${reason}\n`)
-    return
+    return { ok: true, devMode: true }
   }
 
-  const from =
-    process.env.EMAIL_FROM ||
-    '"Swish Campus 🎓" <noreply@swish.com>'
+  const safeName = escapeHtml(name)
+  const safeCollegeName = escapeHtml(collegeName)
+  const safeReason = escapeHtml(reason)
 
   const html = `
 <!DOCTYPE html>
@@ -574,98 +523,43 @@ export async function sendCollegeRegistrationRejectedEmail(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Swish College Registration Update</title>
 </head>
-
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
-
-  <table width="100%" cellpadding="0" cellspacing="0"
-         style="background:#f1f5f9;padding:40px 16px;">
-
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
     <tr>
       <td align="center">
-
-        <table width="520" cellpadding="0" cellspacing="0"
-               style="background:#ffffff;border-radius:20px;overflow:hidden;
-                      box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
+        <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:#334155;padding:32px 40px;text-align:center;">
-
-              <span style="font-size:28px;font-weight:900;color:#fff;
-                           letter-spacing:-0.5px;">
-                ⚡ Swish
-              </span>
-
-              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">
-                Campus Social Network
-              </p>
-
+              <span style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px;">⚡ Swish</span>
+              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Campus Social Network</p>
             </td>
           </tr>
-
-          <!-- Body -->
           <tr>
             <td style="padding:40px 40px 32px;">
-
-              <h2 style="margin:0 0 10px;font-size:22px;font-weight:700;
-                         color:#1e293b;letter-spacing:-0.3px;">
-                College Registration Update
-              </h2>
-
+              <h2 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1e293b;">College Registration Update</h2>
               <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.6;">
-                Hi <strong>${name}</strong>,
-                <br/><br/>
-                Thank you for your interest in joining SWISH.
-                After reviewing the registration request for
-                <strong>${collegeName}</strong>, the SWISH Main Admin
-                has decided not to approve the request at this time.
+                Hi <strong>${safeName}</strong>,<br/><br/>
+                Thank you for your interest in joining Swish. After reviewing the registration request for
+                <strong>${safeCollegeName}</strong>, the Swish Administration has decided not to approve the request at this time.
               </p>
-
-              <!-- Reason -->
-              <div style="background:#fff7ed;border:1px solid #fed7aa;
-                          border-radius:16px;padding:24px;margin-bottom:24px;">
-
-                <p style="margin:0 0 10px;color:#9a3412;font-size:12px;
-                          font-weight:700;text-transform:uppercase;
-                          letter-spacing:0.8px;">
-                  Reason for Rejection
-                </p>
-
-                <p style="margin:0;color:#7c2d12;font-size:14px;
-                          line-height:1.7;">
-                  ${reason}
-                </p>
-
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:24px;margin-bottom:24px;">
+                <p style="margin:0 0 8px;color:#9a3412;font-size:12px;font-weight:700;text-transform:uppercase;">Reason for Rejection</p>
+                <p style="margin:0;color:#7c2d12;font-size:14px;line-height:1.7;">${safeReason}</p>
               </div>
-
               <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6;">
-                If you believe this decision was made in error or you can
-                provide additional information, please contact the SWISH
-                administration team for further assistance.
+                If you believe this decision was made in error, please contact the Swish administration team.
               </p>
-
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
-            <td style="background:#f8fafc;padding:20px 40px;
-                       border-top:1px solid #f1f5f9;">
-
-              <p style="margin:0;color:#94a3b8;font-size:12px;text-align:center;">
-                © ${new Date().getFullYear()} Swish Campus Network · For your campus only
-              </p>
-
+            <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">© ${new Date().getFullYear()} Swish Campus Network</p>
             </td>
           </tr>
-
         </table>
-
       </td>
     </tr>
-
   </table>
-
 </body>
 </html>
   `.trim()
@@ -673,20 +567,19 @@ export async function sendCollegeRegistrationRejectedEmail(
   const text = `
 Hello ${name},
 
-Thank you for your interest in joining SWISH.
-
-After reviewing the registration request for ${collegeName}, the SWISH Main Admin has decided not to approve the request at this time.
+Thank you for your interest in joining Swish.
+After reviewing the registration request for ${collegeName}, the Swish Administration has decided not to approve the request at this time.
 
 Reason for rejection:
 ${reason}
 
-If you believe this decision was made in error or you can provide additional information, please contact the SWISH administration team.
+If you believe this decision was made in error, please contact the Swish administration team.
 
 Regards,
-SWISH Administration
+Swish Administration
   `.trim()
 
-  await dispatchEmail({
+  return dispatchEmail({
     to,
     subject: `Update regarding your ${collegeName} registration request`,
     html,

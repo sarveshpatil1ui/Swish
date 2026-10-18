@@ -24,7 +24,12 @@ ensureConfig()
 
 export function isCloudinaryConfigured() {
   const { cloudName, apiKey, apiSecret } = getCredentials()
-  return Boolean(cloudName && apiKey && apiSecret)
+  if (!cloudName || !apiKey || !apiSecret) return false
+  const values = [cloudName, apiKey, apiSecret].map(v => (v || '').trim())
+  const isPlaceholder = values.some(
+    v => !v || v.startsWith('your-') || v.startsWith('YOUR_') || v.includes('REPLACE_WITH')
+  )
+  return !isPlaceholder
 }
 
 /**

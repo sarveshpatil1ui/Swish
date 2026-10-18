@@ -2,40 +2,43 @@ import { test, describe, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { hasEmailProvider, sendOtpEmail } from '../src/services/email.service.js'
 
-describe('Email Service & Provider Fallback', () => {
+describe('Gmail API Email Service & Configuration', () => {
   const originalEnv = { ...process.env }
 
   afterEach(() => {
-    process.env = { ...originalEnv }
+    for (const k of Object.keys(process.env)) {
+      if (!(k in originalEnv)) delete process.env[k]
+    }
+    Object.assign(process.env, originalEnv)
   })
 
-  test('hasEmailProvider identifies active providers', () => {
-    delete process.env.RESEND_API_KEY
-    delete process.env.BREVO_API_KEY
-    delete process.env.SMTP_USER
-    delete process.env.SMTP_PASS
+  test('hasEmailProvider identifies when Gmail API is configured vs missing', () => {
+    delete process.env.GMAIL_CLIENT_ID
+    delete process.env.GMAIL_CLIENT_SECRET
+    delete process.env.GMAIL_REFRESH_TOKEN
+    delete process.env.GMAIL_SENDER_EMAIL
 
     assert.equal(hasEmailProvider(), false)
 
-    process.env.RESEND_API_KEY = 're_test_123'
-    assert.equal(hasEmailProvider(), true)
+    process.env.GMAIL_CLIENT_ID = 'test-client-id.apps.googleusercontent.com'
+    assert.equal(hasEmailProvider(), false, 'Requires all 4 variables')
 
-    delete process.env.RESEND_API_KEY
-    process.env.BREVO_API_KEY = 'xkeysib-test-123'
-    assert.equal(hasEmailProvider(), true)
+    process.env.GMAIL_CLIENT_SECRET = 'test-secret'
+    assert.equal(hasEmailProvider(), false, 'Requires all 4 variables')
 
-    delete process.env.BREVO_API_KEY
-    process.env.SMTP_USER = 'realuser@gmail.com'
-    process.env.SMTP_PASS = 'realpassword123'
-    assert.equal(hasEmailProvider(), true)
+    process.env.GMAIL_REFRESH_TOKEN = '1//test-token'
+    assert.equal(hasEmailProvider(), false, 'Requires all 4 variables')
+
+    process.env.GMAIL_SENDER_EMAIL = 'swishh.project@gmail.com'
+    assert.equal(hasEmailProvider(), true, 'Returns true when all 4 are set')
   })
 
-  test('sendOtpEmail throws in production if no email provider is configured', async () => {
+  test('sendOtpEmail throws in production if Gmail API is not configured', async () => {
     process.env.NODE_ENV = 'production'
-    delete process.env.RESEND_API_KEY
-    delete process.env.BREVO_API_KEY
-    delete process.env.SMTP_USER
-    delete process.env.SMTP_PASS
+    delete process.env.GMAIL_CLIENT_ID
+    delete process.env.GMAIL_CLIENT_SECRET
+    delete process.env.GMAIL_REFRESH_TOKEN
+    delete process.env.GMAIL_SENDER_EMAIL
 
     await assert.rejects(
       async () => {
@@ -50,10 +53,10 @@ describe('Email Service & Provider Fallback', () => {
 
   test('sendOtpEmail logs in development without throwing if no provider is configured', async () => {
     process.env.NODE_ENV = 'development'
-    delete process.env.RESEND_API_KEY
-    delete process.env.BREVO_API_KEY
-    delete process.env.SMTP_USER
-    delete process.env.SMTP_PASS
+    delete process.env.GMAIL_CLIENT_ID
+    delete process.env.GMAIL_CLIENT_SECRET
+    delete process.env.GMAIL_REFRESH_TOKEN
+    delete process.env.GMAIL_SENDER_EMAIL
 
     const result = await sendOtpEmail('dev@test.edu', 'Dev User', '654321')
     assert.deepEqual(result, { ok: true, devMode: true })

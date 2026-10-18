@@ -2,6 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { isOriginAllowed, getAllowedOrigins } from '../src/config/cors.js'
 import messagesRouter from '../src/routes/messages.routes.js'
+import usersRouter from '../src/routes/users.routes.js'
 import { isCollegeActive, invalidateCollegeCache } from '../src/middleware/auth.middleware.js'
 
 describe('CORS & Route Integrity', () => {
@@ -38,6 +39,14 @@ describe('CORS & Route Integrity', () => {
       searchIndex < convIdIndex,
       `/users/search (index ${searchIndex}) must precede /:convId (index ${convIdIndex}) to prevent cast errors`
     )
+  })
+
+  test('users router registers /:userId/follow with valid syntax and integrity', () => {
+    const routeLayers = usersRouter.stack
+      .filter(layer => layer.route)
+      .map(layer => layer.route.path)
+
+    assert.ok(routeLayers.includes('/:userId/follow'), '/:userId/follow route must exist')
   })
 
   test('in-process college cache handles caching and invalidation', () => {

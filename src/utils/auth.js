@@ -31,7 +31,7 @@ export function clearStoredToken() {
  * @param {object} options - fetch options (method, body, etc.)
  * @returns {Promise<object>} parsed JSON response body
  */
-async function apiFetch(path, options = {}) {
+export async function apiFetch(path, options = {}) {
   const token = getStoredToken()
   const headers = { 'Content-Type': 'application/json', ...options.headers }
   if (token) {

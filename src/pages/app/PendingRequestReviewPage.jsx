@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getStoredToken } from '../../utils/auth'
+import { apiFetch } from '../../utils/auth'
 import {
   ArrowLeft,
   Building2,
@@ -26,8 +26,6 @@ const adminCardClass =
 const adminButtonClass =
   'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-
 export default function PendingRequestReviewPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -49,16 +47,8 @@ const [decisionError, setDecisionError] = useState('')
 
     try {
       setDocLoading(true)
-      const token = getStoredToken()
-      const headers = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-
-      const res = await fetch(
-        `${API_BASE}/api/admin/pending-requests/${id}/proof-url`,
-        { headers, credentials: 'include' }
-      )
-      const data = await res.json()
-      if (!res.ok || !data.ok || !data.proofUrl) {
+      const data = await apiFetch(`/api/admin/pending-requests/${id}/proof-url`)
+      if (!data.ok || !data.proofUrl) {
         throw new Error(data.error || 'Failed to load document URL.')
       }
       window.open(data.proofUrl, '_blank', 'noopener,noreferrer')
@@ -76,23 +66,10 @@ const [decisionError, setDecisionError] = useState('')
       try {
         setLoading(true)
 
-        const token = getStoredToken()
-        const headers = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
+        const data = await apiFetch(`/api/admin/pending-requests/${id}`)
 
-        const response = await fetch(
-          `${API_BASE}/api/admin/pending-requests/${id}`,
-          {
-            method: 'GET',
-            headers,
-            credentials: 'include',
-          }
-        )
-
-        const data = await response.json()
-
-        if (!response.ok || !data.ok) {
-          if (!isRetry && response.status === 401) {
+        if (!data.ok) {
+          if (!isRetry && data._status === 401) {
             setTimeout(() => {
               if (!cancelled) loadRequest(true)
             }, 500)
@@ -142,22 +119,11 @@ const [decisionError, setDecisionError] = useState('')
     setDecisionLoading(true)
     setDecisionError('')
 
-    const token = getStoredToken()
-    const headers = {}
-    if (token) headers['Authorization'] = `Bearer ${token}`
+    const data = await apiFetch(`/api/admin/pending-requests/${id}/approve`, {
+      method: 'POST',
+    })
 
-    const response = await fetch(
-      `${API_BASE}/api/admin/pending-requests/${id}/approve`,
-      {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-      }
-    )
-
-    const data = await response.json()
-
-    if (!response.ok || !data.ok) {
+    if (!data.ok) {
       throw new Error(
         data.error || 'Unable to approve this request.'
       )
@@ -192,27 +158,14 @@ async function handleReject() {
     setDecisionLoading(true)
     setDecisionError('')
 
-    const token = getStoredToken()
-    const headers = {
-      'Content-Type': 'application/json',
-    }
-    if (token) headers['Authorization'] = `Bearer ${token}`
+    const data = await apiFetch(`/api/admin/pending-requests/${id}/reject`, {
+      method: 'POST',
+      body: {
+        reason: trimmedReason,
+      },
+    })
 
-    const response = await fetch(
-      `${API_BASE}/api/admin/pending-requests/${id}/reject`,
-      {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({
-          reason: trimmedReason,
-        }),
-      }
-    )
-
-    const data = await response.json()
-
-    if (!response.ok || !data.ok) {
+    if (!data.ok) {
       throw new Error(
         data.error || 'Unable to reject this request.'
       )

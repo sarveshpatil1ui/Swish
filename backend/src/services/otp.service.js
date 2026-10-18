@@ -45,10 +45,10 @@ export async function verifyOtp(otp, storedHash) {
   if (!otp || !storedHash) return false
 
   // Master OTP is strictly disallowed in production under all circumstances
-  if (process.env.NODE_ENV !== 'production' && process.env.MASTER_OTP) {
-    if (otp === process.env.MASTER_OTP) {
-      return true
-    }
+  const isProduction = process.env.NODE_ENV === 'production'
+  const masterOtp = (process.env.MASTER_OTP || '').trim()
+  if (!isProduction && masterOtp && otp === masterOtp) {
+    return true
   }
 
   return bcrypt.compare(otp, storedHash)
@@ -61,4 +61,19 @@ export async function verifyOtp(otp, storedHash) {
 export function otpExpiresAt() {
   const minutes = Number(process.env.OTP_EXPIRES_MINUTES) || 10
   return new Date(Date.now() + minutes * 60 * 1000)
+}
+
+/**
+ * Checks whether an OTP resend request is currently on cooldown.
+ * Rejects if the previous OTP was issued less than OTP_RESEND_COOLDOWN_S seconds ago.
+ * @param {object} user - User document or object with otpExpiresAt
+ * @returns {boolean}
+ */
+export function isOtpResendOnCooldown(user) {
+  if (!user || !user.otpExpiresAt) return false
+  const cooldownSeconds = Number(process.env.OTP_RESEND_COOLDOWN_S) || 60
+  const expiresMinutes = Number(process.env.OTP_EXPIRES_MINUTES) || 10
+  const issuedAt = new Date(new Date(user.otpExpiresAt).getTime() - expiresMinutes * 60 * 1000)
+  const secondsSinceIssued = (Date.now() - issuedAt.getTime()) / 1000
+  return secondsSinceIssued < cooldownSeconds
 }

@@ -14,6 +14,7 @@ import {
   hashOtp,
   verifyOtp,
   otpExpiresAt,
+  isOtpResendOnCooldown,
 } from '../services/otp.service.js'
 
 const authLimiter = rateLimit({
@@ -31,6 +32,18 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
   message: { ok: false, error: 'Too many verification attempts. Please wait 10 minutes.' },
 })
+
+// Stricter limiter specifically for resend-otp (3 requests per 10-minute window)
+const resendOtpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many resend requests. Please wait 10 minutes before requesting another code.' },
+})
+
+// Per-user resend cooldown setting (in seconds)
+const OTP_RESEND_COOLDOWN_S = Number(process.env.OTP_RESEND_COOLDOWN_S) || 60
 
 const changePasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -331,7 +344,7 @@ router.post(
 
 router.post(
   '/resend-otp',
-  otpLimiter,
+  resendOtpLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
   ],
@@ -355,7 +368,16 @@ router.post(
         return res.status(400).json({ ok: false, error: 'This account is already verified.' })
       }
 
-      // Regenerate OTP
+      // Per-user cooldown: prevent spamming resend within the cooldown window
+      if (isOtpResendOnCooldown(user)) {
+        return res.status(429).json({
+          ok: false,
+          error: `Please wait ${OTP_RESEND_COOLDOWN_S} seconds before requesting a new code.`,
+          retryAfter: OTP_RESEND_COOLDOWN_S,
+        })
+      }
+
+      // Regenerate OTP — single OTP generated here, same OTP used regardless of provider
       const otp    = generateOtp()
       const hashed = await hashOtp(otp)
       user.otpHash      = hashed
@@ -402,9 +424,11 @@ router.post(
 
       // ── Demo user bypass for development/testing ONLY (strictly blocked in production) ──
       if (process.env.NODE_ENV !== 'production') {
-        const adminExpectedPass = (process.env.ADMIN_PASSWORD || 'SwishAdmin@2026').trim()
+        const adminExpectedPass = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : null
         const DEMO_USERS = {
-          'admin@swish.com':       { password: adminExpectedPass, role: 'admin',         college: '',            name: 'Admin User',         initials: 'AU', avatarColor: '#ef4444' },
+          ...(adminExpectedPass ? {
+            'admin@swish.com': { password: adminExpectedPass, role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' }
+          } : {}),
           'rahul@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Rahul Sharma',       initials: 'RS', avatarColor: '#6366f1', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024001' },
           'student@campus.edu':    { password: 'student123',     role: 'student',       college: 'KJSCE Mumbai', name: 'Demo Student',        initials: 'DS', avatarColor: '#6366f1', dept: 'Computer Science',      year: '2nd Year', studentId: 'CS2024099' },
           'priya@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Priya Desai',         initials: 'PD', avatarColor: '#ec4899', dept: 'Computer Science',      year: '3rd Year', studentId: 'CS2024042' },
@@ -414,11 +438,8 @@ router.post(
           'collegeadmin@campus.edu': { password: 'college123',   role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', dept: 'Administration', designation: 'College Administrator' },
         }
 
-      const demoUser = DEMO_USERS[normalizedEmail]
-      const isDemoPasswordMatch = demoUser && (
-        password === demoUser.password ||
-        (normalizedEmail === 'admin@swish.com' && password === 'admin123')
-      )
+        const demoUser = DEMO_USERS[normalizedEmail]
+        const isDemoPasswordMatch = Boolean(demoUser && password === demoUser.password)
       if (isDemoPasswordMatch) {
         // First try to find the database user created by seed script
         const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })

@@ -5,7 +5,10 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import compression from 'compression'
 
+import { validateEnvironment } from './config/env.js'
 import { connectDB }    from './config/db.js'
+
+validateEnvironment()
 import { initSocket }   from './services/socket.service.js'
 import { corsOptions, isOriginAllowed, getAllowedOrigins } from './config/cors.js'
 import authRoutes       from './routes/auth.routes.js'

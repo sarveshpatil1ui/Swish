@@ -294,7 +294,7 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
     }
 
     await Follow.create({ follower: req.user.id, following: targetId })
-    const [target] = await Promise.all([
+    const [updatedTarget] = await Promise.all([
       User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
       User.findByIdAndUpdate(req.user.id, { $inc: { following: 1 } }, { new: true }),
     ])
@@ -302,7 +302,7 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
     res.status(201).json({
       ok: true,
       following: true,
-      followerCount: target ? target.followers : 0,
+      followerCount: updatedTarget ? updatedTarget.followers : 0,
     })
   } catch (err) {
     // Unique index race: two simultaneous follow requests

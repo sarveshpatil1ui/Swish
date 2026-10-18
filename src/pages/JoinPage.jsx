@@ -8,7 +8,7 @@ import {
   BadgeCheck, XCircle, RefreshCw,
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
-import { apiVerifyOtp, apiResendOtp,apiCheckCollegeDomain, } from '../utils/auth'
+import { apiVerifyOtp, apiResendOtp, apiCheckCollegeDomain, redirectPathForRole } from '../utils/auth'
 
 // ── Password strength helpers ─────────────────────────────────────────────────
 const getStrength = (pass) => {
@@ -268,7 +268,7 @@ useEffect(() => {
     setOtpLoading(false)
     if (result.ok) {
       onVerified(result.user)
-      navigate(result.redirectTo)
+      navigate(result.redirectTo || redirectPathForRole(result.user?.role) || '/home', { replace: true })
     } else {
       setOtpError(result.error || 'Invalid or expired code.')
       if (result.expired) startResendCooldown(0) // allow immediate resend

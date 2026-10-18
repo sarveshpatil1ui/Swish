@@ -80,7 +80,7 @@ const UserSchema = new Schema(
   { timestamps: true }
 )
 
-
+UserSchema.index({ collegeId: 1, role: 1 })
 
 UserSchema.set('toJSON', {
   virtuals: true,

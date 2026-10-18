@@ -22,6 +22,9 @@ const DepartmentSchema = new Schema(
   { timestamps: true }
 )
 
+DepartmentSchema.index({ collegeId: 1, code: 1 }, { unique: true })
+DepartmentSchema.index({ collegeId: 1, active: 1 })
+
 // ── toJSON — expose id instead of _id ────────────────────────────────────────
 DepartmentSchema.set('toJSON', {
   virtuals: true,
