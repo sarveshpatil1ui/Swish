@@ -89,8 +89,22 @@ export function createProofUploadSignature(resourceType) {
 export function getSignedProofUrl(publicId, resourceType = 'image') {
   if (!isCloudinaryConfigured() || !publicId) return null
 
-  const rType = ['image', 'raw'].includes(resourceType) ? resourceType : 'image'
+  const rType =
+    resourceType === 'raw' || resourceType === 'application/pdf'
+      ? 'raw'
+      : 'image'
   const expiresAt = Math.floor(Date.now() / 1000) + 3600 // 1 hour validity
+
+  // Raw authenticated assets, such as PDFs, must use a private download URL.
+  // The generic delivery URL can produce a URL that the browser cannot open
+  // even though the asset exists and the signature is valid.
+  if (rType === 'raw') {
+    return cloudinary.utils.private_download_url(publicId, 'pdf', {
+      resource_type: 'raw',
+      type: 'authenticated',
+      expires_at: expiresAt,
+    })
+  }
 
   return cloudinary.url(publicId, {
     resource_type: rType,

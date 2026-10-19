@@ -30,9 +30,9 @@ export default function Sidebar() {
     baseNavItems[3],
   ]
 
-  const handleLogout = () => {
-    logout()
-    navigate('/')
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
   return (

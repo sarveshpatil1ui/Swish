@@ -383,9 +383,18 @@ export function SwishProvider({ children }) {
 
   // ── logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
-    await apiLogout()
-    setCurrentUser(null)
-    setIsAuthenticated(false)
+    // Clear local auth state even if the server cannot be reached. The
+    // httpOnly cookie is best-effort cleared by the API request, while the UI
+    // must never continue presenting an authenticated session after logout.
+    try {
+      await apiLogout()
+    } catch (error) {
+      console.error('[SwishProvider] Logout request failed; cleared local session.', error)
+    } finally {
+      setCurrentUser(null)
+      setIsAuthenticated(false)
+      setMustChangePassword(false)
+    }
   }
 
   // ── domainApproved ────────────────────────────────────────────────────────

@@ -140,7 +140,7 @@ function SidebarItem({
 export default function AdminPage() {
   const navigate = useNavigate()
 
-  const { currentUser: user, authLoading, isAuthenticated } = useSwish()
+  const { currentUser: user, authLoading, isAuthenticated, logout } = useSwish()
   const { dark, toggle } = useTheme()
 
   const [activeSection, setActiveSection] = useState('Dashboard')
@@ -502,6 +502,11 @@ export default function AdminPage() {
     setMobileSidebarOpen(false)
   }
 
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
   const sidebar = (
     <aside className="w-64 h-full bg-white dark:bg-gray-950 border-r border-slate-200/80 dark:border-gray-800 flex flex-col shadow-sm shadow-slate-200/60 dark:shadow-black/20">
       {/* Logo */}
@@ -665,7 +670,7 @@ export default function AdminPage() {
         </button>
 
         <button
-          onClick={() => navigate('/')}
+          onClick={handleLogout}
           className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 ${adminInteractiveClass}`}
         >
           <LogOut size={15} />

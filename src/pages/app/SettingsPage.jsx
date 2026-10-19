@@ -466,7 +466,10 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   const sectionProps = { account: { currentUser, updateUser, showToast }, appearance: { dark, toggle }, notifications: { prefs: currentUser?.preferences, updatePreferences }, privacy: { prefs: currentUser?.preferences, updatePreferences }, security: { currentUser, changePassword, showToast, deactivateAccount, deleteAccount, logout }, help: { showToast }, about: {} }
 
