@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X, ImagePlus, Trash2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { resolveImageUrl } from '../../utils/posts'
 
 export default function CreatePostModal({ onClose }) {
   const { currentUser, createPost } = useSwish()
@@ -135,10 +136,18 @@ export default function CreatePostModal({ onClose }) {
             <div className="mt-4">
               <div className="flex items-center gap-3 mb-2">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                  className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden text-white font-bold flex-shrink-0"
                   style={{ backgroundColor: currentUser?.avatarColor || '#6366f1', fontSize: '10px' }}
                 >
-                  {currentUser?.initials || 'U'}
+                  {resolveImageUrl(currentUser?.profilePhoto) ? (
+                    <img
+                      src={resolveImageUrl(currentUser.profilePhoto)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    currentUser?.initials || 'U'
+                  )}
                 </div>
                 <span className="text-slate-700 dark:text-gray-300 text-sm font-semibold">{currentUser?.name || 'You'}</span>
               </div>
