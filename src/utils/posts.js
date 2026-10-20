@@ -28,7 +28,7 @@ export function formatRelativeTime(isoDate) {
 const FALLBACK_GRADIENT = { emoji: '📸', label: 'Post', gradientFrom: '#eef2ff', gradientTo: '#ede9fe' }
 
 /** Resolve image URL — prepend API base for server-stored uploads */
-function resolveImageUrl(url) {
+export function resolveImageUrl(url) {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url
   if (url.startsWith('/uploads/')) return `${API_BASE}${url}`
@@ -42,6 +42,7 @@ export function normalizePost(raw) {
     userName: raw.user?.name ?? 'Unknown',
     userInitials: raw.user?.initials ?? '?',
     userAvatarColor: raw.user?.avatarColor ?? '#6366f1',
+    userProfilePhoto: resolveImageUrl(raw.user?.profilePhoto) ?? null,
     userDept: [raw.user?.dept, raw.user?.year].filter(Boolean).join(' · '),
     createdAt: formatRelativeTime(raw.createdAt),
     rawCreatedAt: raw.createdAt,

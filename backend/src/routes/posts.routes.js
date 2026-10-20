@@ -317,7 +317,7 @@ router.get('/:postId/comments', requireAuth, async (req, res) => {
 
     const comments = await Comment.find({ post: req.params.postId })
       .sort({ createdAt: -1 })
-      .populate('user', 'name username initials avatarColor')
+      .populate('user', 'name username initials avatarColor profilePhoto')
 
     res.json({
       ok: true,
@@ -327,6 +327,7 @@ router.get('/:postId/comments', requireAuth, async (req, res) => {
         userName: c.user.name,
         userInitials: c.user.initials,
         avatarColor: c.user.avatarColor,
+        profilePhoto: c.user.profilePhoto || null,
         text: c.text,
         createdAt: c.createdAt,
       })),
@@ -378,6 +379,7 @@ router.post(
         userName: req.user.name,
         userInitials: req.user.initials,
         avatarColor: req.user.avatarColor,
+        profilePhoto: req.user.profilePhoto || null,
         text: comment.text,
         createdAt: comment.createdAt,
       }

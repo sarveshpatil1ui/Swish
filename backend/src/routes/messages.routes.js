@@ -82,7 +82,7 @@ router.get('/:convId', async (req, res) => {
       _id:          req.params.convId,
       participants: req.user._id,
     }).populate('participants', 'name username initials avatarColor profilePhoto')
-      .populate('messages.sender', 'name initials avatarColor')
+      .populate('messages.sender', 'name username initials avatarColor profilePhoto')
 
     if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
 

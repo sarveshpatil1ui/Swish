@@ -9,13 +9,26 @@ import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
+import { resolveImageUrl } from '../../utils/posts'
 
 // ── Tiny avatar ───────────────────────────────────────────────────────────────
-function Avatar({ initials, color, size = 9 }) {
+function Avatar({ initials, color, profilePhoto, size = 9 }) {
+  const [imgError, setImgError] = useState(false)
+  const src = resolveImageUrl(profilePhoto)
+  if (src && !imgError) {
+    return (
+      <img
+        src={src}
+        alt=""
+        onError={() => setImgError(true)}
+        className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`}
+      />
+    )
+  }
   return (
     <div
       className={`w-${size} h-${size} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
-      style={{ backgroundColor: color, fontSize: size <= 8 ? '11px' : size <= 9 ? '12px' : '14px' }}
+      style={{ backgroundColor: color || '#6366f1', fontSize: size <= 8 ? '11px' : size <= 9 ? '12px' : '14px' }}
     >
       {initials}
     </div>
@@ -129,7 +142,7 @@ export default function PostCard({ post }) {
             to={`/profile/${post.userId}`}
             className="flex items-center gap-3 group min-w-0"
           >
-            <Avatar initials={post.userInitials} color={post.userAvatarColor} size={9} />
+            <Avatar initials={post.userInitials} color={post.userAvatarColor} profilePhoto={post.userProfilePhoto} size={9} />
             <div className="min-w-0">
               <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight truncate">
                 {post.userName}
@@ -403,12 +416,12 @@ export default function PostCard({ post }) {
 
         {/* ── Comment quick-input ──────────────────────────────────────── */}
         <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-gray-800 flex items-center gap-3">
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-            style={{ backgroundColor: currentUser?.avatarColor || '#6366f1', fontSize: '10px' }}
-          >
-            {currentUser?.initials || 'U'}
-          </div>
+          <Avatar
+            initials={currentUser?.initials || 'U'}
+            color={currentUser?.avatarColor || '#6366f1'}
+            profilePhoto={currentUser?.profilePhoto}
+            size={7}
+          />
           <button
             onClick={() => setShowComments(true)}
             className="flex-1 text-left text-sm text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors rounded-full px-4 py-2"

@@ -46,18 +46,31 @@ function msgTime(dateStr) {
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md' }) {
+  const [imgError, setImgError] = useState(false)
   const sizes = { sm: 'w-9 h-9 text-xs', md: 'w-11 h-11 text-sm', lg: 'w-14 h-14 text-base' }
   const dots  = { sm: 'w-2.5 h-2.5 border-[1.5px]', md: 'w-3 h-3 border-2', lg: 'w-3.5 h-3.5 border-2' }
   const src = profilePhoto
-    ? (profilePhoto.startsWith('blob:') ? profilePhoto : `${API}${profilePhoto}`)
+    ? (profilePhoto.startsWith('http://') || profilePhoto.startsWith('https://') || profilePhoto.startsWith('blob:')
+        ? profilePhoto
+        : profilePhoto.startsWith('/uploads/')
+        ? `${API}${profilePhoto}`
+        : `${API}/${profilePhoto}`)
     : null
 
   return (
     <div className="relative flex-shrink-0">
-      {src
-        ? <img src={src} alt={name} className={`${sizes[size]} rounded-full object-cover`} />
-        : <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold`} style={{ backgroundColor: avatarColor || '#6366f1' }}>{initials || '?'}</div>
-      }
+      {src && !imgError ? (
+        <img
+          src={src}
+          alt={name}
+          onError={() => setImgError(true)}
+          className={`${sizes[size]} rounded-full object-cover`}
+        />
+      ) : (
+        <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold`} style={{ backgroundColor: avatarColor || '#6366f1' }}>
+          {initials || '?'}
+        </div>
+      )}
       {online !== undefined && (
         <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-gray-950 ${online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'}`} />
       )}

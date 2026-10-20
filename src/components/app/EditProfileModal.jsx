@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X, Camera, Loader2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { resolveImageUrl } from '../../utils/posts'
 
 const MAX_BIO_LENGTH = 300
 
@@ -109,7 +110,7 @@ export default function EditProfileModal({ onClose, onSaved }) {
               >
                 {photoPreview ? (
                   <img
-                    src={photoPreview.startsWith('blob:') ? photoPreview : `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${photoPreview}`}
+                    src={resolveImageUrl(photoPreview)}
                     alt="Profile"
                     className="w-20 h-20 rounded-full object-cover"
                   />

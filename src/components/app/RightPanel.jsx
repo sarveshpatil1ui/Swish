@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { TrendingUp, UserPlus, Hash } from 'lucide-react'
 import CollegeNoticePanel from './CollegeNoticePanel'
+import { resolveImageUrl } from '../../utils/posts'
 
 // No backend API yet for trending topics or suggested users — will be populated once built
 const trendingTopics = []
@@ -65,12 +66,20 @@ export default function RightPanel() {
             suggestedUsers.map((u) => (
               <div key={u.id} className="flex items-center gap-3">
                 <Link to={`/profile/${u.id}`}>
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 hover:opacity-80 transition-opacity"
-                    style={{ backgroundColor: u.avatarColor }}
-                  >
-                    {u.initials}
-                  </div>
+                  {resolveImageUrl(u.profilePhoto) ? (
+                    <img
+                      src={resolveImageUrl(u.profilePhoto)}
+                      alt=""
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 hover:opacity-80 transition-opacity"
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 hover:opacity-80 transition-opacity"
+                      style={{ backgroundColor: u.avatarColor }}
+                    >
+                      {u.initials}
+                    </div>
+                  )}
                 </Link>
                 <Link to={`/profile/${u.id}`} className="flex-1 min-w-0 group">
                   <p className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">

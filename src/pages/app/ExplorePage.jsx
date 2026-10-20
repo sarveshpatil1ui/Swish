@@ -4,6 +4,7 @@ import { Search, TrendingUp, X, UserX, Loader2, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
 import { getStoredToken } from '../../utils/auth'
+import { resolveImageUrl } from '../../utils/posts'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -36,13 +37,11 @@ async function apiDelete(path) {
 
 // ── Avatar ─────────────────────────────────────────────────────────────────────
 function Avatar({ user, size = 11 }) {
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-  const src = user.profilePhoto
-    ? (user.profilePhoto.startsWith('blob:') ? user.profilePhoto : `${API_BASE}${user.profilePhoto}`)
-    : null
+  const [imgError, setImgError] = useState(false)
+  const src = resolveImageUrl(user?.profilePhoto)
   const cls = `w-${size} h-${size} rounded-full flex-shrink-0`
-  return src
-    ? <img src={src} alt={user.name} className={`${cls} object-cover`} />
+  return src && !imgError
+    ? <img src={src} alt={user.name} onError={() => setImgError(true)} className={`${cls} object-cover`} />
     : <div className={`${cls} flex items-center justify-center text-white font-bold text-sm`} style={{ backgroundColor: user.avatarColor || '#6366f1' }}>{user.initials}</div>
 }
 

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { X, Send, Loader2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
-import { formatRelativeTime } from '../../utils/posts'
+import { formatRelativeTime, resolveImageUrl } from '../../utils/posts'
 
 export default function CommentDrawer({ post, onClose }) {
   const { currentUser, fetchComments, addComment, deleteComment } = useSwish()
@@ -116,12 +116,20 @@ export default function CommentDrawer({ post, onClose }) {
         {/* Post mini preview */}
         <div className="px-5 py-3 border-b border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-gray-800/50">
           <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-              style={{ backgroundColor: post.userAvatarColor }}
-            >
-              {post.userInitials}
-            </div>
+            {resolveImageUrl(post.userProfilePhoto) ? (
+              <img
+                src={resolveImageUrl(post.userProfilePhoto)}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                style={{ backgroundColor: post.userAvatarColor }}
+              >
+                {post.userInitials}
+              </div>
+            )}
             <div>
               <p className="text-slate-800 dark:text-gray-200 text-xs font-semibold">{post.userName}</p>
               <p className="text-slate-500 dark:text-gray-400 text-xs line-clamp-1">{post.caption.slice(0, 60)}…</p>
@@ -147,12 +155,20 @@ export default function CommentDrawer({ post, onClose }) {
           ) : (
             comments.map((c) => (
               <div key={c.id} className="flex gap-3 group">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5"
-                  style={{ backgroundColor: c.avatarColor }}
-                >
-                  {c.userInitials}
-                </div>
+                {resolveImageUrl(c.profilePhoto) ? (
+                  <img
+                    src={resolveImageUrl(c.profilePhoto)}
+                    alt=""
+                    className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
+                  />
+                ) : (
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5"
+                    style={{ backgroundColor: c.avatarColor }}
+                  >
+                    {c.userInitials}
+                  </div>
+                )}
                 <div className="flex-1">
                   <div className="bg-slate-50 dark:bg-gray-800 rounded-2xl px-4 py-2.5">
                     <p className="text-slate-900 dark:text-white text-xs font-semibold mb-0.5">{c.userName}</p>
@@ -184,12 +200,20 @@ export default function CommentDrawer({ post, onClose }) {
             <p className="text-rose-500 text-xs mb-2">{error}</p>
           )}
           <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-              style={{ backgroundColor: currentUser?.avatarColor || '#6366f1', fontSize: '10px' }}
-            >
-              {currentUser?.initials || 'U'}
-            </div>
+            {resolveImageUrl(currentUser?.profilePhoto) ? (
+              <img
+                src={resolveImageUrl(currentUser.profilePhoto)}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                style={{ backgroundColor: currentUser?.avatarColor || '#6366f1', fontSize: '10px' }}
+              >
+                {currentUser?.initials || 'U'}
+              </div>
+            )}
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}

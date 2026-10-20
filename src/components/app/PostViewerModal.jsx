@@ -6,7 +6,7 @@ import {
   MoreHorizontal, Send, Loader2, Trash2, Check, ImageOff,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { formatRelativeTime } from '../../utils/posts'
+import { formatRelativeTime, resolveImageUrl } from '../../utils/posts'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
 
@@ -157,12 +157,20 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
             {/* Author header */}
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800">
               <Link to={`/profile/${post.userId}`} onClick={onClose} className="flex items-center gap-3 group">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                  style={{ backgroundColor: post.userAvatarColor, fontSize: '12px' }}
-                >
-                  {post.userInitials}
-                </div>
+                {resolveImageUrl(post.userProfilePhoto) ? (
+                  <img
+                    src={resolveImageUrl(post.userProfilePhoto)}
+                    alt=""
+                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                    style={{ backgroundColor: post.userAvatarColor, fontSize: '12px' }}
+                  >
+                    {post.userInitials}
+                  </div>
+                )}
                 <div>
                   <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{post.userName}</p>
                   <p className="text-slate-400 dark:text-gray-500 text-xs">{post.createdAt}</p>
@@ -229,12 +237,20 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
               ) : (
                 comments.map(c => (
                   <div key={c.id} className="flex gap-2.5 group">
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5"
-                      style={{ backgroundColor: c.avatarColor }}
-                    >
-                      {c.userInitials}
-                    </div>
+                    {resolveImageUrl(c.profilePhoto) ? (
+                      <img
+                        src={resolveImageUrl(c.profilePhoto)}
+                        alt=""
+                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
+                      />
+                    ) : (
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5"
+                        style={{ backgroundColor: c.avatarColor }}
+                      >
+                        {c.userInitials}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
                         <span className="font-semibold text-slate-900 dark:text-white mr-1.5">{c.userName}</span>

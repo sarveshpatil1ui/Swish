@@ -4,6 +4,7 @@ import { Zap, MessageSquare, Bell, Settings, Sun, Moon, LogOut, User, Shield, Gr
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '../../context/ThemeContext'
 import { useSwish } from '../../context/SwishContext'
+import { resolveImageUrl } from '../../utils/posts'
 
 export default function MobileTopBar() {
   const { pathname } = useLocation()
@@ -111,8 +112,8 @@ export default function MobileTopBar() {
             className="flex items-center justify-center w-8 h-8 rounded-full ring-2 ring-indigo-600/20 dark:ring-indigo-400/20 active:scale-90 transition-transform overflow-hidden flex-shrink-0"
             style={{ backgroundColor: user?.avatarColor || '#6366f1' }}
           >
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            {resolveImageUrl(user?.profilePhoto) ? (
+              <img src={resolveImageUrl(user.profilePhoto)} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-white text-xs font-bold leading-none select-none">
                 {user?.initials || (user?.name ? user.name[0].toUpperCase() : 'U')}
@@ -146,12 +147,16 @@ export default function MobileTopBar() {
             >
               {/* User Header Info */}
               <div className="flex items-center gap-3 pb-3.5 border-b border-slate-100 dark:border-gray-800">
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm"
-                  style={{ backgroundColor: user?.avatarColor || '#6366f1' }}
-                >
-                  {user?.initials || (user?.name ? user.name[0].toUpperCase() : 'U')}
-                </div>
+                {resolveImageUrl(user?.profilePhoto) ? (
+                  <img src={resolveImageUrl(user.profilePhoto)} alt={user.name} className="w-11 h-11 rounded-full object-cover flex-shrink-0 shadow-sm" />
+                ) : (
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: user?.avatarColor || '#6366f1' }}
+                  >
+                    {user?.initials || (user?.name ? user.name[0].toUpperCase() : 'U')}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-slate-900 dark:text-white font-semibold text-sm truncate">
                     {user?.name || 'Campus Student'}

@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import CreatePostModal from './CreatePostModal'
+import { resolveImageUrl } from '../../utils/posts'
 
 const baseNavItems = [
   { to: '/home',          icon: Home,     label: 'Home' },
@@ -143,9 +144,17 @@ export default function Sidebar() {
         <div className="space-y-0.5 border-t border-slate-100 dark:border-gray-800 pt-4">
           {user && (
             <NavLink to={`/profile/${user?.id || 'user-1'}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: user.avatarColor }}>
-                {user.initials}
-              </div>
+              {resolveImageUrl(user.profilePhoto) ? (
+                <img
+                  src={resolveImageUrl(user.profilePhoto)}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: user.avatarColor }}>
+                  {user.initials}
+                </div>
+              )}
               <div className="hidden lg:block min-w-0">
                 <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">{user.name}</p>
                 <p className="text-slate-400 dark:text-gray-500 text-xs truncate">{user.dept}</p>
