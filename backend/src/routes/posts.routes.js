@@ -374,7 +374,8 @@ router.post(
       )
 
       const commentPayload = {
-        id: comment.id,
+        id: comment._id.toString(),
+        _id: comment._id.toString(),
         userId: req.user.id,
         userName: req.user.name,
         userInitials: req.user.initials,

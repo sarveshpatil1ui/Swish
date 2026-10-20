@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -6,6 +6,7 @@ import {
   MoreHorizontal, Send, Loader2, Trash2, Check, ImageOff,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { useSocket } from '../../context/SocketContext'
 import { formatRelativeTime, resolveImageUrl } from '../../utils/posts'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
@@ -27,6 +28,8 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const [error, setError] = useState('')
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
+  const { on, off } = useSocket()
   const [liking, setLiking] = useState(false)
   const [saved, setSaved] = useState(post.saved)
   const [copied, setCopied] = useState(false)
@@ -66,20 +69,68 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
     setLiking(false)
   }
 
+  // Real-time comments sync
+  useEffect(() => {
+    if (!on || !off) return
+    const handleRealtimeComment = (data) => {
+      if (String(data?.postId) === String(post.id) && data?.comment) {
+        const incomingId = String(data.comment.id || data.comment._id || '')
+        setComments(prev => {
+          if (incomingId && prev.some(c => String(c.id || c._id) === incomingId)) {
+            return prev
+          }
+          return [data.comment, ...prev]
+        })
+      }
+    }
+    on('post:comment:update', handleRealtimeComment)
+    return () => off('post:comment:update', handleRealtimeComment)
+  }, [post.id, on, off])
+
   const handleSubmitComment = async (e) => {
     e?.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed || submitting) return
+    if (!trimmed || submitting || submittingRef.current) return
+
+    submittingRef.current = true
     setSubmitting(true)
     setError('')
-    const res = await addComment(post.id, trimmed)
-    setSubmitting(false)
-    if (!res.ok) { setError(res.error || 'Failed to post comment.'); return }
-    setComments(prev => [
-      { id: res.comment.id, userId: res.comment.userId, userName: res.comment.userName, userInitials: res.comment.userInitials, avatarColor: res.comment.avatarColor, text: res.comment.text, createdAt: res.comment.createdAt },
-      ...prev,
-    ])
     setText('')
+
+    try {
+      const res = await addComment(post.id, trimmed)
+      if (!res.ok) {
+        setError(res.error || 'Failed to post comment.')
+        setText(trimmed)
+        return
+      }
+
+      if (res.comment) {
+        const newComment = {
+          id: res.comment.id || res.comment._id,
+          userId: res.comment.userId,
+          userName: res.comment.userName,
+          userInitials: res.comment.userInitials,
+          avatarColor: res.comment.avatarColor,
+          profilePhoto: res.comment.profilePhoto || null,
+          text: res.comment.text,
+          createdAt: res.comment.createdAt,
+        }
+        setComments(prev => {
+          const targetId = String(newComment.id || '')
+          if (targetId && prev.some(c => String(c.id || c._id) === targetId)) {
+            return prev
+          }
+          return [newComment, ...prev]
+        })
+      }
+    } catch (err) {
+      setError('Failed to post comment.')
+      setText(trimmed)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
   }
 
   const handleDeleteComment = async (commentId) => {
