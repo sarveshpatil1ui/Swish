@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { X, ImagePlus, Trash2 } from 'lucide-react'
+import { X, ImagePlus, Trash2, Smile } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { resolveImageUrl } from '../../utils/posts'
+import EmojiPicker from './EmojiPicker'
 
 export default function CreatePostModal({ onClose }) {
   const { currentUser, createPost } = useSwish()
@@ -12,7 +13,9 @@ export default function CreatePostModal({ onClose }) {
   const [dragging, setDragging] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileRef = useRef(null)
+  const textareaRef = useRef(null)
 
   const [publishError, setPublishError] = useState('')
 
@@ -28,6 +31,23 @@ export default function CreatePostModal({ onClose }) {
     setDragging(false)
     const file = e.dataTransfer.files[0]
     handleFile(file)
+  }
+
+  const handleSelectEmoji = (emoji) => {
+    const textarea = textareaRef.current
+    const start = textarea?.selectionStart ?? caption.length
+    const end = textarea?.selectionEnd ?? caption.length
+    const nextCaption = `${caption.slice(0, start)}${emoji}${caption.slice(end)}`
+
+    setCaption(nextCaption)
+    setShowEmojiPicker(false)
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        const cursorPosition = start + emoji.length
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(cursorPosition, cursorPosition)
+      }
+    })
   }
 
   const handlePublish = async (e) => {
@@ -151,14 +171,36 @@ export default function CreatePostModal({ onClose }) {
                 </div>
                 <span className="text-slate-700 dark:text-gray-300 text-sm font-semibold">{currentUser?.name || 'You'}</span>
               </div>
-              <textarea
-                value={caption}
-                onChange={e => setCaption(e.target.value)}
-                placeholder="What's happening on campus?"
-                rows={3}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 resize-none transition-all"
-                aria-label="Post caption"
-              />
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  placeholder="What's happening on campus?"
+                  rows={3}
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 resize-none transition-all"
+                  aria-label="Post caption"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(value => !value)}
+                  className={`absolute right-3 bottom-3 p-1.5 rounded-lg transition-colors ${
+                    showEmojiPicker
+                      ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/50'
+                      : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-500 dark:hover:text-indigo-400 dark:hover:bg-indigo-950/50'
+                  }`}
+                  aria-label="Insert emoji"
+                  aria-expanded={showEmojiPicker}
+                >
+                  <Smile size={18} />
+                </button>
+                {showEmojiPicker && (
+                  <EmojiPicker
+                    onSelect={handleSelectEmoji}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                )}
+              </div>
               <p className={`text-xs text-right mt-1 transition-colors ${
                 caption.length > 280 ? 'text-rose-500 font-semibold' : 'text-slate-400 dark:text-gray-500'
               }`}>
