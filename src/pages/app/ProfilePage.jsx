@@ -43,7 +43,7 @@ function ProfileSkeleton() {
 
 export default function ProfilePage() {
   const { userId } = useParams()
-  const { currentUser, fetchProfile, followUser, unfollowUser, posts } = useSwish()
+  const { currentUser, fetchProfile, followUser, unfollowUser, fetchPosts, posts } = useSwish()
   const [activeTab, setActiveTab] = useState('posts')
   const [showEditModal, setShowEditModal] = useState(false)
   const [followListMode, setFollowListMode] = useState(null) // 'followers' | 'following' | null
@@ -59,6 +59,7 @@ export default function ProfilePage() {
   const [followed, setFollowed]           = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [followLoading, setFollowLoading] = useState(false)
+  const [isPostsUpdating, setIsPostsUpdating] = useState(false)
 
   useEffect(() => {
     if (!targetUserId) return
@@ -104,8 +105,24 @@ export default function ProfilePage() {
       // Rollback
       setFollowed(wasFollowed)
       setFollowerCount(c => wasFollowed ? c + 1 : Math.max(0, c - 1))
-    } else if (typeof result.followerCount === 'number') {
-      setFollowerCount(result.followerCount)
+    } else {
+      if (typeof result.followerCount === 'number') {
+        setFollowerCount(result.followerCount)
+      }
+      setIsPostsUpdating(true)
+      setProfileUser(prev => prev ? {
+        ...prev,
+        isFollowing: !wasFollowed,
+      } : prev)
+      try {
+        await fetchPosts()
+        setProfileUser(prev => prev ? {
+          ...prev,
+          canViewPosts: wasFollowed ? false : true,
+        } : prev)
+      } finally {
+        setIsPostsUpdating(false)
+      }
     }
   }
 
@@ -270,7 +287,18 @@ export default function ProfilePage() {
 
       {/* ── Post Grid ──────────────────────────────────────────────────── */}
       {activeTab === 'posts' && (
-        profileUser.canViewPosts === false ? (
+        isPostsUpdating ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-3 gap-1 sm:gap-1.5"
+            aria-label="Updating posts"
+          >
+            {[1, 2, 3].map(item => (
+              <div key={item} className="aspect-square rounded-lg sm:rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse" />
+            ))}
+          </motion.div>
+        ) : profileUser.canViewPosts === false ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
