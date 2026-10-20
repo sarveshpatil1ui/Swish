@@ -5,15 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '../../context/ThemeContext'
 import { useSwish } from '../../context/SwishContext'
 
-const notifications = [] // replace with real data when available
-const unreadCount = notifications.filter(n => !n.read).length
-
 export default function MobileTopBar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { dark, toggle } = useTheme()
-  const { currentUser: user, logout } = useSwish()
+  const { currentUser: user, logout, notifications = [] } = useSwish()
   const [accountOpen, setAccountOpen] = useState(false)
+
+  const unreadCount = notifications.filter(n => !n.read).length
 
   const isMessages = pathname.startsWith('/messages')
   const isNotifications = pathname.startsWith('/notifications')

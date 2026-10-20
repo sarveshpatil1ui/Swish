@@ -8,6 +8,7 @@ import {
 import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
 import DeleteConfirmModal from './DeleteConfirmModal'
+import PostLikesModal from './PostLikesModal'
 
 // ── Tiny avatar ───────────────────────────────────────────────────────────────
 function Avatar({ initials, color, size = 9 }) {
@@ -44,6 +45,7 @@ export default function PostCard({ post }) {
   // so this component reads them directly instead of cloning into local state
   // — that keeps the displayed counts in sync everywhere the post appears.
   const [showComments, setShowComments] = useState(false)
+  const [showLikesModal, setShowLikesModal] = useState(false)
   const [copied,       setCopied]       = useState(false)
   const [saved,        setSaved]        = useState(post.saved)
   const [liking,       setLiking]       = useState(false)
@@ -308,10 +310,15 @@ export default function PostCard({ post }) {
               {/* Comment */}
               <button
                 onClick={() => setShowComments(true)}
-                className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
+                className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all flex items-center gap-1.5"
                 aria-label="View comments"
               >
                 <MessageCircle size={22} />
+                {post.commentCount > 0 && (
+                  <span className="text-xs font-semibold text-slate-700 dark:text-gray-300">
+                    {post.commentCount}
+                  </span>
+                )}
               </button>
 
               {/* Share */}
@@ -345,10 +352,16 @@ export default function PostCard({ post }) {
             </button>
           </div>
 
-          {/* Like count */}
-          <p className="text-slate-900 dark:text-white text-sm font-semibold mb-2">
+          {/* Like count (clickable to view users who liked) */}
+          <button
+            type="button"
+            onClick={() => setShowLikesModal(true)}
+            disabled={!post.likes || post.likes === 0}
+            className="text-slate-900 dark:text-white text-sm font-semibold mb-2 text-left hover:underline disabled:hover:no-underline disabled:cursor-default transition-colors block"
+            title={post.likes > 0 ? 'View who liked' : undefined}
+          >
             {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
-          </p>
+          </button>
 
           {/* Caption */}
           <p className="text-slate-800 dark:text-gray-200 text-sm leading-relaxed mb-2">
@@ -424,6 +437,16 @@ export default function PostCard({ post }) {
             loading={deleting}
             onConfirm={handleDeletePost}
             onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Likes modal */}
+      <AnimatePresence>
+        {showLikesModal && (
+          <PostLikesModal
+            postId={post.id}
+            onClose={() => setShowLikesModal(false)}
           />
         )}
       </AnimatePresence>

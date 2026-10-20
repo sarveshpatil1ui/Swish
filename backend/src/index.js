@@ -6,23 +6,24 @@ import cookieParser from 'cookie-parser'
 import compression from 'compression'
 
 import { validateEnvironment } from './config/env.js'
-import { connectDB }    from './config/db.js'
+import { connectDB } from './config/db.js'
 
 validateEnvironment()
-import { initSocket }   from './services/socket.service.js'
+import { initSocket } from './services/socket.service.js'
 import { corsOptions, isOriginAllowed, getAllowedOrigins } from './config/cors.js'
-import authRoutes       from './routes/auth.routes.js'
-import usersRoutes      from './routes/users.routes.js'
-import postsRoutes      from './routes/posts.routes.js'
-import messagesRoutes   from './routes/messages.routes.js'
-import collegesRoutes    from './routes/colleges.routes.js'
+import authRoutes from './routes/auth.routes.js'
+import usersRoutes from './routes/users.routes.js'
+import postsRoutes from './routes/posts.routes.js'
+import messagesRoutes from './routes/messages.routes.js'
+import collegesRoutes from './routes/colleges.routes.js'
 import departmentsRoutes from './routes/departments.routes.js'
-import noticesRoutes     from './routes/notices.routes.js'
-import onboardingRoutes  from './routes/onboarding.routes.js'
-import adminRoutes       from './routes/admin.routes.js'
-import storiesRoutes     from './routes/stories.routes.js'
+import noticesRoutes from './routes/notices.routes.js'
+import onboardingRoutes from './routes/onboarding.routes.js'
+import adminRoutes from './routes/admin.routes.js'
+import storiesRoutes from './routes/stories.routes.js'
+import notificationsRoutes from './routes/notifications.routes.js'
 
-const app  = express()
+const app = express()
 const PORT = process.env.PORT || 3001
 
 // ── Compression middleware: compress all response bodies (gzip / deflate) ────
@@ -42,25 +43,26 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 app.get('/api/health', (_req, res) => {
   res.json({
-    ok:        true,
-    service:   'swish-backend',
-    status:    'healthy',
-    uptime:    process.uptime(),
+    ok: true,
+    service: 'swish-backend',
+    status: 'healthy',
+    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    cors:      getAllowedOrigins(),
+    cors: getAllowedOrigins(),
   })
 })
 
-app.use('/api/auth',        authRoutes)
-app.use('/api/users',       usersRoutes)
-app.use('/api/posts',       postsRoutes)
-app.use('/api/messages',    messagesRoutes)
-app.use('/api/colleges',    collegesRoutes)
+app.use('/api/auth', authRoutes)
+app.use('/api/users', usersRoutes)
+app.use('/api/posts', postsRoutes)
+app.use('/api/messages', messagesRoutes)
+app.use('/api/colleges', collegesRoutes)
 app.use('/api/departments', departmentsRoutes)
-app.use('/api/notices',     noticesRoutes)
-app.use('/api/onboarding',  onboardingRoutes)
-app.use('/api/admin',       adminRoutes)
-app.use('/api/stories',     storiesRoutes)
+app.use('/api/notices', noticesRoutes)
+app.use('/api/onboarding', onboardingRoutes)
+app.use('/api/admin', adminRoutes)
+app.use('/api/stories', storiesRoutes)
+app.use('/api/notifications', notificationsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { UserPlus, MessageSquare } from 'lucide-react'
+import { UserPlus, MessageSquare, Heart, MessageCircle } from 'lucide-react'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import MobileTopBar from './MobileTopBar'
@@ -21,12 +21,20 @@ function GlobalToast({ toasts }) {
             className="pointer-events-auto w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3"
           >
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              t.type === 'follow' ? 'bg-indigo-100 dark:bg-indigo-950/60' : 'bg-violet-100 dark:bg-violet-950/60'
+              t.type === 'like'
+                ? 'bg-rose-100 dark:bg-rose-950/60'
+                : t.type === 'comment'
+                ? 'bg-indigo-100 dark:bg-indigo-950/60'
+                : t.type === 'follow'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60'
+                : 'bg-violet-100 dark:bg-violet-950/60'
             }`}>
-              {t.type === 'follow'
-                ? <UserPlus size={17} className="text-indigo-600 dark:text-indigo-400" />
-                : <MessageSquare size={17} className="text-violet-600 dark:text-violet-400" />
-              }
+              {t.type === 'like' && <Heart size={17} className="text-rose-500 fill-rose-500" />}
+              {t.type === 'comment' && <MessageCircle size={17} className="text-indigo-600 dark:text-indigo-400" />}
+              {t.type === 'follow' && <UserPlus size={17} className="text-emerald-600 dark:text-emerald-400" />}
+              {t.type !== 'like' && t.type !== 'comment' && t.type !== 'follow' && (
+                <MessageSquare size={17} className="text-violet-600 dark:text-violet-400" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">{t.title}</p>
@@ -50,6 +58,8 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
+    if (!on || !off) return
+
     // Someone followed you
     const onFollowReceived = ({ fromUserName }) => {
       addToast({
@@ -59,8 +69,23 @@ export default function AppLayout() {
       })
     }
 
+    // Real-time notification (like, comment, follow)
+    const onNotificationNew = (notif) => {
+      if (!notif) return
+      addToast({
+        type: notif.type || 'info',
+        title: `${notif.user?.name || 'Someone'} ${notif.text}`,
+        body: notif.subtext || (notif.type === 'like' ? 'Liked your post' : notif.type === 'comment' ? 'Commented on your post' : 'Started following you'),
+      })
+    }
+
     on('follow:received', onFollowReceived)
-    return () => off('follow:received', onFollowReceived)
+    on('notification:new', onNotificationNew)
+
+    return () => {
+      off('follow:received', onFollowReceived)
+      off('notification:new', onNotificationNew)
+    }
   }, [on, off])
 
   return (

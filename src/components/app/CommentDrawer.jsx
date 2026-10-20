@@ -2,16 +2,33 @@ import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Send, Loader2 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { useSocket } from '../../context/SocketContext'
 import { formatRelativeTime } from '../../utils/posts'
 
 export default function CommentDrawer({ post, onClose }) {
   const { currentUser, fetchComments, addComment, deleteComment } = useSwish()
+  const { on, off } = useSocket()
   const [text, setText]         = useState('')
   const [comments, setComments] = useState([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef(null)
+
+  // Real-time comments sync
+  useEffect(() => {
+    if (!on || !off) return
+    const handleRealtimeComment = (data) => {
+      if (data?.postId === post.id && data?.comment) {
+        setComments(prev => {
+          if (prev.some(c => c.id === data.comment.id)) return prev
+          return [data.comment, ...prev]
+        })
+      }
+    }
+    on('post:comment:update', handleRealtimeComment)
+    return () => off('post:comment:update', handleRealtimeComment)
+  }, [post.id, on, off])
 
   // Fetch newest-first comments for this post when the drawer opens.
   useEffect(() => {

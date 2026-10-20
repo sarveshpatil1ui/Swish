@@ -12,6 +12,21 @@ export function getIO() { return _io }
 export function isUserOnline(userId) { return onlineUsers.has(String(userId)) }
 export function getOnlineUsers() { return [...onlineUsers.keys()] }
 
+export function emitToUser(userId, event, data) {
+  if (!_io) return
+  const socketIds = onlineUsers.get(String(userId))
+  if (socketIds) {
+    for (const sid of socketIds) {
+      _io.to(sid).emit(event, data)
+    }
+  }
+}
+
+export function broadcastEvent(event, data) {
+  if (!_io) return
+  _io.emit(event, data)
+}
+
 let _io
 
 export function initSocket(app) {
@@ -115,8 +130,8 @@ export function initSocket(app) {
           readBy:     saved.readBy.map(r => r.toString()),
         }
 
-        // Emit to everyone in the conversation room (including sender's tab)
-        _io.to(`conv:${convId}`).emit('msg:new', payload)
+        // Emit to other participants in the conversation room (sender gets message via ack)
+        socket.to(`conv:${convId}`).emit('msg:new', payload)
 
         // Also notify participants who are online but NOT in the room
         for (const participantId of conv.participants) {

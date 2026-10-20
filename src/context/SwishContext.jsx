@@ -25,6 +25,7 @@ import {
   apiFetchFollowers, apiFetchFollowing,
   apiGetColleges, apiAddCollege, apiToggleCollege,
   apiChangePassword,
+  apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
   loadColleges, saveColleges,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
@@ -213,13 +214,94 @@ export function SwishProvider({ children }) {
     return { ok: true }
   }
 
+  // ── Notifications (real API + persistence) ───────────────────────────────────
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiGetNotifications()
+      if (res.ok && Array.isArray(res.notifications)) {
+        setNotifications(res.notifications)
+        saveNotifications(res.notifications)
+      }
+    } catch (err) {
+      console.warn('Failed to fetch notifications:', err)
+    }
+  }
+
+  const markNotificationRead = async (id) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      saveNotifications(updated)
+      return updated
+    })
+    try {
+      await apiMarkNotificationRead(id)
+    } catch (err) {
+      console.warn('Failed to mark notification read:', err)
+    }
+  }
+
+  const markAllNotificationsRead = async () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
+      saveNotifications(updated)
+      return updated
+    })
+    try {
+      await apiMarkAllNotificationsRead()
+    } catch (err) {
+      console.warn('Failed to mark all notifications read:', err)
+    }
+  }
+
+  // ── Real-time Socket Event Handlers ─────────────────────────────────────────
+  const updatePostLikeRealtime = ({ postId, likeCount, userId, action }) => {
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id === postId) {
+          const isSelf = currentUser && (currentUser.id === userId || currentUser._id === userId)
+          return {
+            ...p,
+            likes: likeCount,
+            liked: isSelf ? (action === 'like') : p.liked,
+          }
+        }
+        return p
+      })
+    )
+  }
+
+  const updatePostCommentRealtime = ({ postId, commentCount }) => {
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            commentCount,
+          }
+        }
+        return p
+      })
+    )
+  }
+
+  const addNotificationRealtime = (newNotif) => {
+    setNotifications(prev => {
+      const filtered = prev.filter(n => n.id !== newNotif.id)
+      const updated = [newNotif, ...filtered]
+      saveNotifications(updated)
+      return updated
+    })
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchPosts()
       fetchStories()
+      fetchNotifications()
     } else {
       setPosts([])
       setStories([])
+      setNotifications([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
@@ -612,6 +694,13 @@ const domainApproved = async (email) => {
         // Notifications
         notifications,
         setNotifications,
+        fetchNotifications,
+        markNotificationRead,
+        markAllNotificationsRead,
+        // Real-time handlers
+        updatePostLikeRealtime,
+        updatePostCommentRealtime,
+        addNotificationRealtime,
       }}
     >
       {children}

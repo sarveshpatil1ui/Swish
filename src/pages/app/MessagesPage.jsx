@@ -289,8 +289,19 @@ export default function MessagesPage() {
 
       if (currentConvId === convId) {
         setMessages(prev => {
-          // Deduplicate: if we already have this message (from optimistic send), skip
+          // Deduplicate: if we already have this message by ID, skip
           if (prev.some(m => m.id === msg.id)) return prev
+
+          // If this message is from current user and matches a pending optimistic message, replace it
+          if (msg.senderId === currentUser?.id) {
+            const tempIdx = prev.findIndex(m => m._temp && m.text === msg.text)
+            if (tempIdx !== -1) {
+              const next = [...prev]
+              next[tempIdx] = msg
+              return next
+            }
+          }
+
           return [...prev, msg]
         })
         emit('msg:read', { convId })
@@ -458,11 +469,14 @@ export default function MessagesPage() {
     const sentToConvId = activeConvId
     emit('msg:send', { convId: sentToConvId, text }, (ack) => {
       setSending(false)
-      if (ack?.ok) {
-        // Replace the temp bubble with the server-confirmed message.
-        // The `msg:new` socket echo from the server will be deduplicated
-        // by the id-check in onNewMsg, so no duplicate will appear.
-        setMessages(prev => prev.map(m => m.id === tempId ? ack.message : m))
+      if (ack?.ok && ack.message) {
+        // Replace temp bubble with server-confirmed message, avoiding duplicates
+        setMessages(prev => {
+          if (prev.some(m => m.id === ack.message.id)) {
+            return prev.filter(m => m.id !== tempId)
+          }
+          return prev.map(m => m.id === tempId ? ack.message : m)
+        })
         setConvs(prev => prev.map(c =>
           c.id === sentToConvId
             ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: currentUser?.id }

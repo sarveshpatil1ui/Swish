@@ -7,6 +7,9 @@ import { uploadPostImage, deletePostImage } from '../services/cloudinary.service
 import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
+import Notification from '../models/Notification.js'
+import { emitToUser, broadcastEvent } from '../services/socket.service.js'
+import { formatNotification } from './notifications.routes.js'
 
 const router = Router()
 
@@ -154,6 +157,56 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
+// ── GET /api/posts/:postId ──────────────────────────────────────────────────
+router.get('/:postId', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId)
+      .populate('user', 'name username initials avatarColor profilePhoto')
+    if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+    res.json({ ok: true, post: serializePost(post, req.user.id) })
+  } catch (err) {
+    console.error('[GET /api/posts/:postId] Error:', err)
+    if (err.name === 'CastError') {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+    res.status(500).json({ ok: false, error: 'Failed to fetch post.' })
+  }
+})
+
+// ── GET /api/posts/:postId/likes ─────────────────────────────────────────────
+router.get('/:postId/likes', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId)
+      .populate('likes', 'name username initials avatarColor profilePhoto followers')
+      .lean()
+
+    if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const currentUserId = req.user.id.toString()
+    const users = (post.likes || []).map(u => ({
+      id: u._id.toString(),
+      name: u.name,
+      username: u.username,
+      initials: u.initials,
+      avatarColor: u.avatarColor,
+      profilePhoto: u.profilePhoto,
+      isFollowing: Array.isArray(u.followers) && u.followers.some(f => f.toString() === currentUserId),
+    }))
+
+    res.json({ ok: true, users })
+  } catch (err) {
+    console.error('[GET /api/posts/:postId/likes] Error:', err)
+    if (err.name === 'CastError') {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+    res.status(500).json({ ok: false, error: 'Failed to fetch likes.' })
+  }
+})
+
 router.post('/:postId/like', requireAuth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
@@ -178,6 +231,32 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
       { $addToSet: { likes: req.user.id } },
       { new: true }
     )
+
+    // Broadcast real-time like count to all connected clients
+    broadcastEvent('post:like:update', {
+      postId: updated.id,
+      likeCount: updated.likes.length,
+      userId: req.user.id,
+      action: 'like',
+    })
+
+    // Create & emit notification to post owner if someone else liked
+    if (post.user.toString() !== req.user.id) {
+      try {
+        const notif = await Notification.create({
+          recipient: post.user,
+          sender: req.user.id,
+          type: 'like',
+          post: post._id,
+          text: 'liked your post',
+          subtext: post.caption ? post.caption.slice(0, 50) : '',
+        })
+        const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
+        emitToUser(post.user, 'notification:new', formatNotification(populated))
+      } catch (notifErr) {
+        console.error('[Notification like error]', notifErr)
+      }
+    }
 
     res.json({
       ok: true,
@@ -205,6 +284,14 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
       { $pull: { likes: req.user.id } },
       { new: true }
     )
+
+    // Broadcast real-time like count to all connected clients
+    broadcastEvent('post:like:update', {
+      postId: updated.id,
+      likeCount: updated.likes.length,
+      userId: req.user.id,
+      action: 'unlike',
+    })
 
     res.json({
       ok: true,
@@ -285,17 +372,44 @@ router.post(
         { new: true }
       )
 
+      const commentPayload = {
+        id: comment.id,
+        userId: req.user.id,
+        userName: req.user.name,
+        userInitials: req.user.initials,
+        avatarColor: req.user.avatarColor,
+        text: comment.text,
+        createdAt: comment.createdAt,
+      }
+
+      // Broadcast real-time comment update to all connected clients
+      broadcastEvent('post:comment:update', {
+        postId: req.params.postId,
+        commentCount: updatedPost ? updatedPost.commentCount : 1,
+        comment: commentPayload,
+      })
+
+      // Create & emit notification to post owner if someone else commented
+      if (post.user.toString() !== req.user.id) {
+        try {
+          const notif = await Notification.create({
+            recipient: post.user,
+            sender: req.user.id,
+            type: 'comment',
+            post: post._id,
+            text: 'commented on your post',
+            subtext: req.body.text ? req.body.text.slice(0, 50) : '',
+          })
+          const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
+          emitToUser(post.user, 'notification:new', formatNotification(populated))
+        } catch (notifErr) {
+          console.error('[Notification comment error]', notifErr)
+        }
+      }
+
       res.status(201).json({
         ok: true,
-        comment: {
-          id: comment.id,
-          userId: req.user.id,
-          userName: req.user.name,
-          userInitials: req.user.initials,
-          avatarColor: req.user.avatarColor,
-          text: comment.text,
-          createdAt: comment.createdAt,
-        },
+        comment: commentPayload,
         commentCount: updatedPost ? updatedPost.commentCount : 1,
       })
     } catch (err) {

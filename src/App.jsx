@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import { SwishProvider } from './context/SwishContext'
-import { SocketProvider } from './context/SocketContext'
+import { SocketProvider, useSocket } from './context/SocketContext'
 import { useSwish } from './context/SwishContext'
 
 // ── Public pages ──────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ import MessagesPage from './pages/app/MessagesPage'
 import PendingRequestsPage from './pages/app/PendingRequestsPage'
 import PendingRequestReviewPage from './pages/app/PendingRequestReviewPage'
 import FirstLoginPasswordPage from './pages/app/FirstLoginPasswordPage'
+import PostPage from './pages/app/PostPage'
 
 
 // ── College Admin pages ───────────────────────────────────────────────────────
@@ -39,11 +41,52 @@ import CollegeProfile from './pages/college-admin/CollegeProfile'
 import AdminProfile from './pages/college-admin/AdminProfile'
 import ChangePassword from './pages/college-admin/ChangePassword'
 
+// Synchronizes real-time socket events with global SwishContext state
+function RealtimeListener() {
+  const { on, off } = useSocket()
+  const { updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime } = useSwish()
+
+  useEffect(() => {
+    if (!on || !off) return
+
+    const handleLikeUpdate = (data) => {
+      if (data?.postId) {
+        updatePostLikeRealtime(data)
+      }
+    }
+
+    const handleCommentUpdate = (data) => {
+      if (data?.postId) {
+        updatePostCommentRealtime(data)
+      }
+    }
+
+    const handleNewNotification = (data) => {
+      if (data?.id) {
+        addNotificationRealtime(data)
+      }
+    }
+
+    on('post:like:update', handleLikeUpdate)
+    on('post:comment:update', handleCommentUpdate)
+    on('notification:new', handleNewNotification)
+
+    return () => {
+      off('post:like:update', handleLikeUpdate)
+      off('post:comment:update', handleCommentUpdate)
+      off('notification:new', handleNewNotification)
+    }
+  }, [on, off, updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime])
+
+  return null
+}
+
 // Inner wrapper so we can read currentUser from SwishContext
 function SocketBridge({ children }) {
   const { currentUser } = useSwish()
   return (
     <SocketProvider userId={currentUser?.id}>
+      <RealtimeListener />
       {children}
     </SocketProvider>
   )
@@ -76,6 +119,7 @@ export default function App() {
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
+                <Route path="/post/:postId" element={<PostPage />} />
               </Route>
 
               {/* ── Admin (requires admin role) ─────────────────────────── */}

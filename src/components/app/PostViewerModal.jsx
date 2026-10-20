@@ -8,6 +8,7 @@ import {
 import { useSwish } from '../../context/SwishContext'
 import { formatRelativeTime } from '../../utils/posts'
 import DeleteConfirmModal from './DeleteConfirmModal'
+import PostLikesModal from './PostLikesModal'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -33,6 +34,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [showLikesModal, setShowLikesModal] = useState(false)
 
   const isOwnPost = currentUser?.id === post.userId
 
@@ -267,8 +269,13 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                   >
                     <Heart size={22} className={post.liked ? 'fill-rose-500 stroke-rose-500' : ''} />
                   </motion.button>
-                  <button className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:text-indigo-500 transition-all">
+                  <button className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:text-indigo-500 transition-all flex items-center gap-1.5">
                     <MessageCircle size={22} />
+                    {post.commentCount > 0 && (
+                      <span className="text-xs font-semibold text-slate-700 dark:text-gray-300">
+                        {post.commentCount}
+                      </span>
+                    )}
                   </button>
                   <button
                     onClick={handleShare}
@@ -284,9 +291,15 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                   <Bookmark size={22} className={saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''} />
                 </button>
               </div>
-              <p className="text-slate-900 dark:text-white text-sm font-semibold mb-1">
+              <button
+                type="button"
+                onClick={() => setShowLikesModal(true)}
+                disabled={!post.likes || post.likes === 0}
+                className="text-slate-900 dark:text-white text-sm font-semibold mb-1 text-left hover:underline disabled:hover:no-underline disabled:cursor-default transition-colors block"
+                title={post.likes > 0 ? 'View who liked' : undefined}
+              >
                 {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
-              </p>
+              </button>
             </div>
 
             {/* Comment input */}
@@ -321,6 +334,16 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
             loading={deleting}
             onConfirm={handleDeletePost}
             onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Likes modal */}
+      <AnimatePresence>
+        {showLikesModal && (
+          <PostLikesModal
+            postId={post.id}
+            onClose={() => setShowLikesModal(false)}
           />
         )}
       </AnimatePresence>

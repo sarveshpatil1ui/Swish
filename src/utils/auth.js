@@ -396,3 +396,20 @@ export async function apiDeleteNotice(id) {
 export async function apiPublishNotice(id) {
   return apiFetch(`/api/notices/${id}/publish`, { method: 'PATCH' })
 }
+
+// ── Notifications API ─────────────────────────────────────────────────────────
+
+/** On success: { ok: true, notifications: Array } */
+export async function apiGetNotifications() {
+  return apiFetch('/api/notifications')
+}
+
+/** On success: { ok: true, notification } */
+export async function apiMarkNotificationRead(notificationId) {
+  return apiFetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' })
+}
+
+/** On success: { ok: true } */
+export async function apiMarkAllNotificationsRead() {
+  return apiFetch('/api/notifications/read-all', { method: 'PATCH' })
+}

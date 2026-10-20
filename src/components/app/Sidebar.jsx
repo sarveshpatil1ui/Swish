@@ -6,8 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import CreatePostModal from './CreatePostModal'
 
-const notifications = []
-
 const baseNavItems = [
   { to: '/home',          icon: Home,     label: 'Home' },
   { to: '/explore',       icon: Compass,  label: 'Explore' },
@@ -16,7 +14,7 @@ const baseNavItems = [
 ]
 
 export default function Sidebar() {
-  const { currentUser: user, logout } = useSwish()
+  const { currentUser: user, logout, notifications = [] } = useSwish()
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)

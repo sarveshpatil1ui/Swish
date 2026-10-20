@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
@@ -10,8 +11,18 @@ const iconMap = {
 }
 
 function NotificationItem({ notification: n, index, onRead }) {
+  const navigate = useNavigate()
   const cfg  = iconMap[n.type] || iconMap.like
   const Icon = cfg.icon
+
+  const handleClick = () => {
+    onRead(n.id)
+    if (n.postId) {
+      navigate(`/post/${n.postId}`)
+    } else if (n.user?.id) {
+      navigate(`/profile/${n.user.id}`)
+    }
+  }
 
   return (
     <motion.div
@@ -19,7 +30,7 @@ function NotificationItem({ notification: n, index, onRead }) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 12, height: 0, marginBottom: 0, padding: 0 }}
       transition={{ duration: 0.3, delay: index * 0.04 }}
-      onClick={onRead}
+      onClick={handleClick}
       className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
         !n.read
           ? 'bg-indigo-50/60 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 active:bg-indigo-100 dark:active:bg-indigo-950/50'
@@ -32,17 +43,25 @@ function NotificationItem({ notification: n, index, onRead }) {
       </div>
 
       {/* User avatar */}
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
-        style={{ backgroundColor: n.user.avatarColor }}
-      >
-        {n.user.initials}
-      </div>
+      {n.user?.profilePhoto ? (
+        <img
+          src={n.user.profilePhoto}
+          alt={n.user.name}
+          className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5"
+        />
+      ) : (
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
+          style={{ backgroundColor: n.user?.avatarColor || '#6366f1' }}
+        >
+          {n.user?.initials || '??'}
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="text-slate-800 dark:text-gray-200 text-sm leading-snug">
-          <span className="font-semibold">{n.user.name}</span>{' '}
+          <span className="font-semibold">{n.user?.name}</span>{' '}
           <span className="text-slate-600 dark:text-gray-400">{n.text}</span>
         </p>
         {n.subtext && (
@@ -62,13 +81,14 @@ function NotificationItem({ notification: n, index, onRead }) {
 }
 
 export default function NotificationsPage() {
-  const { notifications, setNotifications } = useSwish()
+  const { notifications = [], fetchNotifications, markNotificationRead, markAllNotificationsRead } = useSwish()
 
-  const markAllRead = () =>
-    setNotifications(ns => ns.map(n => ({ ...n, read: true })))
+  useEffect(() => {
+    fetchNotifications?.()
+  }, [])
 
-  const markOneRead = (id) =>
-    setNotifications(ns => ns.map(x => x.id === id ? { ...x, read: true } : x))
+  const markAllRead = () => markAllNotificationsRead?.()
+  const markOneRead = (id) => markNotificationRead?.(id)
 
   const unreadCount    = notifications.filter(n => !n.read).length
   const allRead        = unreadCount === 0

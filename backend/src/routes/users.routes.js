@@ -10,6 +10,9 @@ import User from '../models/User.js'
 import Follow from '../models/Follow.js'
 import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
+import Notification from '../models/Notification.js'
+import { emitToUser } from '../services/socket.service.js'
+import { formatNotification } from './notifications.routes.js'
 
 const router = Router()
 
@@ -298,6 +301,21 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
       User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
       User.findByIdAndUpdate(req.user.id, { $inc: { following: 1 } }, { new: true }),
     ])
+
+    // Create & emit real-time notification
+    try {
+      const notif = await Notification.create({
+        recipient: targetId,
+        sender: req.user.id,
+        type: 'follow',
+        text: 'started following you',
+      })
+      const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
+      emitToUser(targetId, 'notification:new', formatNotification(populated))
+      emitToUser(targetId, 'follow:received', { fromUserName: req.user.name })
+    } catch (notifErr) {
+      console.error('[Notification follow error]', notifErr)
+    }
 
     res.status(201).json({
       ok: true,
