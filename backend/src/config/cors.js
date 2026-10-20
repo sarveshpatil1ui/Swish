@@ -4,13 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HARDCODED_ORIGINS = new Set([
-  'https://swishh-5b494.web.app',        // Firebase Hosting (production)
-  'https://swishh-5b494.firebaseapp.com', // Firebase alternate domain
-  'http://localhost:3000',
-  'http://localhost:3001',
   'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:4173',
 ])
 
 // Merge CLIENT_ORIGIN environment variable if present
