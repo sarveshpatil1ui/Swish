@@ -6,9 +6,11 @@ import usersRouter from '../src/routes/users.routes.js'
 import { isCollegeActive, invalidateCollegeCache } from '../src/middleware/auth.middleware.js'
 
 describe('CORS & Route Integrity', () => {
-  test('isOriginAllowed permits localhost origins', () => {
+  test('isOriginAllowed permits localhost and production Vercel origins', () => {
     assert.equal(isOriginAllowed('http://localhost:5173'), true)
     assert.equal(isOriginAllowed('http://localhost:3000'), true)
+    assert.equal(isOriginAllowed('https://swish2-six.vercel.app'), true)
+    assert.equal(isOriginAllowed('https://swish2-six.vercel.app/'), true)
   })
 
   test('isOriginAllowed rejects untrusted third-party origins', () => {

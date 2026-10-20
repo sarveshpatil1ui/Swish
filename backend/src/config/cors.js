@@ -4,22 +4,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HARDCODED_ORIGINS = new Set([
+  'https://swish2-six.vercel.app',
   'http://localhost:5173',
+  'http://localhost:3000',
 ])
 
 // Merge CLIENT_ORIGIN environment variable if present
 const envOrigins = (process.env.CLIENT_ORIGIN || '')
   .split(',')
-  .map(s => s.trim())
+  .map(s => s.trim().replace(/\/+$/, ''))
   .filter(Boolean)
 
 envOrigins.forEach(o => HARDCODED_ORIGINS.add(o))
 
 export function isOriginAllowed(origin) {
   if (!origin) return true // Allow non-browser requests (curl, mobile, server-to-server)
-  if (HARDCODED_ORIGINS.has(origin)) return true
-  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return true
-  if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return true
+  const normalized = origin.replace(/\/+$/, '')
+  if (HARDCODED_ORIGINS.has(normalized)) return true
+  if (/^https?:\/\/localhost(:\d+)?$/.test(normalized)) return true
+  if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(normalized)) return true
   return false
 }
 
