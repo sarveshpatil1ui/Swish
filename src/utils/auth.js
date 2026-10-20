@@ -360,6 +360,10 @@ export async function apiGetDepartments() {
   return apiFetch('/api/departments')
 }
 
+export async function apiGetDepartmentsByDomain(domain) {
+  return apiFetch(`/api/departments/by-domain?domain=${encodeURIComponent(domain)}`)
+}
+
 export async function apiCreateDepartment(data) {
   return apiFetch('/api/departments', { method: 'POST', body: data })
 }

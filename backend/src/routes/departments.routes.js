@@ -13,6 +13,32 @@ import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 const router = Router()
 
+// ── GET /api/departments/by-domain?domain= — Public endpoint for registration ──
+// Fetch active departments for a college by domain (used during registration)
+router.get('/by-domain', async (req, res) => {
+  try {
+    const { domain } = req.query
+    if (!domain) {
+      return res.status(400).json({ ok: false, error: 'Domain is required.' })
+    }
+
+    const college = await College.findOne({ domain: domain.toLowerCase(), active: true })
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    const departments = await Department.find({ collegeId: college._id, active: true })
+      .sort({ name: 1 })
+      .select('name code')
+      .lean()
+
+    return res.status(200).json({ ok: true, departments })
+  } catch (err) {
+    console.error('[GET /departments/by-domain]', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch departments.' })
+  }
+})
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function handleValidationErrors(req, res) {

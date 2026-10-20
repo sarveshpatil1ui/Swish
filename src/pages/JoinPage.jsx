@@ -8,7 +8,7 @@ import {
   BadgeCheck, XCircle, RefreshCw,
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
-import { apiVerifyOtp, apiResendOtp, apiCheckCollegeDomain, redirectPathForRole } from '../utils/auth'
+import { apiVerifyOtp, apiResendOtp, apiCheckCollegeDomain, apiGetDepartmentsByDomain, redirectPathForRole } from '../utils/auth'
 
 // ── Password strength helpers ─────────────────────────────────────────────────
 const getStrength = (pass) => {
@@ -105,6 +105,8 @@ export default function JoinPage() {
   const [loading,        setLoading]        = useState(false)
   const [domainStatus, setDomainStatus] = useState('idle')
 // idle | checking | approved | denied
+  const [departments, setDepartments] = useState(DEPARTMENTS)
+  const [loadingDepartments, setLoadingDepartments] = useState(false)
 
   // ── OTP verification step ─────────────────────────────────────────────────
   const [otpStep,        setOtpStep]        = useState(false)  // show OTP form?
@@ -145,6 +147,7 @@ const domainChecking = domainStatus === 'checking'
 useEffect(() => {
   if (!emailHasDomain) {
     setDomainStatus('idle')
+    setDepartments(DEPARTMENTS)
     return
   }
 
@@ -159,17 +162,36 @@ useEffect(() => {
       const result = await apiCheckCollegeDomain(domain)
 
       if (!cancelled) {
-        setDomainStatus(
-          result.ok && result.approved === true
-            ? 'approved'
-            : 'denied'
-        )
+        const approved = result.ok && result.approved === true
+        setDomainStatus(approved ? 'approved' : 'denied')
+
+        // Fetch departments if domain is approved
+        if (approved) {
+          setLoadingDepartments(true)
+          try {
+            const deptResult = await apiGetDepartmentsByDomain(domain)
+            if (deptResult.ok && deptResult.departments && deptResult.departments.length > 0) {
+              setDepartments(deptResult.departments.map(d => d.name))
+            } else {
+              // Fallback to static list if no departments found
+              setDepartments(DEPARTMENTS)
+            }
+          } catch (err) {
+            console.error('[JoinPage] Failed to fetch departments:', err)
+            setDepartments(DEPARTMENTS)
+          } finally {
+            setLoadingDepartments(false)
+          }
+        } else {
+          setDepartments(DEPARTMENTS)
+        }
       }
     } catch (err) {
       console.error('[JoinPage] Domain check failed:', err)
 
       if (!cancelled) {
         setDomainStatus('denied')
+        setDepartments(DEPARTMENTS)
       }
     }
   }
@@ -763,14 +785,19 @@ useEffect(() => {
                   id="join-dept"
                   value={form.dept}
                   onChange={set('dept')}
-                  className={`${INPUT_BASE} ${borderFor(errors.dept)} pl-10 pr-8 cursor-pointer appearance-none`}
+                  disabled={loadingDepartments}
+                  className={`${INPUT_BASE} ${borderFor(errors.dept)} pl-10 pr-8 cursor-pointer appearance-none ${loadingDepartments ? 'opacity-60' : ''}`}
                 >
                   <option value="">Select department</option>
-                  {DEPARTMENTS.map(d => (
+                  {departments.map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
+                {loadingDepartments ? (
+                  <RefreshCw size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 animate-spin" />
+                ) : (
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
+                )}
               </div>
               {errors.dept && (
                 <p className="text-rose-500 dark:text-rose-400 text-xs mt-1">{errors.dept}</p>
