@@ -429,3 +429,26 @@ export async function apiMarkNotificationRead(notificationId) {
 export async function apiMarkAllNotificationsRead() {
   return apiFetch('/api/notifications/read-all', { method: 'PATCH' })
 }
+
+// ── Reports API ───────────────────────────────────────────────────────────────
+export async function apiSubmitReport(data) {
+  return apiFetch('/api/reports', { method: 'POST', body: data })
+}
+
+export async function apiGetReports({ status, type, limit, skip }) {
+  const params = new URLSearchParams()
+  if (status) params.append('status', status)
+  if (type) params.append('type', type)
+  if (limit) params.append('limit', limit)
+  if (skip) params.append('skip', skip)
+  const query = params.toString()
+  return apiFetch(`/api/reports${query ? `?${query}` : ''}`)
+}
+
+export async function apiGetReportById(id) {
+  return apiFetch(`/api/reports/${id}`)
+}
+
+export async function apiUpdateReportStatus(id, { status, resolutionNotes }) {
+  return apiFetch(`/api/reports/${id}/status`, { method: 'PATCH', body: { status, resolutionNotes } })
+}

@@ -13,7 +13,8 @@ import {
   X,
   Zap,
   Sun,
-  Moon
+  Moon,
+  AlertTriangle
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: GraduationCap, label: 'Faculty', path: '/college-admin/faculty' },
   { icon: Building2, label: 'Departments', path: '/college-admin/departments' },
   { icon: Megaphone, label: 'Notices', path: '/college-admin/notices' },
+  { icon: AlertTriangle, label: 'Reports', path: '/college-admin/reports' },
   { icon: Settings, label: 'College Profile', path: '/college-admin/college-profile' },
   { icon: User, label: 'My Profile', path: '/college-admin/profile' },
 ]

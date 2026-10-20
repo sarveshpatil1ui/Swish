@@ -37,6 +37,7 @@ import StudentManagement from './pages/college-admin/StudentManagement'
 import FacultyManagement from './pages/college-admin/FacultyManagement'
 import DepartmentManagement from './pages/college-admin/DepartmentManagement'
 import NoticeManagement from './pages/college-admin/NoticeManagement'
+import ReportsManagement from './pages/college-admin/ReportsManagement'
 import CollegeProfile from './pages/college-admin/CollegeProfile'
 import AdminProfile from './pages/college-admin/AdminProfile'
 import ChangePassword from './pages/college-admin/ChangePassword'
@@ -187,6 +188,7 @@ export default function App() {
                 <Route path="faculty" element={<FacultyManagement />} />
                 <Route path="departments" element={<DepartmentManagement />} />
                 <Route path="notices" element={<NoticeManagement />} />
+                <Route path="reports" element={<ReportsManagement />} />
                 <Route path="college-profile" element={<CollegeProfile />} />
                 <Route path="profile" element={<AdminProfile />} />
               </Route>
