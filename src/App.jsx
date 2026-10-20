@@ -41,6 +41,7 @@ import ReportsManagement from './pages/college-admin/ReportsManagement'
 import CollegeProfile from './pages/college-admin/CollegeProfile'
 import AdminProfile from './pages/college-admin/AdminProfile'
 import ChangePassword from './pages/college-admin/ChangePassword'
+import MessagesPage from './pages/app/MessagesPage'
 
 // Synchronizes real-time socket events with global SwishContext state
 function RealtimeListener() {
@@ -189,6 +190,7 @@ export default function App() {
                 <Route path="departments" element={<DepartmentManagement />} />
                 <Route path="notices" element={<NoticeManagement />} />
                 <Route path="reports" element={<ReportsManagement />} />
+                <Route path="messages" element={<MessagesPage />} />
                 <Route path="college-profile" element={<CollegeProfile />} />
                 <Route path="profile" element={<AdminProfile />} />
               </Route>
