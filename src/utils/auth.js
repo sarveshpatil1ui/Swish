@@ -133,8 +133,16 @@ export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }
 
-export async function apiUpdateProfile(userId, { name, bio }) {
-  return apiFetch(`/api/users/${userId}`, { method: 'PUT', body: { name, bio } })
+export async function apiUpdateProfile(userId, { name, username, bio }) {
+  return apiFetch(`/api/users/${userId}`, { method: 'PUT', body: { name, username, bio } })
+}
+
+export async function apiUpdatePreferences(preferences) {
+  return apiFetch('/api/users/preferences', { method: 'PATCH', body: { preferences } })
+}
+
+export async function apiDeleteAccount(userId) {
+  return apiFetch(`/api/users/${userId}`, { method: 'DELETE' })
 }
 
 export async function apiUploadProfilePhoto(file) {

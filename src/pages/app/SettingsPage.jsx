@@ -144,9 +144,13 @@ function AccountSection({ currentUser, updateUser, showToast }) {
     if (!name.trim()) { showToast('Name cannot be empty.', 'error'); return }
     setSaving(true)
     await new Promise(r => setTimeout(r, 500))
-    updateUser({ name, username, bio })
+    const result = await updateUser({ name, username, bio })
     setSaving(false)
-    showToast('Profile saved successfully!')
+    if (result?.ok) {
+      showToast('Profile saved successfully!')
+    } else {
+      showToast(result?.error || 'Failed to save profile.', 'error')
+    }
   }
 
   return (

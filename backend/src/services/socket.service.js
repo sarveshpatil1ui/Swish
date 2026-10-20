@@ -59,7 +59,7 @@ export function initSocket(app) {
       if (!token) return next(new Error('Not authenticated'))
 
       const payload = jwt.verify(token, process.env.JWT_SECRET)
-      const user = await User.findById(payload.sub).select('name username initials avatarColor profilePhoto')
+      const user = await User.findById(payload.sub).select('name username initials avatarColor profilePhoto preferences')
       if (!user) return next(new Error('User not found'))
 
       socket.user = user
@@ -69,7 +69,7 @@ export function initSocket(app) {
     }
   })
 
-  _io.on('connection', (socket) => {
+  _io.on('connection', async (socket) => {
     const userId = socket.user._id.toString()
 
     // Track this socket (a user may have multiple tabs open)
@@ -80,8 +80,14 @@ export function initSocket(app) {
     onlineUsers.get(userId).add(socket.id)
 
     // Only broadcast online event on first tab
-    if (!wasAlreadyOnline) socket.broadcast.emit('user:online', { userId })
-    socket.emit('online:list', getOnlineUsers())
+    if (!wasAlreadyOnline && socket.user.preferences?.privacy?.activity !== false) {
+      socket.broadcast.emit('user:online', { userId })
+    }
+    const visibleOnlineUsers = await User.find({
+      _id: { $in: getOnlineUsers() },
+      'preferences.privacy.activity': { $ne: false },
+    }).select('_id').lean()
+    socket.emit('online:list', visibleOnlineUsers.map(user => user._id.toString()))
 
     console.log(`[Socket] Connected: ${socket.user.name} (${userId}) tab=${socket.id}`)
 
@@ -138,7 +144,7 @@ export function initSocket(app) {
           const pid = participantId.toString()
           if (pid === userId) continue
           const socketIds = onlineUsers.get(pid)
-          if (socketIds) {
+          if (socketIds && socket.user.preferences?.privacy?.activity !== false) {
             for (const sid of socketIds) {
               const participantSocket = _io.sockets.sockets.get(sid)
               if (participantSocket && !participantSocket.rooms.has(`conv:${convId}`)) {

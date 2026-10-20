@@ -50,7 +50,11 @@ export default function EditProfileModal({ onClose, onSaved }) {
       }
     }
 
-    const res = await saveProfile(currentUser.id, { name: name.trim(), bio: bio.trim() })
+    const res = await saveProfile(currentUser.id, {
+      name: name.trim(),
+      bio: bio.trim(),
+      username: currentUser.username,
+    })
     setSaving(false)
 
     if (!res.ok) {

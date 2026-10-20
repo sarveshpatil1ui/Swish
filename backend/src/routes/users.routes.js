@@ -11,6 +11,11 @@ import Follow from '../models/Follow.js'
 import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
 import Notification from '../models/Notification.js'
+import Post from '../models/Post.js'
+import Comment from '../models/Comment.js'
+import Story from '../models/Story.js'
+import StoryView from '../models/StoryView.js'
+import { Conversation } from '../models/Conversation.js'
 import { emitToUser } from '../services/socket.service.js'
 import { formatNotification } from './notifications.routes.js'
 
@@ -221,13 +226,52 @@ router.get('/:userId', requireAuth, async (req, res) => {
       following: user.id,
     })
 
+    const serializedUser = user.toJSON()
+    if (req.user.id !== user.id && !user.preferences?.privacy?.showEmail) {
+      delete serializedUser.email
+    }
+
     res.json({
       ok: true,
       user: {
-        ...user.toJSON(),
+        ...serializedUser,
+        canViewPosts: req.user.id === user.id
+          || !user.preferences?.privacy?.private
+          || Boolean(isFollowing),
         isFollowing: Boolean(isFollowing),
         isSelf: req.user.id === user.id,
       },
+    })
+
+    router.patch('/preferences', requireAuth, async (req, res) => {
+      try {
+        const preferences = req.body?.preferences
+        if (!preferences || typeof preferences !== 'object') {
+          return res.status(422).json({ ok: false, error: 'Preferences are required.' })
+        }
+
+        const allowed = {
+          notifications: ['likes', 'comments', 'follows', 'mentions', 'events'],
+          privacy: ['private', 'showEmail', 'activity', 'tagged'],
+          security: ['twoFactor'],
+        }
+        for (const [section, keys] of Object.entries(allowed)) {
+          if (!preferences[section] || typeof preferences[section] !== 'object') continue
+          for (const key of keys) {
+            if (preferences[section][key] !== undefined) {
+              if (typeof preferences[section][key] !== 'boolean') {
+                return res.status(422).json({ ok: false, error: `${section}.${key} must be a boolean.` })
+              }
+              req.user.preferences[section][key] = preferences[section][key]
+            }
+          }
+        }
+        await req.user.save()
+        res.json({ ok: true, user: req.user.toJSON() })
+      } catch (err) {
+        console.error('[PATCH /api/users/preferences] Error:', err)
+        res.status(500).json({ ok: false, error: 'Failed to update preferences.' })
+      }
     })
   } catch (err) {
     console.error('[GET /api/users/:userId] Error:', err)
@@ -250,6 +294,11 @@ router.put(
       .optional()
       .trim()
       .isLength({ max: 300 }).withMessage('Bio must be 300 characters or fewer.'),
+    body('username')
+      .optional()
+      .trim()
+      .matches(/^[a-z0-9._-]+$/i).withMessage('Username may contain only letters, numbers, dots, underscores, and hyphens.')
+      .isLength({ min: 3, max: 30 }).withMessage('Username must be between 3 and 30 characters.'),
     body('designation')
       .optional()
       .trim()
@@ -264,8 +313,13 @@ router.put(
         return res.status(403).json({ ok: false, error: 'You can only edit your own profile.' })
       }
 
-      const { name, bio, designation } = req.body
+      const { name, username, bio, designation } = req.body
       if (name !== undefined) req.user.name = name
+      if (username !== undefined && username.toLowerCase() !== req.user.username) {
+        const existing = await User.findOne({ username: username.toLowerCase(), _id: { $ne: req.user.id } })
+        if (existing) return res.status(409).json({ ok: false, error: 'Username is already taken.' })
+        req.user.username = username.toLowerCase()
+      }
       if (bio !== undefined) req.user.bio = bio
       if (designation !== undefined) req.user.designation = designation
       await req.user.save()
@@ -277,6 +331,37 @@ router.put(
     }
   }
 )
+
+router.delete('/:userId', requireAuth, async (req, res) => {
+  try {
+    if (req.params.userId !== req.user.id) {
+      return res.status(403).json({ ok: false, error: 'You can only delete your own account.' })
+    }
+
+    const userId = req.user._id
+    const posts = await Post.find({ user: userId }).select('_id imagePublicId')
+    const postIds = posts.map(post => post._id)
+
+    await Promise.all([
+      Comment.deleteMany({ $or: [{ user: userId }, { post: { $in: postIds } }] }),
+      Post.deleteMany({ user: userId }),
+      Post.updateMany({ likes: userId }, { $pull: { likes: userId } }),
+      StoryView.deleteMany({ viewer: userId }),
+      StoryView.deleteMany({ story: { $in: await Story.find({ user: userId }).distinct('_id') } }),
+      Story.deleteMany({ user: userId }),
+      Follow.deleteMany({ $or: [{ follower: userId }, { following: userId }] }),
+      Notification.deleteMany({ $or: [{ recipient: userId }, { sender: userId }] }),
+      Conversation.deleteMany({ participants: userId }),
+      User.deleteOne({ _id: userId }),
+    ])
+
+    res.clearCookie('swish_token', { path: '/' })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[DELETE /api/users/:userId] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to delete account.' })
+  }
+})
 
 router.post('/:userId/follow', requireAuth, async (req, res) => {
   try {

@@ -170,6 +170,9 @@ export default function ProfilePage() {
                   {profileUser.name}
                 </h1>
                 <p className="text-slate-400 dark:text-gray-500 text-sm mt-0.5">@{profileUser.username}</p>
+                {profileUser.email && (
+                  <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{profileUser.email}</p>
+                )}
               </div>
 
               <div className="flex gap-2 w-full sm:w-auto justify-center">
@@ -222,7 +225,7 @@ export default function ProfilePage() {
         {/* ── Stats row ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 mt-5 border-t border-slate-100 dark:border-gray-800 pt-4">
           {[
-            { label: 'Posts', value: gridItems.length, action: null },
+            { label: 'Posts', value: profileUser.canViewPosts === false ? 0 : gridItems.length, action: null },
             { label: 'Followers', value: followerCount, action: () => setFollowListMode('followers') },
             { label: 'Following', value: profileUser.following, action: () => setFollowListMode('following') },
           ].map(stat => (
@@ -267,7 +270,16 @@ export default function ProfilePage() {
 
       {/* ── Post Grid ──────────────────────────────────────────────────── */}
       {activeTab === 'posts' && (
-        gridItems.length === 0 ? (
+        profileUser.canViewPosts === false ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl"
+          >
+            <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">This account is private</h3>
+            <p className="text-slate-400 dark:text-gray-500 text-sm">Follow this user to view their posts.</p>
+          </motion.div>
+        ) : gridItems.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

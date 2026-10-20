@@ -8,6 +8,7 @@ import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
 import Notification from '../models/Notification.js'
+import Follow from '../models/Follow.js'
 import { emitToUser, broadcastEvent } from '../services/socket.service.js'
 import { formatNotification } from './notifications.routes.js'
 
@@ -79,6 +80,20 @@ router.post(
         }
       }
 
+      const mentionedUsernames = [...caption.matchAll(/@([a-z0-9._-]+)/gi)].map(match => match[1].toLowerCase())
+      if (mentionedUsernames.length > 0) {
+        const mentionedUsers = await User.find({ username: { $in: mentionedUsernames } })
+          .select('username preferences')
+          .lean()
+        const blockedUser = mentionedUsers.find(user => user.preferences?.privacy?.tagged === false)
+        if (blockedUser) {
+          return res.status(403).json({
+            ok: false,
+            error: `@${blockedUser.username} does not allow tagging.`,
+          })
+        }
+      }
+
       let imageUrl = req.body.imageUrl || null
       let imagePublicId = null
 
@@ -129,9 +144,21 @@ router.get('/', requireAuth, async (req, res) => {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
     const cursor = req.query.cursor // ISO date string of last-seen createdAt
 
+    const [follows, privateUsers] = await Promise.all([
+      Follow.find({ follower: req.user._id }).select('following').lean(),
+      User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
+    ])
+    const visibleUserIds = [req.user._id, ...follows.map(follow => follow.following)]
+    const privateUserIds = privateUsers.map(user => user._id)
+    const visibilityFilter = {
+      $or: [
+        { user: { $in: visibleUserIds } },
+        { user: { $nin: privateUserIds } },
+      ],
+    }
     const filter = cursor
-      ? { createdAt: { $lt: new Date(cursor) } }
-      : {}
+      ? { $and: [visibilityFilter, { createdAt: { $lt: new Date(cursor) } }] }
+      : visibilityFilter
 
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
@@ -161,9 +188,17 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:postId', requireAuth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
-      .populate('user', 'name username initials avatarColor profilePhoto')
+      .populate('user', 'name username initials avatarColor profilePhoto preferences')
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+    const isOwner = post.user._id.toString() === req.user.id
+    const isPrivate = post.user.preferences?.privacy?.private === true
+    if (isPrivate && !isOwner) {
+      const isFollowing = await Follow.exists({ follower: req.user._id, following: post.user._id })
+      if (!isFollowing) {
+        return res.status(403).json({ ok: false, error: 'This account is private.' })
+      }
     }
     res.json({ ok: true, post: serializePost(post, req.user.id) })
   } catch (err) {

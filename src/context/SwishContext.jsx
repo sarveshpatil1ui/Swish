@@ -22,6 +22,7 @@ import {
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
   apiGetStories, apiCreateStory, apiUpdateStory, apiDeleteStory,
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
+  apiUpdatePreferences, apiDeleteAccount,
   apiFetchFollowers, apiFetchFollowing,
   apiGetColleges, apiAddCollege, apiToggleCollege,
   apiChangePassword,
@@ -47,6 +48,8 @@ export const DEFAULT_PREFERENCES = {
   privacy: {
     private: false,
     showEmail: false,
+    activity: true,
+    tagged: true,
     showYear: true,
     showDept: true,
     allowDMs: true,
@@ -383,10 +386,16 @@ export function SwishProvider({ children }) {
   // ── Profile fetch/update (FR-02) ──────────────────────────────────────────────
   const fetchProfile = async (userId) => apiGetProfile(userId)
 
-  const saveProfile = async (userId, { name, bio }) => {
-    const res = await apiUpdateProfile(userId, { name, bio })
+  const saveProfile = async (userId, { name, username, bio }) => {
+    const res = await apiUpdateProfile(userId, { name, username, bio })
     if (res.ok && currentUser?.id === userId) {
-      setCurrentUser(u => ({ ...u, name: res.user.name, bio: res.user.bio, initials: res.user.initials }))
+      setCurrentUser(u => ({
+        ...u,
+        name: res.user.name,
+        username: res.user.username,
+        bio: res.user.bio,
+        initials: res.user.initials,
+      }))
     }
     return res
   }
@@ -503,29 +512,29 @@ const domainApproved = async (email) => {
 
   // ── updateUser ────────────────────────────────────────────────────────────
   // TODO: replace with PATCH /api/users/:id when user-profile API is built
-  const updateUser = ({ name, username, bio }) => {
+  const updateUser = async ({ name, username, bio }) => {
     if (!currentUser) return { ok: false, error: 'Not authenticated.' }
-    const updatedUser = {
-      ...currentUser,
-      name:     (name     ?? currentUser.name).trim(),
-      username: (username ?? currentUser.username).trim(),
-      bio:      (bio      ?? currentUser.bio ?? '').trim(),
-      initials: computeInitials(name || currentUser.name),
-    }
-    setCurrentUser(updatedUser)
-    return { ok: true }
+    return saveProfile(currentUser.id, {
+      name: name ?? currentUser.name,
+      username: username ?? currentUser.username,
+      bio: bio ?? currentUser.bio ?? '',
+    })
   }
 
   // ── updatePreferences ─────────────────────────────────────────────────────
   // TODO: replace with PATCH /api/users/:id/preferences
-  const updatePreferences = (partial) => {
-    if (!currentUser) return
+  const updatePreferences = async (partial) => {
+    if (!currentUser) return { ok: false, error: 'Not authenticated.' }
     const merged = {
       notifications: { ...currentUser.preferences?.notifications, ...partial.notifications },
       privacy:       { ...currentUser.preferences?.privacy,       ...partial.privacy },
       security:      { ...currentUser.preferences?.security,      ...partial.security },
     }
-    setCurrentUser(u => ({ ...u, preferences: merged }))
+    const res = await apiUpdatePreferences(merged)
+    if (res.ok) {
+      setCurrentUser(u => ({ ...u, preferences: mergePrefs(res.user?.preferences || merged) }))
+    }
+    return res
   }
 
   // ── changePassword ────────────────────────────────────────────────────────
@@ -551,7 +560,10 @@ const domainApproved = async (email) => {
   // ── deleteAccount ─────────────────────────────────────────────────────────
   // TODO: replace with DELETE /api/users/:id
   const deleteAccount = async () => {
-    await logout()
+    if (!currentUser) return { ok: false, error: 'Not authenticated.' }
+    const res = await apiDeleteAccount(currentUser.id)
+    if (res.ok) await logout()
+    return res
   }
 
   // ── College management ───────────────────────────────────────────────────
