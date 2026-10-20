@@ -167,6 +167,10 @@ export async function apiUploadProfilePhoto(file) {
   return data
 }
 
+export async function apiRemoveProfilePhoto() {
+  return apiFetch('/api/users/profile-photo', { method: 'DELETE' })
+}
+
 export async function apiFollowUser(userId) {
   return apiFetch(`/api/users/${userId}/follow`, { method: 'POST' })
 }

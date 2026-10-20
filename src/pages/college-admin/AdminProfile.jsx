@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Briefcase, Building2, Save, Edit2, Lock, Shield } from 'lucide-react'
+import { User, Mail, Briefcase, Building2, Save, Edit2, Lock, Shield, Camera, Trash2, Upload } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiChangePassword, apiUpdateProfile } from '../../utils/auth'
+import { apiChangePassword, apiUpdateProfile, apiUploadProfilePhoto, apiRemoveProfilePhoto } from '../../utils/auth'
 
 export default function AdminProfile() {
-  const { currentUser } = useSwish()
+  const { currentUser, setCurrentUser } = useSwish()
   const [editing, setEditing] = useState(false)
   const [showPasswordSection, setShowPasswordSection] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -109,6 +110,64 @@ export default function AdminProfile() {
     setErrors({})
   }
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      setErrors({ photo: 'Only JPEG, PNG, WEBP, or GIF images are allowed.' })
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors({ photo: 'Image must be 5MB or smaller.' })
+      return
+    }
+
+    setUploadingPhoto(true)
+    setErrors({})
+
+    try {
+      const res = await apiUploadProfilePhoto(file)
+      if (res.ok) {
+        setCurrentUser(res.user)
+        setSuccessMessage('Profile photo updated successfully')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        setErrors({ photo: res.error || 'Failed to upload photo' })
+      }
+    } catch (err) {
+      console.error('[AdminProfile] Error uploading photo:', err)
+      setErrors({ photo: 'Failed to upload photo' })
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  const handleRemovePhoto = async () => {
+    if (!confirm('Are you sure you want to remove your profile photo?')) return
+
+    setUploadingPhoto(true)
+    try {
+      const res = await apiRemoveProfilePhoto()
+      if (res.ok) {
+        setCurrentUser(res.user)
+        setSuccessMessage('Profile photo removed successfully')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        setErrors({ photo: res.error || 'Failed to remove photo' })
+      }
+    } catch (err) {
+      console.error('[AdminProfile] Error removing photo:', err)
+      setErrors({ photo: 'Failed to remove photo' })
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -128,18 +187,51 @@ export default function AdminProfile() {
         {/* Header */}
         <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-8">
           <div className="flex items-center gap-4">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white/30"
-              style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}
-            >
-              {currentUser?.initials}
+            <div className="relative">
+              {currentUser?.profilePhoto ? (
+                <img
+                  src={currentUser.profilePhoto}
+                  alt={currentUser.name}
+                  className="w-20 h-20 rounded-full object-cover border-4 border-white/30"
+                />
+              ) : (
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-white/30"
+                  style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}
+                >
+                  {currentUser?.initials}
+                </div>
+              )}
+              <label className="absolute bottom-0 right-0 bg-white text-indigo-600 rounded-full p-1.5 cursor-pointer hover:bg-indigo-50 transition-colors shadow-lg">
+                <Camera size={14} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={uploadingPhoto}
+                />
+              </label>
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-2xl font-bold text-white">{currentUser?.name}</h2>
               <p className="text-indigo-200 text-sm">College Admin</p>
               <p className="text-indigo-200 text-xs mt-1">{currentUser?.college}</p>
             </div>
+            {currentUser?.profilePhoto && (
+              <button
+                onClick={handleRemovePhoto}
+                disabled={uploadingPhoto}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={12} />
+                Remove
+              </button>
+            )}
           </div>
+          {errors.photo && (
+            <p className="text-rose-200 text-xs mt-2">{errors.photo}</p>
+          )}
         </div>
 
         {/* Content */}

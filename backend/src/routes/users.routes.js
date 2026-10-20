@@ -495,6 +495,19 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
   }
 })
 
+// ── DELETE /api/users/profile-photo ─────────────────────────────────────────────
+// Remove profile photo
+router.delete('/profile-photo', requireAuth, async (req, res) => {
+  try {
+    req.user.profilePhoto = null
+    await req.user.save()
+    res.json({ ok: true, user: req.user.toJSON() })
+  } catch (err) {
+    console.error('[DELETE /api/users/profile-photo] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to remove profile photo.' })
+  }
+})
+
 
 router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
   try {
