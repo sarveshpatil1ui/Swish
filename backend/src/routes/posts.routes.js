@@ -7,10 +7,9 @@ import { uploadPostImage, deletePostImage } from '../services/cloudinary.service
 import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
-import Notification from '../models/Notification.js'
 import Follow from '../models/Follow.js'
-import { emitToUser, broadcastEvent } from '../services/socket.service.js'
-import { formatNotification } from './notifications.routes.js'
+import { broadcastEvent } from '../services/socket.service.js'
+import { createNotification } from '../services/notification.service.js'
 
 const router = Router()
 
@@ -125,6 +124,24 @@ router.post(
         tags: Array.isArray(tags) ? tags : [],
       })
       await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })
+
+      if (mentionedUsernames.length > 0) {
+        const mentionedUsers = await User.find({
+          username: { $in: mentionedUsernames },
+          _id: { $ne: req.user._id },
+          'preferences.privacy.tagged': { $ne: false },
+        }).select('_id username')
+        for (const mentionedUser of mentionedUsers) {
+          await createNotification({
+            recipient: mentionedUser._id,
+            sender: req.user.id,
+            type: 'mention',
+            post: post._id,
+            text: 'mentioned you in a post',
+            subtext: caption.slice(0, 50),
+          })
+        }
+      }
 
       const populated = await post.populate('user', 'name username initials avatarColor profilePhoto')
       res.status(201).json({ ok: true, post: serializePost(populated, req.user.id) })
@@ -278,7 +295,7 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
     // Create & emit notification to post owner if someone else liked
     if (post.user.toString() !== req.user.id) {
       try {
-        const notif = await Notification.create({
+        await createNotification({
           recipient: post.user,
           sender: req.user.id,
           type: 'like',
@@ -286,8 +303,6 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
           text: 'liked your post',
           subtext: post.caption ? post.caption.slice(0, 50) : '',
         })
-        const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
-        emitToUser(post.user, 'notification:new', formatNotification(populated))
       } catch (notifErr) {
         console.error('[Notification like error]', notifErr)
       }
@@ -430,7 +445,7 @@ router.post(
       // Create & emit notification to post owner if someone else commented
       if (post.user.toString() !== req.user.id) {
         try {
-          const notif = await Notification.create({
+          await createNotification({
             recipient: post.user,
             sender: req.user.id,
             type: 'comment',
@@ -438,8 +453,6 @@ router.post(
             text: 'commented on your post',
             subtext: req.body.text ? req.body.text.slice(0, 50) : '',
           })
-          const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
-          emitToUser(post.user, 'notification:new', formatNotification(populated))
         } catch (notifErr) {
           console.error('[Notification comment error]', notifErr)
         }

@@ -17,7 +17,7 @@ import Story from '../models/Story.js'
 import StoryView from '../models/StoryView.js'
 import { Conversation } from '../models/Conversation.js'
 import { emitToUser } from '../services/socket.service.js'
-import { formatNotification } from './notifications.routes.js'
+import { createNotification } from '../services/notification.service.js'
 
 const router = Router()
 
@@ -389,14 +389,12 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
 
     // Create & emit real-time notification
     try {
-      const notif = await Notification.create({
+      await createNotification({
         recipient: targetId,
         sender: req.user.id,
         type: 'follow',
         text: 'started following you',
       })
-      const populated = await notif.populate('sender', 'name username initials avatarColor profilePhoto')
-      emitToUser(targetId, 'notification:new', formatNotification(populated))
       emitToUser(targetId, 'follow:received', { fromUserName: req.user.name })
     } catch (notifErr) {
       console.error('[Notification follow error]', notifErr)

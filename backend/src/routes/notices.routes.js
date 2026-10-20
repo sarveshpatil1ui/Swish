@@ -9,9 +9,33 @@ import { body, validationResult } from 'express-validator'
 
 import Notice from '../models/Notice.js'
 import College from '../models/College.js'
+import User from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
+import { createNotification } from '../services/notification.service.js'
 
 const router = Router()
+
+async function notifyNoticeAudience(notice, senderId) {
+  const filter = {
+    collegeId: notice.collegeId,
+    _id: { $ne: senderId },
+    deactivated: false,
+  }
+  if (notice.targetAudience === 'students') filter.role = 'student'
+  if (notice.targetAudience === 'faculty') filter.role = 'faculty'
+  if (notice.targetAudience === 'department') {
+    filter.dept = notice.department
+  }
+
+  const recipients = await User.find(filter).select('_id')
+  await Promise.all(recipients.map(user => createNotification({
+    recipient: user._id,
+    sender: senderId,
+    type: 'event',
+    text: 'posted a new campus announcement',
+    subtext: notice.title,
+  })))
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -189,6 +213,9 @@ router.post(
         attachments: [],
       })
 
+      if (notice.published) {
+        await notifyNoticeAudience(notice, req.user._id)
+      }
       return res.status(201).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[POST /notices]', err)
@@ -260,6 +287,7 @@ router.put(
       }
 
       const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
+      const wasPublished = notice.published
 
       if (title) notice.title = title.trim()
       if (content) notice.content = content.trim()
@@ -277,6 +305,9 @@ router.put(
 
       await notice.save()
 
+      if (!wasPublished && notice.published) {
+        await notifyNoticeAudience(notice, req.user._id)
+      }
       return res.status(200).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[PUT /notices/:id]', err)

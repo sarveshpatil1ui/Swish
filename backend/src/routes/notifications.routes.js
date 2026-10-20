@@ -59,6 +59,18 @@ router.get('/', async (req, res) => {
 })
 
 // ── PATCH /api/notifications/:id/read ────────────────────────────────────────
+router.patch('/read-all', async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: req.user._id, read: false },
+      { $set: { read: true } }
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Failed to mark notifications as read.' })
+  }
+})
+
 router.patch('/:id/read', async (req, res) => {
   try {
     const n = await Notification.findOneAndUpdate(
@@ -70,19 +82,6 @@ router.patch('/:id/read', async (req, res) => {
     res.json({ ok: true, id: n._id.toString() })
   } catch (err) {
     res.status(500).json({ ok: false, error: 'Failed to update notification.' })
-  }
-})
-
-// ── PATCH /api/notifications/read-all ────────────────────────────────────────
-router.patch('/read-all', async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { recipient: req.user._id, read: false },
-      { $set: { read: true } }
-    )
-    res.json({ ok: true })
-  } catch (err) {
-    res.status(500).json({ ok: false, error: 'Failed to mark notifications as read.' })
   }
 })
 

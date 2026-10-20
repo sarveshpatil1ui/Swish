@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, Sparkles } from 'lucide-react'
+import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, AtSign, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 
@@ -8,6 +8,8 @@ const iconMap = {
   like:    { icon: Heart,         bg: 'bg-rose-50 dark:bg-rose-950/40',    color: 'text-rose-500'    },
   comment: { icon: MessageCircle, bg: 'bg-indigo-50 dark:bg-indigo-950/50', color: 'text-indigo-500'  },
   follow:  { icon: UserPlus,      bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
+  mention: { icon: AtSign,        bg: 'bg-violet-50 dark:bg-violet-950/40',  color: 'text-violet-500'  },
+  event:   { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',    color: 'text-amber-500'    },
 }
 
 function NotificationItem({ notification: n, index, onRead }) {
