@@ -9,6 +9,7 @@ import {
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
 import { getStoredToken } from '../../utils/auth'
+import EmojiPicker from '../../components/app/EmojiPicker'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -269,6 +270,7 @@ export default function MessagesPage() {
   const [showNewChat,    setShowNewChat]    = useState(false)
   const [typingUsers,    setTypingUsers]    = useState({}) // convId → {userId, name}
   const [unreadNotifs,   setUnreadNotifs]   = useState([]) // for toast-style notifs
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   const messagesEndRef = useRef(null)
   const inputRef       = useRef(null)
@@ -520,6 +522,25 @@ export default function MessagesPage() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
   }
 
+  const handleSelectEmoji = (emoji) => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      const start = textarea.selectionStart ?? inputText.length
+      const end = textarea.selectionEnd ?? inputText.length
+      const updated = inputText.slice(0, start) + emoji + inputText.slice(end)
+      setInputText(updated)
+      setTimeout(() => {
+        textarea.focus()
+        const newCursorPos = start + emoji.length
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+        textarea.style.height = 'auto'
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+      }, 0)
+    } else {
+      setInputText(prev => prev + emoji)
+    }
+  }
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -720,9 +741,29 @@ export default function MessagesPage() {
                     style={{ maxHeight: 120 }}
                   />
                 </div>
-                <button className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400 transition-colors flex-shrink-0">
-                  <Smile size={18} />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(v => !v)}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 ${
+                      showEmojiPicker
+                        ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                        : 'hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400'
+                    }`}
+                    aria-label="Insert emoji"
+                  >
+                    <Smile size={18} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showEmojiPicker && (
+                      <EmojiPicker
+                        onSelect={handleSelectEmoji}
+                        onClose={() => setShowEmojiPicker(false)}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
                 <AnimatePresence mode="wait">
                   {inputText.trim() && (
                     <motion.button key="send"
