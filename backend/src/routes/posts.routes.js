@@ -161,21 +161,42 @@ router.get('/', requireAuth, async (req, res) => {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
     const cursor = req.query.cursor // ISO date string of last-seen createdAt
 
-    const [follows, privateUsers] = await Promise.all([
-      Follow.find({ follower: req.user._id }).select('following').lean(),
-      User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
-    ])
-    const visibleUserIds = [req.user._id, ...follows.map(follow => follow.following)]
-    const privateUserIds = privateUsers.map(user => user._id)
-    const visibilityFilter = {
-      $or: [
-        { user: { $in: visibleUserIds } },
-        { user: { $nin: privateUserIds } },
-      ],
+    let filter = {}
+
+    // College-specific feed for college_admin role
+    if (req.user.role === 'college_admin' && req.user.collegeId) {
+      // Get all users from the same college
+      const collegeUsers = await User.find({ collegeId: req.user.collegeId }).select('_id').lean()
+      const collegeUserIds = collegeUsers.map(u => u._id)
+      
+      const [privateUsers] = await Promise.all([
+        User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
+      ])
+      const privateUserIds = privateUsers.map(user => user._id)
+      
+      // Show posts from college users, excluding private users from other colleges
+      filter = {
+        user: { $in: collegeUserIds },
+      }
+    } else {
+      // Standard feed for students and faculty
+      const [follows, privateUsers] = await Promise.all([
+        Follow.find({ follower: req.user._id }).select('following').lean(),
+        User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
+      ])
+      const visibleUserIds = [req.user._id, ...follows.map(follow => follow.following)]
+      const privateUserIds = privateUsers.map(user => user._id)
+      filter = {
+        $or: [
+          { user: { $in: visibleUserIds } },
+          { user: { $nin: privateUserIds } },
+        ],
+      }
     }
-    const filter = cursor
-      ? { $and: [visibilityFilter, { createdAt: { $lt: new Date(cursor) } }] }
-      : visibilityFilter
+
+    if (cursor) {
+      filter = { $and: [filter, { createdAt: { $lt: new Date(cursor) } }] }
+    }
 
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
