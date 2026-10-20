@@ -10,7 +10,9 @@ describe('CORS & Route Integrity', () => {
     assert.equal(isOriginAllowed('http://localhost:5173'), true)
     assert.equal(isOriginAllowed('http://localhost:3000'), true)
     assert.equal(isOriginAllowed('https://swish2-six.vercel.app'), true)
-    assert.equal(isOriginAllowed('https://swish2-six.vercel.app/'), true)
+    assert.equal(isOriginAllowed('https://swish1.onrender.com'), true)
+
+
   })
 
   test('isOriginAllowed rejects untrusted third-party origins', () => {

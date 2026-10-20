@@ -5,6 +5,7 @@
 
 const HARDCODED_ORIGINS = new Set([
   'https://swish2-six.vercel.app',
+  'https://swish1.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000',
 ])
