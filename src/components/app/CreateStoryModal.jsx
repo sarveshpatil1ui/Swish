@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X, ImagePlus, Trash2, Clock, Type } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
+import { resolveImageUrl } from '../../utils/posts'
 
 export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
   const { currentUser } = useSwish()
@@ -137,8 +138,8 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold border border-white/20 shadow-sm overflow-hidden"
                     style={{ backgroundColor: currentUser?.avatarColor || '#6366f1', fontSize: '10px' }}
                   >
-                    {currentUser?.profilePhoto ? (
-                      <img src={currentUser.profilePhoto} alt="" className="w-full h-full object-cover" />
+                    {resolveImageUrl(currentUser?.profilePhoto) ? (
+                      <img src={resolveImageUrl(currentUser.profilePhoto)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       currentUser?.initials || 'U'
                     )}

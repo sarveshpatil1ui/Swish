@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
+import { resolveImageUrl } from '../../utils/posts'
 
 // ── Menu list ─────────────────────────────────────────────────────────────────
 const MENU = [
@@ -157,8 +158,16 @@ function AccountSection({ currentUser, updateUser, showToast }) {
     <div className="space-y-4">
       {/* Avatar preview */}
       <div className="flex items-center gap-4 py-2 px-4 bg-white dark:bg-gray-900 rounded-2xl border border-slate-100 dark:border-gray-800">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0" style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}>
-          {currentUser?.initials || '??'}
+        <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden text-white text-lg font-bold flex-shrink-0" style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}>
+          {resolveImageUrl(currentUser?.profilePhoto) ? (
+            <img
+              src={resolveImageUrl(currentUser.profilePhoto)}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            currentUser?.initials || '??'
+          )}
         </div>
         <div>
           <p className="text-slate-900 dark:text-white font-semibold text-sm">{currentUser?.name}</p>

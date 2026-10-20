@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Search, X, Smile, Heart, Users, Cat, Utensils, Trophy, Car, Lightbulb, Hash } from 'lucide-react'
 
 export const EMOJI_CATEGORIES = [
@@ -665,10 +665,10 @@ export default function EmojiPicker({ onSelect, onClose }) {
   return (
     <motion.div
       ref={pickerRef}
-      initial={{ opacity: 0, scale: 0.92, y: 12 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.92, y: 12 }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.08, ease: 'linear' }}
       className="absolute bottom-12 right-0 z-50 w-[300px] sm:w-[350px] max-w-[calc(100vw-32px)] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       style={{ height: '390px' }}
       onClick={e => e.stopPropagation()}
