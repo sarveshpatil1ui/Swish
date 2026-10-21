@@ -33,6 +33,7 @@ import PostPage from './pages/app/PostPage'
 // ── College Admin pages ───────────────────────────────────────────────────────
 import CollegeAdminLayout from './components/college-admin/CollegeAdminLayout'
 import CollegeAdminDashboard from './pages/college-admin/CollegeAdminDashboard'
+import CollegeAdminAnalytics from './pages/college-admin/CollegeAdminAnalytics'
 import StudentManagement from './pages/college-admin/StudentManagement'
 import FacultyManagement from './pages/college-admin/FacultyManagement'
 import DepartmentManagement from './pages/college-admin/DepartmentManagement'
@@ -185,6 +186,7 @@ export default function App() {
                 }
               >
                 <Route index element={<CollegeAdminDashboard />} />
+                <Route path="analytics" element={<CollegeAdminAnalytics />} />
                 <Route path="students" element={<StudentManagement />} />
                 <Route path="faculty" element={<FacultyManagement />} />
                 <Route path="departments" element={<DepartmentManagement />} />

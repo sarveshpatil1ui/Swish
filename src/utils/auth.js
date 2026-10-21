@@ -452,3 +452,7 @@ export async function apiGetReportById(id) {
 export async function apiUpdateReportStatus(id, { status, resolutionNotes }) {
   return apiFetch(`/api/reports/${id}/status`, { method: 'PATCH', body: { status, resolutionNotes } })
 }
+
+export async function apiGetAnalyticsDashboard() {
+  return apiFetch('/api/analytics/dashboard')
+}

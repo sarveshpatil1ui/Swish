@@ -15,7 +15,8 @@ import {
   Sun,
   Moon,
   AlertTriangle,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -23,6 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/college-admin' },
+  { icon: BarChart3, label: 'Analytics', path: '/college-admin/analytics' },
   { icon: Users, label: 'Students', path: '/college-admin/students' },
   { icon: GraduationCap, label: 'Faculty', path: '/college-admin/faculty' },
   { icon: Building2, label: 'Departments', path: '/college-admin/departments' },

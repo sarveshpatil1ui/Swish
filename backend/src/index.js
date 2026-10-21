@@ -23,6 +23,7 @@ import adminRoutes from './routes/admin.routes.js'
 import storiesRoutes from './routes/stories.routes.js'
 import notificationsRoutes from './routes/notifications.routes.js'
 import reportsRoutes from './routes/reports.routes.js'
+import analyticsRoutes from './routes/analytics.routes.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -65,6 +66,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/stories', storiesRoutes)
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/reports', reportsRoutes)
+app.use('/api/analytics', analyticsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })
