@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User, Building2 } from 'lucide-react'
-import { apiGetNotices, apiCreateNotice, apiUpdateNotice, apiDeleteNotice, apiPublishNotice, apiGetDepartments } from '../../utils/auth'
+import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User, Building2, Pin } from 'lucide-react'
+import { apiGetNotices, apiCreateNotice, apiUpdateNotice, apiDeleteNotice, apiPublishNotice, apiPinNotice, apiGetDepartments } from '../../utils/auth'
 
 export default function NoticeManagement() {
   const [notices, setNotices] = useState([])
@@ -133,6 +133,19 @@ export default function NoticeManagement() {
       }
     } catch (err) {
       console.error('[NoticeManagement] Error toggling publish:', err)
+    }
+  }
+
+  const handlePin = async (id) => {
+    try {
+      const res = await apiPinNotice(id)
+      if (res.ok) {
+        setNotices(prev => prev.map(n => (n.id === id || n._id === id) ? res.notice : n))
+      } else {
+        console.error('[NoticeManagement] Failed to toggle pin status:', res.error)
+      }
+    } catch (err) {
+      console.error('[NoticeManagement] Error toggling pin:', err)
     }
   }
 
@@ -359,6 +372,13 @@ export default function NoticeManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePin(notice.id)}
+                      className={`p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${notice.pinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-gray-400'}`}
+                      title={notice.pinned ? 'Unpin' : 'Pin'}
+                    >
+                      <Pin size={16} fill={notice.pinned ? 'currentColor' : 'none'} />
+                    </button>
                     <button
                       onClick={() => handlePublish(notice.id)}
                       className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"

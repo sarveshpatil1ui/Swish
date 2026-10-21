@@ -456,3 +456,7 @@ export async function apiUpdateReportStatus(id, { status, resolutionNotes }) {
 export async function apiGetAnalyticsDashboard() {
   return apiFetch('/api/analytics/dashboard')
 }
+
+export async function apiPinNotice(id) {
+  return apiFetch(`/api/notices/${id}/pin`, { method: 'PATCH' })
+}

@@ -30,6 +30,7 @@ const NoticeSchema = new Schema(
     published: { type: Boolean, default: false },
     publishedAt: { type: Date, default: null },
     expiresAt: { type: Date, default: null },
+    pinned: { type: Boolean, default: false }, // For official announcements
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     attachments: [{ type: String }], // URLs to attached files
   },

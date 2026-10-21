@@ -140,9 +140,13 @@ router.get('/college', requireAuth, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean()
 
-    // Sort by priority (urgent > high > medium > low), then date descending
+    // Sort by pinned status first, then priority, then date descending
     const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 }
     notices.sort((a, b) => {
+      // Pinned notices always come first
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      
       const pDiff = (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2)
       if (pDiff !== 0) return pDiff
       return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)
@@ -359,6 +363,29 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin'),
   } catch (err) {
     console.error('[PATCH /notices/:id/publish]', err)
     res.status(500).json({ ok: false, error: 'Failed to toggle notice publish status.' })
+  }
+})
+
+// ── PATCH /api/notices/:id/pin ────────────────────────────────────────────────────
+// Pin/unpin a notice (for official announcements)
+router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' 
+      ? { _id: req.params.id }
+      : { _id: req.params.id, collegeId: req.collegeId }
+    
+    const notice = await Notice.findOne(filter)
+    if (!notice) {
+      return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
+
+    notice.pinned = !notice.pinned
+    await notice.save()
+
+    return res.status(200).json({ ok: true, notice: notice.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /notices/:id/pin]', err)
+    res.status(500).json({ ok: false, error: 'Failed to toggle notice pin status.' })
   }
 })
 
