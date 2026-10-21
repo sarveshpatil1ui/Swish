@@ -36,6 +36,11 @@ const PostSchema = new Schema(
       ref: 'User',
     }],
 
+    savedBy: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+
     commentCount: {
       type: Number,
       default: 0,

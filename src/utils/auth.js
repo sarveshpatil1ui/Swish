@@ -227,6 +227,14 @@ export async function apiUnlikePost(postId) {
   return apiFetch(`/api/posts/${postId}/like`, { method: 'DELETE' })
 }
 
+export async function apiSavePost(postId) {
+  return apiFetch(`/api/posts/${postId}/save`, { method: 'POST' })
+}
+
+export async function apiUnsavePost(postId) {
+  return apiFetch(`/api/posts/${postId}/save`, { method: 'DELETE' })
+}
+
 /** On success: { ok: true, comments: Array } — newest first */
 export async function apiGetComments(postId) {
   return apiFetch(`/api/posts/${postId}/comments`)

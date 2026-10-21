@@ -52,7 +52,7 @@ function GradientCard({ emoji, label, gradientFrom, gradientTo }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PostCard({ post }) {
-  const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost } = useSwish()
+  const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost, toggleSavePost } = useSwish()
 
   // Likes/comment-count now live in the `post` prop (owned by SwishContext),
   // so this component reads them directly instead of cloning into local state
@@ -60,7 +60,6 @@ export default function PostCard({ post }) {
   const [showComments, setShowComments] = useState(false)
   const [showLikesModal, setShowLikesModal] = useState(false)
   const [copied,       setCopied]       = useState(false)
-  const [saved,        setSaved]        = useState(post.saved)
   const [liking,       setLiking]       = useState(false)
   const [followed,     setFollowed]     = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
@@ -97,7 +96,10 @@ export default function PostCard({ post }) {
     }
   }
 
-  const handleSave = () => setSaved(s => !s)
+  const handleSave = async () => {
+    const result = await toggleSavePost(post.id, !post.saved)
+    if (!result.ok && result.error) console.error('[PostCard] save/unsave failed:', result.error)
+  }
 
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`
@@ -193,7 +195,7 @@ export default function PostCard({ post }) {
                       onClick={() => { handleSave(); setShowMenu(false) }}
                       className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                     >
-                      {saved ? 'Unsave post' : 'Save post'}
+                      {post.saved ? 'Unsave post' : 'Save post'}
                     </button>
                     <button
                       onClick={() => { handleShare(); setShowMenu(false) }}
@@ -352,15 +354,15 @@ export default function PostCard({ post }) {
             <button
               onClick={handleSave}
               className={`p-2 rounded-xl transition-all ${
-                saved
+                post.saved
                   ? 'text-indigo-600 dark:text-indigo-400'
                   : 'text-slate-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
               }`}
-              aria-label={saved ? 'Unsave' : 'Save'}
+              aria-label={post.saved ? 'Unsave' : 'Save'}
             >
               <Bookmark
                 size={22}
-                className={saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''}
+                className={post.saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''}
               />
             </button>
           </div>

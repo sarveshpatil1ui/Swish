@@ -31,7 +31,9 @@ function serializePost(post, viewerId) {
     ...json,
     likeCount: post.likes.length,
     liked: post.likes.some(id => id.toString() === viewerId),
+    saved: post.savedBy.some(id => id.toString() === viewerId),
     likes: undefined, // don't ship the full liker-id list to every client
+    savedBy: undefined,
   }
 }
 
@@ -219,6 +221,37 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[GET /api/posts] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch posts.' })
+  }
+})
+
+// ── Save / unsave a post ────────────────────────────────────────────────────
+router.post('/:postId/save', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.postId, isDeleted: false },
+      { $addToSet: { savedBy: req.user._id } },
+      { new: true }
+    )
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    res.json({ ok: true, saved: true })
+  } catch (err) {
+    console.error('[POST /api/posts/:postId/save] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to save post.' })
+  }
+})
+
+router.delete('/:postId/save', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.postId, isDeleted: false },
+      { $pull: { savedBy: req.user._id } },
+      { new: true }
+    )
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    res.json({ ok: true, saved: false })
+  } catch (err) {
+    console.error('[DELETE /api/posts/:postId/save] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to unsave post.' })
   }
 })
 

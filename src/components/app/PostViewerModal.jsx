@@ -17,7 +17,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const {
     currentUser, likePost, unlikePost,
     fetchComments, addComment, deleteComment,
-    deletePost, posts,
+    deletePost, posts, toggleSavePost,
   } = useSwish()
 
   // Keep in sync with global state
@@ -31,7 +31,6 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const submittingRef = useRef(false)
   const { on, off } = useSocket()
   const [liking, setLiking] = useState(false)
-  const [saved, setSaved] = useState(post.saved)
   const [copied, setCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -40,6 +39,11 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const [showLikesModal, setShowLikesModal] = useState(false)
 
   const isOwnPost = currentUser?.id === post.userId
+
+  const handleSave = async () => {
+    const result = await toggleSavePost(post.id, !post.saved)
+    if (!result.ok && result.error) console.error('[PostViewerModal] save/unsave failed:', result.error)
+  }
 
   // Fetch comments
   useEffect(() => {
@@ -352,10 +356,10 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                   </button>
                 </div>
                 <button
-                  onClick={() => setSaved(s => !s)}
-                  className={`p-2 rounded-xl transition-all ${saved ? 'text-indigo-600' : 'text-slate-400 dark:text-gray-500 hover:text-indigo-500'}`}
+                  onClick={handleSave}
+                  className={`p-2 rounded-xl transition-all ${post.saved ? 'text-indigo-600' : 'text-slate-400 dark:text-gray-500 hover:text-indigo-500'}`}
                 >
-                  <Bookmark size={22} className={saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''} />
+                  <Bookmark size={22} className={post.saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''} />
                 </button>
               </div>
               <button

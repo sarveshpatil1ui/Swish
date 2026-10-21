@@ -13,12 +13,13 @@
 // for now — they will be migrated to real API routes in future phases.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 import {
   apiLogin, apiRegister, apiLogout, apiMe, apiCheckCollegeDomain,
   apiGetUsers, apiToggleUserStatus,
   apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
+  apiSavePost, apiUnsavePost,
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
   apiGetStories, apiCreateStory, apiUpdateStory, apiDeleteStory,
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
@@ -340,8 +341,17 @@ export function SwishProvider({ children }) {
       setPosts(prevPosts) // rollback
       return { ok: false, error: res.error }
     }
+
     setPosts(ps => ps.map(p => p.id === postId ? { ...p, liked: false, likes: res.likeCount } : p))
     return { ok: true }
+  }
+
+  const toggleSavePost = async (postId, shouldSave) => {
+    const previous = posts
+    setPosts(items => items.map(post => post.id === postId ? { ...post, saved: shouldSave } : post))
+    const res = shouldSave ? await apiSavePost(postId) : await apiUnsavePost(postId)
+    if (!res.ok) setPosts(previous)
+    return res
   }
 
   // ── Comments (FR-06) ──────────────────────────────────────────────────────────
@@ -384,7 +394,7 @@ export function SwishProvider({ children }) {
   const fetchFollowing = async (userId) => apiFetchFollowing(userId)
 
   // ── Profile fetch/update (FR-02) ──────────────────────────────────────────────
-  const fetchProfile = async (userId) => apiGetProfile(userId)
+  const fetchProfile = useCallback((userId) => apiGetProfile(userId), [])
 
   const saveProfile = async (userId, { name, username, bio }) => {
     const res = await apiUpdateProfile(userId, { name, username, bio })
@@ -678,6 +688,7 @@ const domainApproved = async (email) => {
         createPost,
         likePost,
         unlikePost,
+        toggleSavePost,
         fetchComments,
         addComment,
         deletePost: deletePostAction,

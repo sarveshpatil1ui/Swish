@@ -54,6 +54,6 @@ export function normalizePost(raw) {
     likes: raw.likeCount ?? 0,
     liked: Boolean(raw.liked),
     commentCount: raw.commentCount ?? 0,
-    saved: false,
+    saved: Boolean(raw.saved),
   }
 }
