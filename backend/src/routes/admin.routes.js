@@ -411,11 +411,16 @@ router.get(
   '/pending-requests',
   requireAuth,
   requireRole('admin'),
-  async (_req, res) => {
+    async (req, res) => {
     try {
-      const requests = await CollegeOnboardingRequest.find({
-        status: 'PENDING',
-      })
+      const statusFilter =
+        req.query.status === 'all'
+          ? {}
+          : req.query.status
+          ? { status: req.query.status.toUpperCase() }
+          : { status: 'PENDING' }
+
+      const requests = await CollegeOnboardingRequest.find(statusFilter)
         .sort({ createdAt: -1 })
         .lean()
 

@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { getStoredToken } from '../../utils/auth'
+import AdminAnalytics from '../../components/admin/AdminAnalytics'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -633,6 +634,7 @@ export default function AdminPage() {
       {/* Main content */}
       <main className="flex-1 min-w-0 lg:ml-64">
         {/* Top bar */}
+        {activeSection !== 'Analytics' && (
         <header className="h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-slate-200/80 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
@@ -663,6 +665,7 @@ export default function AdminPage() {
             Platform Overview
           </div>
         </header>
+        )}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
           {activeSection === 'Dashboard' ? (
@@ -1689,6 +1692,14 @@ export default function AdminPage() {
                   </table>
                 </div>
               </div>
+            </motion.div>
+          ) : activeSection === 'Analytics' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminAnalytics onOpenSidebar={() => setMobileSidebarOpen(true)} />
             </motion.div>
           ) : (
             /* Temporary placeholder for future dedicated pages */
