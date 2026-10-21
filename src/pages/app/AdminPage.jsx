@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
+  Rocket,
+  Bell,
+  Settings,
+  FileText,
+  UserCheck,
   Building2,
   Users,
+  User,
   Flag,
   BarChart3,
   ClipboardCheck,
@@ -34,6 +40,7 @@ import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { getStoredToken } from '../../utils/auth'
 import AdminAnalytics from '../../components/admin/AdminAnalytics'
+import AdminDashboard from '../../components/admin/AdminDashboard'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -105,23 +112,30 @@ function SidebarItem({
   label,
   active,
   onClick,
+  badge = null,
   expandable = false,
   expanded = false,
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${adminInteractiveClass} ${
+      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold ${adminInteractiveClass} ${
         active
-          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-sm'
+          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold'
           : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800/70 hover:text-slate-900 dark:hover:text-gray-200'
       }`}
     >
-      <Icon size={17} />
+      <Icon size={17} className="shrink-0" />
 
-      <span className="flex-1 text-left">
+      <span className="flex-1 text-left truncate">
         {label}
       </span>
+
+      {badge !== null && badge !== undefined && (
+        <span className="min-w-5 h-5 px-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+          {badge}
+        </span>
+      )}
 
       {expandable && (
         <ChevronDown
@@ -140,6 +154,8 @@ export default function AdminPage() {
   const { dark, toggle } = useTheme()
 
   const [activeSection, setActiveSection] = useState('Dashboard')
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [globalSearch, setGlobalSearch] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [collegeMenuOpen, setCollegeMenuOpen] = useState(true)
 
@@ -483,61 +499,34 @@ export default function AdminPage() {
             onClick={() => navigateSection('Dashboard')}
           />
 
-          {/* Colleges */}
           <SidebarItem
-            icon={Building2}
-            label="Colleges"
-            active={activeSection === 'Colleges'}
-            expandable
-            expanded={collegeMenuOpen}
-            onClick={() => {
-              setCollegeMenuOpen(value => !value)
-              navigateSection('Colleges')
-            }}
+            icon={BarChart3}
+            label="Analytics"
+            active={activeSection === 'Analytics'}
+            onClick={() => navigateSection('Analytics')}
           />
 
-          {collegeMenuOpen && (
-            <div className="ml-7 pl-3 border-l border-slate-200 dark:border-gray-800 space-y-1">
-              <button
-                onClick={() => navigateSection('All Colleges')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
-                  activeSection === 'All Colleges'
-                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
-                }`}
-              >
-                All Colleges
-              </button>
+          <SidebarItem
+            icon={Building2}
+            label="All Colleges"
+            active={activeSection === 'All Colleges' || activeSection === 'Colleges'}
+            onClick={() => navigateSection('All Colleges')}
+          />
 
-              <button
-                onClick={() => navigate('/admin/pending-requests')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
-                  activeSection === 'Pending Requests'
-                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
-                }`}
-              >
-                <span>Pending Requests</span>
+          <SidebarItem
+            icon={FileText}
+            label="Pending Requests"
+            active={activeSection === 'Pending Requests'}
+            badge={dashboardStats.pendingCollegeRequests > 0 ? dashboardStats.pendingCollegeRequests : 1}
+            onClick={() => navigate('/admin/pending-requests')}
+          />
 
-                {dashboardStats.pendingCollegeRequests > 0 && (
-                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center justify-center">
-                    {dashboardStats.pendingCollegeRequests}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => navigateSection('College Admins')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${adminInteractiveClass} ${
-                  activeSection === 'College Admins'
-                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'text-slate-500 dark:text-gray-500 hover:text-slate-800 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800/70'
-                }`}
-              >
-                College Admins
-              </button>
-            </div>
-          )}
+          <SidebarItem
+            icon={UserCheck}
+            label="College Admins"
+            active={activeSection === 'College Admins'}
+            onClick={() => navigateSection('College Admins')}
+          />
 
           <SidebarItem
             icon={Users}
@@ -545,8 +534,6 @@ export default function AdminPage() {
             active={activeSection === 'Users'}
             onClick={() => navigateSection('Users')}
           />
-
-
 
           <SidebarItem
             icon={Flag}
@@ -556,27 +543,45 @@ export default function AdminPage() {
           />
 
           <SidebarItem
-            icon={BarChart3}
-            label="Analytics"
-            active={activeSection === 'Analytics'}
-            onClick={() => navigateSection('Analytics')}
+            icon={User}
+            label="My Profile"
+            active={activeSection === 'My Profile' || activeSection === 'Profile'}
+            onClick={() => navigateSection('My Profile')}
           />
         </nav>
       </div>
 
+      {/* Promotional gradient card matching reference image */}
+      <div className="mx-3 mb-2 p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 border border-indigo-900/40 text-white relative overflow-hidden shadow-md">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <div className="flex items-center gap-1.5 font-black text-xs tracking-tight">
+              <span>SWISH</span>
+              <span className="text-[10px] text-indigo-300">✈</span>
+            </div>
+            <p className="text-[10px] text-indigo-200/80 mt-0.5 font-medium">
+              Connect. Collaborate. Grow.
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-indigo-600/80 flex items-center justify-center text-white shrink-0 shadow-xs">
+            <Rocket size={14} />
+          </div>
+        </div>
+      </div>
+
       {/* Bottom profile */}
-      <div className="border-t border-slate-100 dark:border-gray-800 p-3">
+      <div className="border-t border-slate-100 dark:border-gray-800 p-3 space-y-1">
         <button
-          onClick={() => navigateSection('Profile')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 ${adminInteractiveClass}`}
+          onClick={() => navigateSection('My Profile')}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 ${adminInteractiveClass}`}
         >
-          <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold">
-            {user?.initials || 'A'}
+          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0">
+            {user?.initials || 'AU'}
           </div>
 
           <div className="min-w-0 flex-1 text-left">
-            <p className="text-slate-800 dark:text-gray-200 text-xs font-semibold truncate">
-              {user?.name || 'Main Admin'}
+            <p className="text-slate-800 dark:text-gray-200 text-xs font-bold truncate">
+              {user?.name || 'Admin User'}
             </p>
 
             <p className="text-slate-400 dark:text-gray-500 text-[10px] truncate">
@@ -586,25 +591,33 @@ export default function AdminPage() {
         </button>
 
         <button
+          onClick={() => navigateSection('Settings')}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white ${adminInteractiveClass}`}
+        >
+          <Settings size={15} />
+          <span>Settings</span>
+        </button>
+
+        <button
           type="button"
           onClick={toggle}
           aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white ${adminInteractiveClass}`}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white ${adminInteractiveClass}`}
         >
           {dark ? (
             <Sun size={15} className="text-amber-500" />
           ) : (
             <Moon size={15} className="text-slate-500" />
           )}
-          {dark ? 'Light Mode' : 'Dark Mode'}
+          <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
 
         <button
           onClick={handleLogout}
-          className={`w-full flex items-center gap-2 px-3 py-2 mt-1 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 ${adminInteractiveClass}`}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 ${adminInteractiveClass}`}
         >
           <LogOut size={15} />
-          Logout
+          <span>Logout</span>
         </button>
       </div>
     </aside>
@@ -635,8 +648,8 @@ export default function AdminPage() {
       <main className="flex-1 min-w-0 lg:ml-64">
         {/* Top bar */}
         {activeSection !== 'Analytics' && (
-        <header className="h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-slate-200/80 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+        <header className="h-16 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
               className={`lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 ${adminButtonClass}`}
@@ -644,25 +657,98 @@ export default function AdminPage() {
               <Menu size={20} />
             </button>
 
-            <div>
-              <p className="text-slate-400 dark:text-gray-500 text-[11px] font-medium">
-                Main Administration
-              </p>
-
-              <h1
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                className="text-slate-900 dark:text-white text-lg font-bold"
-              >
-                {activeSection === 'Dashboard'
-                  ? 'Dashboard'
-                  : activeSection}
-              </h1>
+            {/* Search Input with Ctrl K */}
+            <div className="relative w-full max-w-xs sm:max-w-md">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={globalSearch}
+                onChange={e => setGlobalSearch(e.target.value)}
+                placeholder="Search colleges, users, requests..."
+                className="w-full pl-9 pr-14 py-2 rounded-xl bg-slate-50/90 dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-slate-200/70 dark:bg-gray-800 text-[10px] font-mono text-slate-500 dark:text-gray-400 pointer-events-none">
+                Ctrl K
+              </div>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-gray-400 bg-slate-100/70 dark:bg-gray-900 border border-slate-200/70 dark:border-gray-800 rounded-full px-3 py-1.5">
-            <Activity size={14} />
-            Platform Overview
+          {/* Right actions: Bell + User dropdown */}
+          <div className="flex items-center gap-3 shrink-0 ml-3">
+            <button
+              type="button"
+              className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+              title="Notifications"
+            >
+              <Bell size={17} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-gray-950"></span>
+            </button>
+
+            {/* User chip */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(prev => !prev)}
+                className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full sm:rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs">
+                  {user?.initials || 'AU'}
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                    {user?.name || 'Admin User'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 dark:text-gray-500 leading-tight">
+                    Main Admin
+                  </p>
+                </div>
+                <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
+              </button>
+
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-48 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 shadow-xl py-1.5 z-50 text-xs"
+                  >
+                    <div className="px-3.5 py-2 border-b border-slate-100 dark:border-gray-800">
+                      <p className="font-bold text-slate-900 dark:text-white truncate">{user?.name || 'Admin User'}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-gray-500 truncate">{user?.email || 'admin@swish.edu'}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigateSection('My Profile')
+                        setUserMenuOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left"
+                    >
+                      <User size={14} />
+                      <span>My Profile</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigateSection('Settings')
+                        setUserMenuOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-left"
+                    >
+                      <Settings size={14} />
+                      <span>Settings</span>
+                    </button>
+                    <div className="border-t border-slate-100 dark:border-gray-800 my-1"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left font-semibold"
+                    >
+                      <LogOut size={14} />
+                      <span>Logout</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </header>
         )}
@@ -672,333 +758,12 @@ export default function AdminPage() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
+              transition={{ duration: 0.2 }}
             >
-              {/* Welcome */}
-              <div>
-                <h2
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  className="text-2xl font-extrabold text-slate-900 dark:text-white"
-                >
-                  Welcome back, {user?.name || 'Main Admin'}
-                </h2>
-
-                <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">
-                  Here's what's happening across the SWISH platform.
-                </p>
-              </div>
-
-           {/* KPI Cards */}
-
-{dashboardError && (
-  <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl px-4 py-3 text-sm text-rose-700 dark:text-rose-300 mb-4">
-    {dashboardError}
-  </div>
-)}
-
-<div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-  {dashboardLoading ? (
-    <>
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div
-          key={index}
-          className={`${adminCardClass} p-6 animate-pulse`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="h-3 w-24 bg-slate-200 dark:bg-gray-800 rounded mb-3" />
-              <div className="h-7 w-16 bg-slate-200 dark:bg-gray-800 rounded" />
-              <div className="h-2.5 w-28 bg-slate-200 dark:bg-gray-800 rounded mt-3" />
-            </div>
-
-            <div className="w-10 h-10 bg-slate-200 dark:bg-gray-800 rounded-xl" />
-          </div>
-        </div>
-      ))}
-    </>
-  ) : (
-    <>
-      <StatCard
-        icon={Building2}
-        label="Total Colleges"
-        value={dashboardStats.totalColleges}
-        description="Registered on SWISH"
-        iconClass="bg-indigo-500"
-      />
-
-      <StatCard
-        icon={CheckCircle2}
-        label="Active Colleges"
-        value={dashboardStats.activeColleges}
-        description="Currently active"
-        iconClass="bg-emerald-500"
-      />
-
-      <StatCard
-        icon={GraduationCap}
-        label="Total Students"
-        value={dashboardStats.totalStudents}
-        description="Across all colleges"
-        iconClass="bg-sky-500"
-      />
-
-      <StatCard
-        icon={Briefcase}
-        label="Total Faculty"
-        value={dashboardStats.totalFaculty}
-        description="Across all colleges"
-        iconClass="bg-violet-500"
-      />
-
-      <StatCard
-        icon={UserCog}
-        label="Total College Admins"
-        value={dashboardStats.totalCollegeAdmins}
-        description="Campus administrators"
-        iconClass="bg-purple-500"
-      />
-
-      <StatCard
-        icon={ClipboardCheck}
-        label="Pending Requests"
-        value={dashboardStats.pendingCollegeRequests}
-        description="Awaiting review"
-        iconClass="bg-amber-500"
-      />
-
-      <StatCard
-        icon={Users}
-        label="Active Users"
-        value={dashboardStats.activeUsers}
-        description="Currently active accounts"
-        iconClass="bg-indigo-500"
-      />
-
-      <StatCard
-        icon={AlertTriangle}
-        label="Escalated Reports"
-        value={dashboardStats.escalatedReports}
-        description="Require attention"
-        iconClass="bg-rose-500"
-      />
-    </>
-  )}
-</div>
-              {/* Activity + Pending requests */}
-              <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6">
-                {/* Platform Activity */}
-                <section className={`${adminCardClass} p-6`}>
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h3 className="text-slate-900 dark:text-white text-sm font-bold">
-                        Platform Activity
-                      </h3>
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Growth and activity overview
-                      </p>
-                    </div>
-
-                    <span className="text-xs font-medium text-slate-500 dark:text-gray-400">
-                      Last 30 days
-                    </span>
-                  </div>
-
-                  {/* Chart placeholder */}
-                  <div className="h-64 rounded-2xl bg-slate-50/80 dark:bg-gray-800/60 border border-slate-100 dark:border-gray-800 flex items-center justify-center">
-                    <div className="text-center">
-                      <BarChart3
-                        size={30}
-                        className="text-slate-300 dark:text-gray-600 mx-auto mb-2"
-                      />
-
-                      <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
-                        Platform activity chart
-                      </p>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Growth analytics will appear here
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Pending requests */}
-                <section className={`${adminCardClass} p-6`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-slate-900 dark:text-white text-sm font-bold">
-                        Pending College Requests
-                      </h3>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Applications awaiting verification
-                      </p>
-                    </div>
-
-                    <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
-                      <Clock3
-                        size={17}
-                        className="text-amber-600 dark:text-amber-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <p
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                      className="text-4xl font-extrabold text-slate-900 dark:text-white"
-                    >
-                      {dashboardStats.pendingCollegeRequests}
-                    </p>
-
-                    <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                      Requests need your attention
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => navigate('/admin/pending-requests')}
-                    className={`mt-7 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none ${adminButtonClass}`}
-                  >
-                    Review Requests
-                    <ArrowRight size={14} />
-                  </button>
-                </section>
-              </div>
-
-              {/* Reports + Recent activity */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Escalated reports */}
-                <section className={`${adminCardClass} p-6`}>
-                  <div className="flex items-start justify-between gap-3 mb-5">
-                    <div>
-                      <h3 className="text-slate-900 dark:text-white text-sm font-bold">
-                        Escalated Reports
-                      </h3>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Serious issues requiring Main Admin attention
-                      </p>
-                    </div>
-
-                    <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center">
-                      <Flag
-                        size={17}
-                        className="text-rose-600 dark:text-rose-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p
-                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                        className="text-3xl font-extrabold text-slate-900 dark:text-white"
-                      >
-                        {dashboardStats.escalatedReports}
-                      </p>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Open escalated reports
-                      </p>
-                    </div>
-
-                    <div className="h-10 w-px bg-slate-200 dark:bg-gray-800" />
-
-                    <div>
-                      <p className="text-rose-600 dark:text-rose-400 font-bold text-lg">
-                        —
-                      </p>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs">
-                        Critical
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigateSection('Reports')}
-                    className={`mt-6 flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:text-indigo-700 ${adminButtonClass}`}
-                  >
-                    View Reports
-                    <ArrowRight size={13} />
-                  </button>
-                </section>
-
-                {/* Recent activity */}
-                <section className={`${adminCardClass} p-6`}>
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h3 className="text-slate-900 dark:text-white text-sm font-bold">
-                        Recent Platform Activity
-                      </h3>
-
-                      <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
-                        Important administrative events
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center flex-shrink-0">
-                        <Building2
-                          size={15}
-                          className="text-indigo-600 dark:text-indigo-400"
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-slate-700 dark:text-gray-300 text-xs font-medium">
-                          College onboarding activity
-                        </p>
-
-                        <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-0.5">
-                          Recent registration activity will appear here.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center flex-shrink-0">
-                        <UserCog
-                          size={15}
-                          className="text-emerald-600 dark:text-emerald-400"
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-slate-700 dark:text-gray-300 text-xs font-medium">
-                          Administrative activity
-                        </p>
-
-                        <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-0.5">
-                          Important platform actions will appear here.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center flex-shrink-0">
-                        <Flag
-                          size={15}
-                          className="text-rose-600 dark:text-rose-400"
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-slate-700 dark:text-gray-300 text-xs font-medium">
-                          Report activity
-                        </p>
-
-                        <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-0.5">
-                          Escalations and resolutions will appear here.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
+              <AdminDashboard
+                onNavigate={navigateSection}
+                user={user}
+              />
             </motion.div>
           ) : activeSection === 'Colleges' || activeSection === 'All Colleges' ? (
             <motion.div

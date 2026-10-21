@@ -120,7 +120,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       // Post trends over last 30 days (daily)
       collegeUserIds
         ? Post.aggregate([
-            { $match: { user: { $in: collegeUserIds }, isDeleted: false, createdAt: { $gte: thirtyDaysAgo } },
+            { $match: { user: { $in: collegeUserIds }, isDeleted: false, createdAt: { $gte: thirtyDaysAgo } } },
             { $group: {
                 _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                 count: { $sum: 1 }
@@ -129,7 +129,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
             { $sort: { _id: 1 } }
           ])
         : Post.aggregate([
-            { $match: { isDeleted: false, createdAt: { $gte: thirtyDaysAgo } },
+            { $match: { isDeleted: false, createdAt: { $gte: thirtyDaysAgo } } },
             { $group: {
                 _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                 count: { $sum: 1 }
