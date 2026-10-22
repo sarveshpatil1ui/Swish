@@ -739,6 +739,7 @@ const domainApproved = async (email) => {
       value={{
         // Auth
         currentUser,
+        setCurrentUser,
         isAuthenticated,
         authLoading,
         mustChangePassword,

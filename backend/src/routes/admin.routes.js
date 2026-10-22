@@ -878,4 +878,170 @@ router.patch(
   }
 )
 
+// ── GET /api/admin/profile ──────────────────────────────────────────────────
+// Returns the current Main Admin profile details & overall system stats
+router.get(
+  '/profile',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id).select('-passwordHash -otpHash -otpExpiresAt -otpAttempts')
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'Admin user not found.' })
+      }
+
+      // Quick system stats for the profile overview
+      const [totalColleges, totalUsers, pendingRequests] = await Promise.all([
+        College.countDocuments(),
+        User.countDocuments({ role: { $ne: 'admin' } }),
+        CollegeOnboardingRequest.countDocuments({ status: 'PENDING' }),
+      ])
+
+      return res.status(200).json({
+        ok: true,
+        user: {
+          ...user.toJSON(),
+          stats: {
+            totalColleges,
+            totalUsers,
+            pendingRequests,
+          },
+        },
+      })
+    } catch (err) {
+      console.error('[GET /api/admin/profile]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to fetch admin profile.' })
+    }
+  }
+)
+
+// ── PUT /api/admin/profile ──────────────────────────────────────────────────
+// Updates Main Admin profile information
+router.put(
+  '/profile',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const { name, username, bio, designation, email, profilePhoto } = req.body
+      const user = await User.findById(req.user._id)
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'Admin user not found.' })
+      }
+
+      if (name && name.trim()) {
+        user.name = name.trim()
+        const parts = user.name.split(' ').filter(Boolean)
+        user.initials = parts.length > 1
+          ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+          : (parts[0]?.slice(0, 2) || 'SA').toUpperCase()
+      }
+
+      if (username && username.trim() && username.toLowerCase() !== user.username) {
+        const existingUsername = await User.findOne({
+          username: username.toLowerCase().trim(),
+          _id: { $ne: user._id },
+        })
+        if (existingUsername) {
+          return res.status(409).json({ ok: false, error: 'Username is already taken.' })
+        }
+        user.username = username.toLowerCase().trim()
+      }
+
+      if (email && email.trim() && email.toLowerCase() !== user.email) {
+        const existingEmail = await User.findOne({
+          email: email.toLowerCase().trim(),
+          _id: { $ne: user._id },
+        })
+        if (existingEmail) {
+          return res.status(409).json({ ok: false, error: 'Email is already in use.' })
+        }
+        user.email = email.toLowerCase().trim()
+      }
+
+      if (bio !== undefined) user.bio = bio.trim()
+      if (designation !== undefined) user.designation = designation.trim()
+      if (profilePhoto !== undefined) user.profilePhoto = profilePhoto
+
+      await user.save()
+
+      return res.status(200).json({
+        ok: true,
+        message: 'Profile updated successfully.',
+        user: user.toJSON(),
+      })
+    } catch (err) {
+      console.error('[PUT /api/admin/profile]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to update admin profile.' })
+    }
+  }
+)
+
+// ── POST /api/admin/profile/change-password ──────────────────────────────────
+// Changes Main Admin password securely
+router.post(
+  '/profile/change-password',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ ok: false, error: 'Current and new password are required.' })
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ ok: false, error: 'New password must be at least 8 characters long.' })
+      }
+
+      const user = await User.findById(req.user._id)
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'Admin user not found.' })
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash)
+      if (!isMatch) {
+        return res.status(401).json({ ok: false, error: 'Current password is incorrect.' })
+      }
+
+      const salt = await bcrypt.genSalt(10)
+      user.passwordHash = await bcrypt.hash(newPassword, salt)
+      user.mustChangePassword = false
+      user.isDemo = false
+      await user.save()
+
+      return res.status(200).json({ ok: true, message: 'Password changed successfully.' })
+    } catch (err) {
+      console.error('[POST /api/admin/profile/change-password]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to change password.' })
+    }
+  }
+)
+
+// ── DELETE /api/admin/profile/photo ──────────────────────────────────────────
+// Removes Main Admin profile photo from database
+router.delete(
+  '/profile/photo',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id)
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'Admin user not found.' })
+      }
+      user.profilePhoto = null
+      await user.save()
+      return res.status(200).json({
+        ok: true,
+        message: 'Profile photo removed successfully.',
+        user: user.toJSON(),
+      })
+    } catch (err) {
+      console.error('[DELETE /api/admin/profile/photo]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to remove profile photo.' })
+    }
+  }
+)
+
 export default router
