@@ -56,6 +56,14 @@ const UserSchema = new Schema(
     otpAttempts:     { type: Number, default: 0 },
     mustChangePassword: { type: Boolean, default: false },
 
+    // Password reset fields
+    resetOtpHash:        { type: String, default: null },
+    resetOtpExpiresAt:   { type: Date,   default: null },
+    resetOtpAttempts:    { type: Number, default: 0 },
+    resetTokenHash:      { type: String, default: null },
+    resetTokenExpiresAt: { type: Date,   default: null },
+    passwordChangedAt:   { type: Date,   default: null },
+
     college: { type: String, default: '' },
     collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', default: null },
     dept:    { type: String, default: '' },
@@ -92,6 +100,12 @@ UserSchema.set('toJSON', {
     delete ret.otpHash
     delete ret.otpExpiresAt
     delete ret.otpAttempts
+    delete ret.resetOtpHash
+    delete ret.resetOtpExpiresAt
+    delete ret.resetOtpAttempts
+    delete ret.resetTokenHash
+    delete ret.resetTokenExpiresAt
+    delete ret.passwordChangedAt
     return ret
   },
 })

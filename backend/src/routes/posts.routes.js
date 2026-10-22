@@ -25,12 +25,45 @@ function handleValidationErrors(req, res) {
   return null
 }
 
+export function normalizeTags(rawTags, caption = '') {
+  let list = Array.isArray(rawTags) ? rawTags : []
+  if (typeof rawTags === 'string') {
+    try {
+      const parsed = JSON.parse(rawTags)
+      if (Array.isArray(parsed)) list = parsed
+      else list = [rawTags]
+    } catch {
+      list = rawTags.split(',').map(t => t.trim())
+    }
+  }
+
+  // Auto-extract #hashtags from caption
+  const fromCaption = [...(caption || '').matchAll(/#([a-zA-Z0-9_]+)/g)].map(m => m[1])
+  const combined = [...list, ...fromCaption]
+
+  const normalizedSet = new Set()
+  for (const tag of combined) {
+    if (typeof tag !== 'string') continue
+    const cleaned = tag.trim().replace(/^#+/, '').toLowerCase()
+    if (cleaned && cleaned.length <= 50) {
+      normalizedSet.add(cleaned)
+    }
+    if (normalizedSet.size >= 10) break
+  }
+  return Array.from(normalizedSet)
+}
+
+export function extractHashtags(caption = '') {
+  return normalizeTags([], caption)
+}
+
 function serializePost(post, viewerId) {
   const json = post.toJSON()
+  const likeCount = typeof post.likeCount === 'number' ? post.likeCount : (post.likes?.length || 0)
   return {
     ...json,
-    likeCount: post.likes.length,
-    liked: post.likes.some(id => id.toString() === viewerId),
+    likeCount,
+    liked: Array.isArray(post.likes) && post.likes.some(id => (id?._id || id).toString() === viewerId),
     likes: undefined, // don't ship the full liker-id list to every client
   }
 }
@@ -69,15 +102,8 @@ router.post(
     let uploadedAsset = null
     try {
       const { caption = '' } = req.body
-      let tags = req.body.tags || []
-      
-      if (typeof tags === 'string') {
-        try {
-          tags = JSON.parse(tags)
-        } catch {
-          tags = []
-        }
-      }
+      const rawTags = req.body.tags || []
+      const tags = normalizeTags(rawTags, caption)
 
       const mentionedUsernames = [...caption.matchAll(/@([a-z0-9._-]+)/gi)].map(match => match[1].toLowerCase())
       if (mentionedUsernames.length > 0) {
@@ -121,7 +147,9 @@ router.post(
         caption,
         imageUrl,
         imagePublicId,
-        tags: Array.isArray(tags) ? tags : [],
+        tags,
+        collegeId: req.user.collegeId || null,
+        likeCount: 0,
       })
       await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })
 
@@ -301,9 +329,16 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
     // like a post once, even under concurrent requests.
     const updated = await Post.findByIdAndUpdate(
       req.params.postId,
-      { $addToSet: { likes: req.user.id } },
+      {
+        $addToSet: { likes: req.user.id },
+        $inc: { likeCount: 1 },
+      },
       { new: true }
     )
+    if (updated && updated.likeCount !== updated.likes.length) {
+      updated.likeCount = updated.likes.length
+      await updated.save()
+    }
 
     // Broadcast real-time like count to all connected clients
     broadcastEvent('post:like:update', {
@@ -352,9 +387,16 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
     }
     const updated = await Post.findByIdAndUpdate(
       req.params.postId,
-      { $pull: { likes: req.user.id } },
+      {
+        $pull: { likes: req.user.id },
+        $inc: { likeCount: -1 },
+      },
       { new: true }
     )
+    if (updated && (updated.likeCount < 0 || updated.likeCount !== updated.likes.length)) {
+      updated.likeCount = Math.max(0, updated.likes.length)
+      await updated.save()
+    }
 
     // Broadcast real-time like count to all connected clients
     broadcastEvent('post:like:update', {

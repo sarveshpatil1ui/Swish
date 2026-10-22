@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Compass, PlusSquare, User } from 'lucide-react'
+import { Home, Compass, Flame, PlusSquare, User } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
@@ -13,6 +13,7 @@ export default function BottomNav() {
     { to: '/home',                                    icon: Home,    label: 'Home'    },
     { to: '/explore',                                 icon: Compass, label: 'Explore' },
     { create: true },
+    { to: '/trending',                                icon: Flame,   label: 'Trending' },
     { to: `/profile/${currentUser?.id || 'user-1'}`, icon: User,    label: 'Profile' },
   ]
 

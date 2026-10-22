@@ -9,6 +9,7 @@ import { useSwish } from './context/SwishContext'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import JoinPage from './pages/JoinPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import CollegeOnboardingPage from './pages/CollegeOnboardingPage'
 import ProtectedRoute from './pages/ProtectedRoute'
 
@@ -18,6 +19,7 @@ import AppLayout from './components/app/AppLayout'
 // ── App pages ─────────────────────────────────────────────────────────────────
 import HomePage from './pages/app/HomePage'
 import ExplorePage from './pages/app/ExplorePage'
+import TrendingPage from './pages/app/TrendingPage'
 import ProfilePage from './pages/app/ProfilePage'
 import NotificationsPage from './pages/app/NotificationsPage'
 import AdminPage from './pages/app/AdminPage'
@@ -106,6 +108,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/join" element={<JoinPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/college-onboarding" element={<CollegeOnboardingPage />} />
 
               {/* ── Authenticated app (sidebar + bottom nav layout) ─────── */}
@@ -118,6 +121,7 @@ export default function App() {
               >
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/trending" element={<TrendingPage />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
