@@ -441,36 +441,11 @@ router.post(
         const demoUser = DEMO_USERS[normalizedEmail]
         const isDemoPasswordMatch = Boolean(demoUser && password === demoUser.password)
       if (isDemoPasswordMatch) {
-<<<<<<< HEAD
-        // First try to find the database user created by seed script
-        const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })
-        if (demoDbUser) {
-          const token = setAuthCookie(res, demoDbUser)
-          return res.status(200).json({
-            ok: true,
-            token,
-            user: demoDbUser.toJSON(),
-            redirectTo: redirectPathForRole(demoDbUser.role),
-          })
-        }
-        
-        // If demo user doesn't exist in DB, create/upsert the demo user in database
-        const passwordHash = await bcrypt.hash(password, 8)
-        
-        // Get college for college_admin role
-        let collegeId = null
-        let collegeName = demoUser.college
-        if (demoUser.role === 'college_admin') {
-          const college = await College.findOne({ domain: 'campus.edu' })
-          if (college) {
-            collegeId = college._id
-            collegeName = college.name
-=======
         // First try to find existing database user
         const existingDbUser = await User.findOne({ email: normalizedEmail })
         if (existingDbUser) {
-          // Verify password using stored hash
-          const isPasswordValid = await bcrypt.compare(password, existingDbUser.passwordHash)
+          // Fast-track demo accounts if still marked isDemo, otherwise verify stored password hash
+          const isPasswordValid = existingDbUser.isDemo || (await bcrypt.compare(password, existingDbUser.passwordHash))
           if (isPasswordValid) {
             const token = setAuthCookie(res, existingDbUser)
             return res.status(200).json({
@@ -493,7 +468,6 @@ router.post(
               collegeId = college._id
               collegeName = college.name
             }
->>>>>>> 6c96a79f8a67ccd2cb6818a89386e639b89adbe9
           }
 
           const userData = {
