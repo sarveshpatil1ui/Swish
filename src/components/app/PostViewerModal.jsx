@@ -201,9 +201,48 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`
-    try { await navigator.clipboard.writeText(url) } catch {}
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const shareTitle = `Post by ${post.userName || post.user?.name || 'Swish user'}`
+    const shareText = post.caption || post.content || 'Check out this post on Swish!'
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url,
+        })
+        return
+      } catch (err) {
+        if (err.name === 'AbortError') return
+      }
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        const input = document.createElement('input')
+        input.value = url
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand('copy')
+        document.body.removeChild(input)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+
+      window.dispatchEvent(
+        new CustomEvent('swish:toast', {
+          detail: {
+            title: 'Link copied to clipboard!',
+            body: 'Share this link anywhere so friends can view this post.',
+            type: 'share',
+          },
+        })
+      )
+    } catch (err) {
+      console.error('Failed to copy link:', err)
+    }
   }
 
   return (
@@ -440,12 +479,35 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       </span>
                     )}
                   </button>
-                  <button
-                    onClick={handleShare}
-                    className={`p-2 rounded-xl transition-all ${copied ? 'text-emerald-600' : 'text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300'}`}
-                  >
-                    {copied ? <Check size={22} /> : <Share2 size={22} />}
-                  </button>
+                  <div className="relative flex items-center">
+                    <button
+                      onClick={handleShare}
+                      className={`p-2 rounded-xl transition-all ${
+                        copied
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30'
+                          : 'text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800'
+                      }`}
+                      aria-label="Share"
+                      title={copied ? 'Link copied!' : 'Share post'}
+                    >
+                      {copied ? <Check size={22} className="text-emerald-500" /> : <Share2 size={22} />}
+                    </button>
+
+                    <AnimatePresence>
+                      {copied && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm text-white text-[11px] font-semibold rounded-full shadow-xl whitespace-nowrap pointer-events-none z-30 flex items-center gap-1 border border-white/10"
+                        >
+                          <Check size={12} className="text-emerald-400" />
+                          <span>Link copied!</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
                 <button
                   onClick={handleSave}
