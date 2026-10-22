@@ -22,6 +22,7 @@ import {
   apiSavePost, apiUnsavePost,
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
   apiGetStories, apiCreateStory, apiUpdateStory, apiDeleteStory,
+  apiLikeStory, apiReactStory, apiReplyStory, apiGetStoryReplies,
   apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
   apiUpdatePreferences, apiDeleteAccount,
   apiFetchFollowers, apiFetchFollowing,
@@ -197,8 +198,8 @@ export function SwishProvider({ children }) {
     }
   }
 
-  const createStory = async ({ imageFile, caption, expiresAt }) => {
-    const res = await apiCreateStory({ imageFile, caption, expiresAt })
+  const createStory = async ({ imageFile, caption, music, filter, sticker, expiresAt }) => {
+    const res = await apiCreateStory({ imageFile, caption, music, filter, sticker, expiresAt })
     if (!res.ok) return { ok: false, error: res.error || 'Failed to create story.' }
     setStories(prev => [res.story, ...prev])
     return { ok: true, story: res.story }
@@ -222,6 +223,80 @@ export function SwishProvider({ children }) {
     setStories(prev =>
       prev.map(s => (s.id === storyId ? { ...s, hasSeen: true, hasNew: false } : s))
     )
+  }
+
+  const likeStory = async (storyId) => {
+    try {
+      const res = await apiLikeStory(storyId)
+      if (res.ok) {
+        setStories(prev => prev.map(s => {
+          if (s.id !== storyId) return s
+          return {
+            ...s,
+            isLiked: res.isLiked,
+            likesCount: res.likesCount,
+          }
+        }))
+        return res
+      }
+    } catch (err) {
+      console.warn('Failed to like story:', err)
+    }
+  }
+
+  const reactStory = async (storyId, emoji) => {
+    try {
+      const res = await apiReactStory(storyId, emoji)
+      return res
+    } catch (err) {
+      console.warn('Failed to react to story:', err)
+      return { ok: false, error: 'Failed to react.' }
+    }
+  }
+
+  const replyStory = async (storyId, text) => {
+    try {
+      const res = await apiReplyStory(storyId, text)
+      if (res.ok) {
+        setStories(prev => prev.map(s => {
+          if (s.id !== storyId) return s
+          return {
+            ...s,
+            repliesCount: (s.repliesCount || 0) + 1,
+            replies: [...(s.replies || []), res.reply],
+          }
+        }))
+        return res
+      }
+      return res
+    } catch (err) {
+      console.warn('Failed to reply to story:', err)
+      return { ok: false, error: 'Failed to reply.' }
+    }
+  }
+
+  const updateStoryReplyRealtime = ({ storyId, reply }) => {
+    if (!storyId || !reply) return
+    setStories(prev => prev.map(s => {
+      if (s.id !== storyId) return s
+      const exists = (s.replies || []).some(r => (r.id && r.id === reply.id) || (r._id && r._id === reply.id))
+      if (exists) return s
+      return {
+        ...s,
+        repliesCount: (s.repliesCount || 0) + 1,
+        replies: [...(s.replies || []), reply],
+      }
+    }))
+  }
+
+  const fetchStoryReplies = async (storyId) => {
+    try {
+      const res = await apiGetStoryReplies(storyId)
+      return res.ok ? res.replies : []
+    } catch (err) {
+      console.warn('Failed to fetch story replies:', err)
+      return []
+    }
   }
 
   // ── Notifications (real API + persistence) ───────────────────────────────────
@@ -316,9 +391,9 @@ export function SwishProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
 
-  // ── createPost — minimal, supports FR-05/FR-06 having real posts to attach to
-  const createPost = async ({ caption, imageFile, tags }) => {
-    const res = await apiCreatePost({ caption, imageFile, tags })
+  // ── createPost — supports image, caption, tags, and music
+  const createPost = async ({ caption, imageFile, tags, music }) => {
+    const res = await apiCreatePost({ caption, imageFile, tags, music })
     if (!res.ok) return { ok: false, error: res.error || 'Failed to create post.' }
     setPosts(prev => [normalizePost(res.post), ...prev])
     return { ok: true }
@@ -709,6 +784,11 @@ const domainApproved = async (email) => {
         updateStory,
         deleteStory,
         markStoryViewed,
+        likeStory,
+        reactStory,
+        replyStory,
+        updateStoryReplyRealtime,
+        fetchStoryReplies,
         // Follow (FR-07)
         followUser,
         unfollowUser,

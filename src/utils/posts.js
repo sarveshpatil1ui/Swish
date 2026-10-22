@@ -55,5 +55,6 @@ export function normalizePost(raw) {
     liked: Boolean(raw.liked),
     commentCount: raw.commentCount ?? 0,
     saved: Boolean(raw.saved),
+    music: raw.music ?? null,
   }
 }

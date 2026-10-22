@@ -48,7 +48,7 @@ import ChangePassword from './pages/college-admin/ChangePassword'
 // Synchronizes real-time socket events with global SwishContext state
 function RealtimeListener() {
   const { on, off } = useSocket()
-  const { updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime } = useSwish()
+  const { updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime } = useSwish()
 
   useEffect(() => {
     if (!on || !off) return
@@ -71,16 +71,24 @@ function RealtimeListener() {
       }
     }
 
+    const handleStoryReply = (data) => {
+      if (data?.storyId && data?.reply) {
+        updateStoryReplyRealtime(data)
+      }
+    }
+
     on('post:like:update', handleLikeUpdate)
     on('post:comment:update', handleCommentUpdate)
     on('notification:new', handleNewNotification)
+    on('story:reply', handleStoryReply)
 
     return () => {
       off('post:like:update', handleLikeUpdate)
       off('post:comment:update', handleCommentUpdate)
       off('notification:new', handleNewNotification)
+      off('story:reply', handleStoryReply)
     }
-  }, [on, off, updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime])
+  }, [on, off, updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime])
 
   return null
 }

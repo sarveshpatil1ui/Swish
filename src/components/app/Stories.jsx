@@ -356,11 +356,11 @@ export default function Stories() {
   }
 
   // ── Publish / Update handler ───────────────────────────────────────────────
-  const handlePublishStory = async ({ imageFile, caption }) => {
+  const handlePublishStory = async ({ imageFile, caption, music, filter, sticker }) => {
     if (editingStory) {
       return updateStory(editingStory.id, { imageFile, caption })
     }
-    return createStory({ imageFile, caption })
+    return createStory({ imageFile, caption, music, filter, sticker })
   }
 
   return (

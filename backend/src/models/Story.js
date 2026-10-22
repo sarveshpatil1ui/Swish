@@ -28,6 +28,50 @@ const StorySchema = new Schema(
       default: '',
     },
 
+    music: {
+      title: { type: String, default: null },
+      artist: { type: String, default: null },
+      coverUrl: { type: String, default: null },
+      audioUrl: { type: String, default: null },
+    },
+
+    filter: {
+      type: String,
+      default: 'normal',
+    },
+
+    sticker: {
+      type: { type: String, default: null },
+      label: { type: String, default: null },
+    },
+
+    likes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+
+    replies: [
+      {
+        user: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        text: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: 500,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     expiresAt: {
       type: Date,
       required: true,

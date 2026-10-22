@@ -118,11 +118,21 @@ router.post(
         }
       }
 
+      let music = null
+      if (req.body.music) {
+        try {
+          music = typeof req.body.music === 'string' ? JSON.parse(req.body.music) : req.body.music
+        } catch {
+          music = null
+        }
+      }
+
       const post = await Post.create({
         user: req.user.id,
         caption,
         imageUrl,
         imagePublicId,
+        music,
         tags: Array.isArray(tags) ? tags : [],
       })
       await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })

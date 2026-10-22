@@ -42,7 +42,9 @@ export async function apiFetch(path, options = {}) {
     headers,
     credentials: 'include', // send httpOnly cookie on every request
     ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body
+      ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body))
+      : undefined,
   })
 
   const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
@@ -193,11 +195,12 @@ export async function apiCheckCollegeDomain(domain) {
 }
 
 /** On success: { ok: true, post } */
-export async function apiCreatePost({ caption, imageFile, tags }) {
+export async function apiCreatePost({ caption, imageFile, tags, music }) {
   const formData = new FormData()
   if (caption) formData.append('caption', caption)
   if (imageFile) formData.append('photo', imageFile)
   if (tags && tags.length) formData.append('tags', JSON.stringify(tags))
+  if (music) formData.append('music', JSON.stringify(music))
 
   // FormData requests cannot use apiFetch (which sets Content-Type: application/json).
   // Must add the Authorization header manually so the backend receives the Bearer token
@@ -261,10 +264,13 @@ export async function apiGetStories() {
 }
 
 /** On success: { ok: true, story } */
-export async function apiCreateStory({ imageFile, caption, expiresAt }) {
+export async function apiCreateStory({ imageFile, caption, music, filter, sticker, expiresAt }) {
   const formData = new FormData()
   if (imageFile) formData.append('photo', imageFile)
   if (caption) formData.append('caption', caption)
+  if (music) formData.append('music', JSON.stringify(music))
+  if (filter) formData.append('filter', filter)
+  if (sticker) formData.append('sticker', JSON.stringify(sticker))
   if (expiresAt) formData.append('expiresAt', expiresAt)
 
   const token = getStoredToken()
@@ -295,6 +301,32 @@ export async function apiRecordStoryView(storyId) {
 /** On success: { ok: true, storyId, viewsCount, viewers: Array } */
 export async function apiGetStoryViewers(storyId) {
   return apiFetch(`/api/stories/${storyId}/viewers`)
+}
+
+/** On success: { ok: true, isLiked: boolean, likesCount: number } */
+export async function apiLikeStory(storyId) {
+  return apiFetch(`/api/stories/${storyId}/like`, { method: 'POST' })
+}
+
+/** On success: { ok: true, message: string, reaction: string } */
+export async function apiReactStory(storyId, emoji) {
+  return apiFetch(`/api/stories/${storyId}/react`, {
+    method: 'POST',
+    body: { emoji },
+  })
+}
+
+/** On success: { ok: true, message: string, reply: Object } */
+export async function apiReplyStory(storyId, text) {
+  return apiFetch(`/api/stories/${storyId}/reply`, {
+    method: 'POST',
+    body: { text },
+  })
+}
+
+/** On success: { ok: true, replies: Array } */
+export async function apiGetStoryReplies(storyId) {
+  return apiFetch(`/api/stories/${storyId}/replies`)
 }
 
 /** On success: { ok: true, story } */

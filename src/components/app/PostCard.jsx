@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, MessageCircle, Share2, Bookmark,
   MoreHorizontal, Check, ImageOff, Trash2,
+  Music2, Volume2, VolumeX,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
 import { resolveImageUrl } from '../../utils/posts'
+import { resolveAudioUrl, playSharedAudio } from '../../utils/audioResolver'
 
 // ── Tiny avatar ───────────────────────────────────────────────────────────────
 function Avatar({ initials, color, profilePhoto, size = 9 }) {
@@ -70,6 +72,52 @@ export default function PostCard({ post }) {
   const [deleting,     setDeleting]     = useState(false)
   const [doubleTapAnim, setDoubleTapAnim] = useState(false)
   const [lastTap, setLastTap] = useState(0)
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false)
+  const audioRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [])
+
+  const toggleMusic = (e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (!post.music) return
+    const url = resolveAudioUrl(post.music)
+    if (!url) return
+
+    if (!audioRef.current || audioRef.current.src !== url) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      audioRef.current = new Audio(url)
+      audioRef.current.loop = true
+      audioRef.current.volume = 0.85
+      audioRef.current.onended = () => setIsPlayingMusic(false)
+      audioRef.current.onerror = (err) => {
+        console.warn('[PostCard] Audio error:', err)
+        setIsPlayingMusic(false)
+      }
+    }
+
+    if (isPlayingMusic) {
+      audioRef.current.pause()
+      setIsPlayingMusic(false)
+    } else {
+      playSharedAudio(audioRef.current)
+      audioRef.current.play().then(() => {
+        setIsPlayingMusic(true)
+      }).catch(err => {
+        console.warn('[PostCard] Playback failed:', err)
+        setIsPlayingMusic(false)
+      })
+    }
+  }
 
   const isOwnPost = currentUser?.id === post.userId
 
@@ -149,9 +197,33 @@ export default function PostCard({ post }) {
               <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight truncate">
                 {post.userName}
               </p>
-              <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">
+              <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5 truncate">
                 {post.userDept}&nbsp;·&nbsp;{post.createdAt}
               </p>
+              {post.music && (
+                <button
+                  type="button"
+                  onClick={toggleMusic}
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-medium mt-1 px-2.5 py-0.5 rounded-full transition-all max-w-[200px] sm:max-w-xs truncate ${
+                    isPlayingMusic
+                      ? 'bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 text-pink-600 dark:text-pink-400 border border-pink-500/30 shadow-xs'
+                      : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+                  }`}
+                  title={`${post.music.title} · ${post.music.artist} (${post.music.language})`}
+                >
+                  <Music2 size={11} className={`flex-shrink-0 ${isPlayingMusic ? 'animate-spin text-pink-500' : 'text-slate-400'}`} />
+                  <span className="truncate">{post.music.title} · {post.music.artist}</span>
+                  {isPlayingMusic ? (
+                    <span className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+                      <span className="w-0.5 h-2 bg-pink-500 rounded-full animate-pulse" />
+                      <span className="w-0.5 h-3 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                      <span className="w-0.5 h-1.5 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                    </span>
+                  ) : (
+                    <Volume2 size={11} className="text-slate-400 flex-shrink-0 ml-0.5" />
+                  )}
+                </button>
+              )}
             </div>
           </Link>
 
@@ -288,6 +360,28 @@ export default function PostCard({ post }) {
                 </span>
               ))}
             </div>
+          )}
+
+          {/* Instagram-style audio toggle button on post image */}
+          {post.music && (
+            <button
+              type="button"
+              onClick={toggleMusic}
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-medium shadow-lg transition-all active:scale-95 border border-white/20 cursor-pointer"
+              title={isPlayingMusic ? 'Pause song' : 'Play song'}
+            >
+              {isPlayingMusic ? (
+                <>
+                  <Volume2 size={13} className="text-pink-400 animate-pulse" />
+                  <span className="text-[11px] font-semibold text-pink-300">Playing</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX size={13} className="text-white/80" />
+                  <span className="text-[11px] text-white/90">Music</span>
+                </>
+              )}
+            </button>
           )}
         </div>
 

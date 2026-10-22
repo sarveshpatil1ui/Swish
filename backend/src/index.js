@@ -89,7 +89,7 @@ app.use((err, req, res, _next) => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 connectDB().then(() => {
   const httpServer = initSocket(app)
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀  Swish backend running at http://localhost:${PORT}`)
     console.log(`   Health: http://localhost:${PORT}/api/health`)
     console.log(`   Socket: ws://localhost:${PORT}`)
