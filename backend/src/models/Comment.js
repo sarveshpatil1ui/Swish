@@ -44,6 +44,26 @@ const CommentSchema = new Schema(
       type: Boolean,
       default: false,
     },
+
+    // Moderation fields for college admin
+    hidden: {
+      type: Boolean,
+      default: false,
+    },
+    hiddenBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    hiddenAt: {
+      type: Date,
+      default: null,
+    },
+    hiddenReason: {
+      type: String,
+      default: '',
+      maxlength: 500,
+    },
   },
   { 
     timestamps: true,

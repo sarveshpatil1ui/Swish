@@ -200,6 +200,9 @@ router.get('/', requireAuth, async (req, res) => {
       filter = { $and: [filter, { createdAt: { $lt: new Date(cursor) } }] }
     }
 
+    // Exclude hidden posts from feed
+    filter = { $and: [filter, { hidden: false }] }
+
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
@@ -419,14 +422,15 @@ router.get('/:postId/comments', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
-    const comments = await Comment.find({ post: req.params.postId })
-      .sort({ createdAt: -1 })
+    const comments = await Comment.find({ post: req.params.postId, isDeleted: false, hidden: false })
       .populate('user', 'name username initials avatarColor profilePhoto')
+      .sort({ createdAt: -1 })
+      .lean()
 
     res.json({
       ok: true,
       comments: comments.map(c => ({
-        id: c.id,
+        id: c._id.toString(),
         userId: c.user.id,
         userName: c.user.name,
         userInitials: c.user.initials,

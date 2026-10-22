@@ -14,7 +14,7 @@ const ReportSchema = new mongoose.Schema(
     reportedUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
     },
     reportedUserName: {
       type: String,

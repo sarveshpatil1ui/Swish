@@ -16,7 +16,8 @@ import {
   Moon,
   AlertTriangle,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Shield
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -30,6 +31,7 @@ const menuItems = [
   { icon: Building2, label: 'Departments', path: '/college-admin/departments' },
   { icon: Megaphone, label: 'Notices', path: '/college-admin/notices' },
   { icon: AlertTriangle, label: 'Reports', path: '/college-admin/reports' },
+  { icon: Shield, label: 'Moderation', path: '/college-admin/moderation' },
   { icon: MessageSquare, label: 'Messages', path: '/college-admin/messages' },
   { icon: Settings, label: 'College Profile', path: '/college-admin/college-profile' },
   { icon: User, label: 'My Profile', path: '/college-admin/profile' },

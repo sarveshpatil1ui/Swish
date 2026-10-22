@@ -468,3 +468,27 @@ export async function apiGetAnalyticsDashboard() {
 export async function apiPinNotice(id) {
   return apiFetch(`/api/notices/${id}/pin`, { method: 'PATCH' })
 }
+
+export async function apiGetModerationPosts() {
+  return apiFetch('/api/moderation/posts')
+}
+
+export async function apiGetModerationComments() {
+  return apiFetch('/api/moderation/comments')
+}
+
+export async function apiHidePost(id, reason) {
+  return apiFetch(`/api/moderation/posts/${id}/hide`, { method: 'PATCH', body: { reason } })
+}
+
+export async function apiRestorePost(id) {
+  return apiFetch(`/api/moderation/posts/${id}/restore`, { method: 'PATCH' })
+}
+
+export async function apiHideComment(id, reason) {
+  return apiFetch(`/api/moderation/comments/${id}/hide`, { method: 'PATCH', body: { reason } })
+}
+
+export async function apiRestoreComment(id) {
+  return apiFetch(`/api/moderation/comments/${id}/restore`, { method: 'PATCH' })
+}
