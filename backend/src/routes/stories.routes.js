@@ -526,10 +526,18 @@ router.post('/:storyId/react', requireAuth, async (req, res) => {
           })
         }
         const dmText = `Reacted ${trimmedEmoji} to your story`
+        const storyReplyData = {
+          storyId: story._id,
+          imageUrl: story.imageUrl,
+          reaction: trimmedEmoji,
+          caption: story.caption || '',
+          storyAuthorId: authorObjectId,
+        }
         conv.messages.push({
           sender: req.user._id,
           text: dmText,
           readBy: [req.user._id],
+          storyReply: storyReplyData,
         })
         conv.lastMessage = dmText.slice(0, 100)
         conv.lastMessageAt = new Date()
@@ -545,6 +553,13 @@ router.post('/:storyId/react', requireAuth, async (req, res) => {
           text: dmText,
           createdAt: savedMsg.createdAt,
           readBy: [req.user.id],
+          storyReply: {
+            storyId: story._id.toString(),
+            imageUrl: story.imageUrl,
+            reaction: trimmedEmoji,
+            caption: story.caption || '',
+            storyAuthorId: authorId,
+          },
         }
 
         // Socket notifications for messaging reflection in real-time
@@ -555,6 +570,7 @@ router.post('/:storyId/react', requireAuth, async (req, res) => {
           senderName: req.user.name,
           text: dmText,
           createdAt: savedMsg.createdAt,
+          storyReply: msgPayload.storyReply,
         })
 
         const io = getIO()
@@ -658,6 +674,74 @@ router.post('/:storyId/reply', requireAuth, async (req, res) => {
     const authorId = authorObjectId.toString()
     const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== 'production'
     const shouldNotify = (authorId !== req.user.id) || isDev
+
+    // Forward as direct message to story author if sender is not the author (Instagram-style)
+    if (authorId !== req.user.id) {
+      try {
+        let conv = await Conversation.findOne({
+          participants: { $all: [req.user._id, authorObjectId], $size: 2 },
+        })
+        if (!conv) {
+          conv = await Conversation.create({
+            participants: [req.user._id, authorObjectId],
+            messages: [],
+          })
+        }
+        const dmText = text.trim()
+        const storyReplyData = {
+          storyId: story._id,
+          imageUrl: story.imageUrl,
+          reaction: null,
+          caption: story.caption || '',
+          storyAuthorId: authorObjectId,
+        }
+        conv.messages.push({
+          sender: req.user._id,
+          text: dmText,
+          readBy: [req.user._id],
+          storyReply: storyReplyData,
+        })
+        conv.lastMessage = `Replied to story: ${dmText}`.slice(0, 100)
+        conv.lastMessageAt = new Date()
+        conv.lastSender = req.user._id
+        await conv.save()
+
+        const savedMsg = conv.messages[conv.messages.length - 1]
+        const msgPayload = {
+          id: savedMsg._id.toString(),
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: dmText,
+          createdAt: savedMsg.createdAt,
+          readBy: [req.user.id],
+          storyReply: {
+            storyId: story._id.toString(),
+            imageUrl: story.imageUrl,
+            reaction: null,
+            caption: story.caption || '',
+            storyAuthorId: authorId,
+          },
+        }
+
+        emitToUser(authorId, 'msg:new', msgPayload)
+        emitToUser(authorId, 'msg:notification', {
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: `Replied to your story: ${dmText}`,
+          createdAt: savedMsg.createdAt,
+          storyReply: msgPayload.storyReply,
+        })
+
+        const io = getIO()
+        if (io) {
+          io.to(`conv:${conv._id.toString()}`).emit('msg:new', msgPayload)
+        }
+      } catch (dmErr) {
+        console.warn('[Story Reply] DM sync warning:', dmErr)
+      }
+    }
 
     // Real-time story comment update for comment section
     emitToUser(authorId, 'story:reply', {

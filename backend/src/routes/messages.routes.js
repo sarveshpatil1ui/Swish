@@ -103,6 +103,19 @@ router.get('/:convId', async (req, res) => {
       text:      m.text,
       createdAt: m.createdAt,
       readBy:    m.readBy.map(r => r.toString()),
+      storyReply: m.storyReply && (m.storyReply.imageUrl || m.storyReply.storyId) ? {
+        storyId:       m.storyReply.storyId ? m.storyReply.storyId.toString() : null,
+        imageUrl:      m.storyReply.imageUrl || null,
+        reaction:      m.storyReply.reaction || null,
+        caption:       m.storyReply.caption || '',
+        storyAuthorId: m.storyReply.storyAuthorId ? m.storyReply.storyAuthorId.toString() : null,
+      } : null,
+      postShare: m.postShare && m.postShare.postId ? {
+        postId:     m.postShare.postId.toString(),
+        imageUrl:   m.postShare.imageUrl || null,
+        caption:    m.postShare.caption || '',
+        authorName: m.postShare.authorName || '',
+      } : null,
     }))
 
     res.json({ ok: true, messages })

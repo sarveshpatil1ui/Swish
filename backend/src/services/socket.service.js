@@ -107,7 +107,7 @@ export function initSocket(app) {
     })
 
     // ── Send a message ────────────────────────────────────────────────────────
-    socket.on('msg:send', async ({ convId, text }, ack) => {
+    socket.on('msg:send', async ({ convId, text, storyReply, postShare }, ack) => {
       try {
         if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
@@ -118,6 +118,8 @@ export function initSocket(app) {
           sender: socket.user._id,
           text:   text.trim(),
           readBy: [socket.user._id],
+          ...(storyReply && { storyReply }),
+          ...(postShare && { postShare }),
         }
         conv.messages.push(msg)
         conv.lastMessage   = text.trim().slice(0, 100)
@@ -134,6 +136,8 @@ export function initSocket(app) {
           text:       saved.text,
           createdAt:  saved.createdAt,
           readBy:     saved.readBy.map(r => r.toString()),
+          storyReply: saved.storyReply || null,
+          postShare:  saved.postShare || null,
         }
 
         // Emit to other participants in the conversation room (sender gets message via ack)
