@@ -218,6 +218,12 @@ export function SwishProvider({ children }) {
     return { ok: true }
   }
 
+  const markStoryViewed = (storyId) => {
+    setStories(prev =>
+      prev.map(s => (s.id === storyId ? { ...s, hasSeen: true, hasNew: false } : s))
+    )
+  }
+
   // ── Notifications (real API + persistence) ───────────────────────────────────
   const fetchNotifications = async () => {
     try {
@@ -702,6 +708,7 @@ const domainApproved = async (email) => {
         createStory,
         updateStory,
         deleteStory,
+        markStoryViewed,
         // Follow (FR-07)
         followUser,
         unfollowUser,
