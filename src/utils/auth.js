@@ -239,6 +239,14 @@ export async function apiUnlikePost(postId) {
   return apiFetch(`/api/posts/${postId}/like`, { method: 'DELETE' })
 }
 
+export async function apiSavePost(postId) {
+  return apiFetch(`/api/posts/${postId}/save`, { method: 'POST' })
+}
+
+export async function apiUnsavePost(postId) {
+  return apiFetch(`/api/posts/${postId}/save`, { method: 'DELETE' })
+}
+
 /** On success: { ok: true, comments: Array } — newest first */
 export async function apiGetComments(postId) {
   return apiFetch(`/api/posts/${postId}/comments`)
@@ -503,3 +511,29 @@ export async function apiGetHashtagPosts(tag, { cursor, limit = 20 } = {}) {
 export async function apiGetSuggestedAccounts(limit = 8) {
   return apiFetch(`/api/trending/accounts?limit=${limit}`)
 }
+
+// ── Moderation API ──────────────────────────────────────────────────────────
+export async function apiGetModerationPosts() {
+  return apiFetch('/api/moderation/posts')
+}
+
+export async function apiGetModerationComments() {
+  return apiFetch('/api/moderation/comments')
+}
+
+export async function apiHidePost(id, reason) {
+  return apiFetch(`/api/moderation/posts/${id}/hide`, { method: 'PATCH', body: { reason } })
+}
+
+export async function apiRestorePost(id) {
+  return apiFetch(`/api/moderation/posts/${id}/restore`, { method: 'PATCH' })
+}
+
+export async function apiHideComment(id, reason) {
+  return apiFetch(`/api/moderation/comments/${id}/hide`, { method: 'PATCH', body: { reason } })
+}
+
+export async function apiRestoreComment(id) {
+  return apiFetch(`/api/moderation/comments/${id}/restore`, { method: 'PATCH' })
+}
+

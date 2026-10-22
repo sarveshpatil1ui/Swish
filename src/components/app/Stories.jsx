@@ -210,7 +210,7 @@ function StoryBubble({ bubble, onClick }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Stories() {
-  const { currentUser, stories, fetchStories, createStory, updateStory, deleteStory } = useSwish()
+  const { currentUser, stories, fetchStories, createStory, updateStory, deleteStory, markStoryViewed } = useSwish()
   const [viewerState, setViewerState] = useState(null) // { userIdx, storyIdx }
   const [showCreate, setShowCreate] = useState(false)
   const [showActionModal, setShowActionModal] = useState(false)
@@ -404,6 +404,7 @@ export default function Stories() {
             onClose={() => setViewerState(null)}
             onDelete={handleDeleteStory}
             onEdit={handleEditStory}
+            onStoryViewed={markStoryViewed}
           />
         )}
       </AnimatePresence>

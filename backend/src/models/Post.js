@@ -36,6 +36,11 @@ const PostSchema = new Schema(
       ref: 'User',
     }],
 
+    savedBy: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+
     commentCount: {
       type: Number,
       default: 0,
@@ -55,6 +60,26 @@ const PostSchema = new Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+
+    // Moderation fields for college admin
+    hidden: {
+      type: Boolean,
+      default: false,
+    },
+    hiddenBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    hiddenAt: {
+      type: Date,
+      default: null,
+    },
+    hiddenReason: {
+      type: String,
+      default: '',
+      maxlength: 500,
     },
   },
   { 

@@ -345,6 +345,7 @@ router.delete('/:userId', requireAuth, async (req, res) => {
     await Promise.all([
       Comment.deleteMany({ $or: [{ user: userId }, { post: { $in: postIds } }] }),
       Post.deleteMany({ user: userId }),
+      Post.updateMany({ savedBy: userId }, { $pull: { savedBy: userId } }),
       Post.updateMany({ likes: userId }, { $pull: { likes: userId } }),
       StoryView.deleteMany({ viewer: userId }),
       StoryView.deleteMany({ story: { $in: await Story.find({ user: userId }).distinct('_id') } }),

@@ -60,11 +60,14 @@ export function extractHashtags(caption = '') {
 function serializePost(post, viewerId) {
   const json = post.toJSON()
   const likeCount = typeof post.likeCount === 'number' ? post.likeCount : (post.likes?.length || 0)
+  const viewerStr = viewerId ? viewerId.toString() : null
   return {
     ...json,
     likeCount,
-    liked: Array.isArray(post.likes) && post.likes.some(id => (id?._id || id).toString() === viewerId),
+    liked: Array.isArray(post.likes) && post.likes.some(id => (id?._id || id).toString() === viewerStr),
+    saved: Array.isArray(post.savedBy) && post.savedBy.some(id => (id?._id || id).toString() === viewerStr),
     likes: undefined, // don't ship the full liker-id list to every client
+    savedBy: undefined,
   }
 }
 
@@ -226,6 +229,9 @@ router.get('/', requireAuth, async (req, res) => {
       filter = { $and: [filter, { createdAt: { $lt: new Date(cursor) } }] }
     }
 
+    // Exclude hidden posts from feed
+    filter = { $and: [filter, { hidden: false }] }
+
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
@@ -247,6 +253,37 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[GET /api/posts] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch posts.' })
+  }
+})
+
+// ── Save / unsave a post ────────────────────────────────────────────────────
+router.post('/:postId/save', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.postId, isDeleted: false },
+      { $addToSet: { savedBy: req.user._id } },
+      { new: true }
+    )
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    res.json({ ok: true, saved: true })
+  } catch (err) {
+    console.error('[POST /api/posts/:postId/save] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to save post.' })
+  }
+})
+
+router.delete('/:postId/save', requireAuth, async (req, res) => {
+  try {
+    const post = await Post.findOneAndUpdate(
+      { _id: req.params.postId, isDeleted: false },
+      { $pull: { savedBy: req.user._id } },
+      { new: true }
+    )
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    res.json({ ok: true, saved: false })
+  } catch (err) {
+    console.error('[DELETE /api/posts/:postId/save] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to unsave post.' })
   }
 })
 
@@ -428,14 +465,15 @@ router.get('/:postId/comments', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
-    const comments = await Comment.find({ post: req.params.postId })
-      .sort({ createdAt: -1 })
+    const comments = await Comment.find({ post: req.params.postId, isDeleted: false, hidden: false })
       .populate('user', 'name username initials avatarColor profilePhoto')
+      .sort({ createdAt: -1 })
+      .lean()
 
     res.json({
       ok: true,
       comments: comments.map(c => ({
-        id: c.id,
+        id: c._id.toString(),
         userId: c.user.id,
         userName: c.user.name,
         userInitials: c.user.initials,

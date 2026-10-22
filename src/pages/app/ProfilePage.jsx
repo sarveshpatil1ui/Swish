@@ -64,7 +64,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!targetUserId) return
     let cancelled = false
-    setLoading(true)
+    if (isOwnProfile && currentUser) {
+      setProfileUser(currentUser)
+      setFollowed(Boolean(currentUser.isFollowing))
+      setFollowerCount(currentUser.followers ?? 0)
+      setLoading(false)
+    } else {
+      setLoading(true)
+    }
     setNotFound(false)
 
     fetchProfile(targetUserId).then(res => {
@@ -80,7 +87,7 @@ export default function ProfilePage() {
     })
 
     return () => { cancelled = true }
-  }, [targetUserId, fetchProfile])
+  }, [targetUserId, fetchProfile, isOwnProfile, currentUser])
 
   useEffect(() => {
     if (isOwnProfile && currentUser) {
@@ -127,6 +134,7 @@ export default function ProfilePage() {
   }
 
   const gridItems = posts.filter(post => post.userId === targetUserId)
+  const savedItems = isOwnProfile ? posts.filter(post => post.saved) : []
 
   if (loading) return <ProfileSkeleton />
 
@@ -360,17 +368,33 @@ export default function ProfilePage() {
       )}
 
       {activeTab === 'saved' && (
-        <div className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl">
-          <div className="w-16 h-16 border-2 border-slate-200 dark:border-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bookmark size={28} className="text-slate-300 dark:text-gray-600" />
-          </div>
+        savedItems.length === 0 ? (
+          <div className="text-center py-12">
           <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg mb-1">
-            Save
+            Saved posts
           </h3>
           <p className="text-slate-400 dark:text-gray-500 text-sm">
             {isOwnProfile ? 'Posts you save will appear here.' : 'Saved posts are private.'}
           </p>
-        </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5">
+          {savedItems.map(post => (
+            <button
+              key={post.id}
+              type="button"
+              onClick={() => setViewingPost(post)}
+              className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-gray-800"
+            >
+              {post.imageUrl ? (
+                <img src={post.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+              ) : (
+                <span className="p-2 text-xs text-indigo-800 dark:text-indigo-200 line-clamp-3">{post.caption || post.emoji}</span>
+              )}
+            </button>
+          ))}
+          </div>
+        )
       )}
 
       {/* ── Modals ──────────────────────────────────────────────────── */}
