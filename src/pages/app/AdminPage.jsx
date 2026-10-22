@@ -38,9 +38,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
-import { getStoredToken } from '../../utils/auth'
+import { getStoredToken, getAvatarUrl } from '../../utils/auth'
 import AdminAnalytics from '../../components/admin/AdminAnalytics'
 import AdminDashboard from '../../components/admin/AdminDashboard'
+import AdminProfile from '../../components/admin/AdminProfile'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -155,7 +156,6 @@ export default function AdminPage() {
 
   const [activeSection, setActiveSection] = useState('Dashboard')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [globalSearch, setGlobalSearch] = useState('')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [collegeMenuOpen, setCollegeMenuOpen] = useState(true)
 
@@ -551,23 +551,6 @@ export default function AdminPage() {
         </nav>
       </div>
 
-      {/* Promotional gradient card matching reference image */}
-      <div className="mx-3 mb-2 p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 border border-indigo-900/40 text-white relative overflow-hidden shadow-md">
-        <div className="flex items-center justify-between relative z-10">
-          <div>
-            <div className="flex items-center gap-1.5 font-black text-xs tracking-tight">
-              <span>SWISH</span>
-              <span className="text-[10px] text-indigo-300">✈</span>
-            </div>
-            <p className="text-[10px] text-indigo-200/80 mt-0.5 font-medium">
-              Connect. Collaborate. Grow.
-            </p>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-indigo-600/80 flex items-center justify-center text-white shrink-0 shadow-xs">
-            <Rocket size={14} />
-          </div>
-        </div>
-      </div>
 
       {/* Bottom profile */}
       <div className="border-t border-slate-100 dark:border-gray-800 p-3 space-y-1">
@@ -575,17 +558,21 @@ export default function AdminPage() {
           onClick={() => navigateSection('My Profile')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 ${adminInteractiveClass}`}
         >
-          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0">
-            {user?.initials || 'AU'}
+          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+            {user?.profilePhoto ? (
+              <img src={getAvatarUrl(user.profilePhoto)} alt="SA" className="w-full h-full object-cover" />
+            ) : (
+              'SA'
+            )}
           </div>
 
           <div className="min-w-0 flex-1 text-left">
             <p className="text-slate-800 dark:text-gray-200 text-xs font-bold truncate">
-              {user?.name || 'Admin User'}
+              Swish Admin
             </p>
 
             <p className="text-slate-400 dark:text-gray-500 text-[10px] truncate">
-              Main Admin
+              Super Admin
             </p>
           </div>
         </button>
@@ -657,19 +644,15 @@ export default function AdminPage() {
               <Menu size={20} />
             </button>
 
-            {/* Search Input with Ctrl K */}
-            <div className="relative w-full max-w-xs sm:max-w-md">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                value={globalSearch}
-                onChange={e => setGlobalSearch(e.target.value)}
-                placeholder="Search colleges, users, requests..."
-                className="w-full pl-9 pr-14 py-2 rounded-xl bg-slate-50/90 dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-              />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-slate-200/70 dark:bg-gray-800 text-[10px] font-mono text-slate-500 dark:text-gray-400 pointer-events-none">
-                Ctrl K
-              </div>
+            <div>
+              <h2
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight"
+              >
+                {activeSection === 'All Colleges' || activeSection === 'Colleges'
+                  ? 'All Colleges'
+                  : activeSection}
+              </h2>
             </div>
           </div>
 
@@ -690,15 +673,19 @@ export default function AdminPage() {
                 onClick={() => setUserMenuOpen(prev => !prev)}
                 className="flex items-center gap-2.5 p-1 sm:pr-3 rounded-full sm:rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs">
-                  {user?.initials || 'AU'}
+                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0">
+                  {user?.profilePhoto ? (
+                    <img src={getAvatarUrl(user.profilePhoto)} alt="SA" className="w-full h-full object-cover" />
+                  ) : (
+                    'SA'
+                  )}
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                    {user?.name || 'Admin User'}
+                    Swish Admin
                   </p>
                   <p className="text-[10px] text-slate-400 dark:text-gray-500 leading-tight">
-                    Main Admin
+                    Super Admin
                   </p>
                 </div>
                 <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
@@ -714,7 +701,7 @@ export default function AdminPage() {
                     className="absolute right-0 mt-2 w-48 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 shadow-xl py-1.5 z-50 text-xs"
                   >
                     <div className="px-3.5 py-2 border-b border-slate-100 dark:border-gray-800">
-                      <p className="font-bold text-slate-900 dark:text-white truncate">{user?.name || 'Admin User'}</p>
+                      <p className="font-bold text-slate-900 dark:text-white truncate">Swish Admin</p>
                       <p className="text-[11px] text-slate-400 dark:text-gray-500 truncate">{user?.email || 'admin@swish.edu'}</p>
                     </div>
                     <button
@@ -1465,6 +1452,14 @@ export default function AdminPage() {
               transition={{ duration: 0.2 }}
             >
               <AdminAnalytics onOpenSidebar={() => setMobileSidebarOpen(true)} />
+            </motion.div>
+          ) : activeSection === 'My Profile' || activeSection === 'Profile' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminProfile onOpenSidebar={() => setMobileSidebarOpen(true)} />
             </motion.div>
           ) : (
             /* Temporary placeholder for future dedicated pages */

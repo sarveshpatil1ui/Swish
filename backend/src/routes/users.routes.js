@@ -332,7 +332,29 @@ router.put(
   }
 )
 
-router.delete('/:userId', requireAuth, async (req, res) => {
+// ── DELETE /api/users/profile-photo ─────────────────────────────────────────────
+// Remove profile photo
+// Alias for /upload-photo
+router.post('/profile-photo', (req, res, next) => {
+  req.url = '/upload-photo'
+  router.handle(req, res, next)
+})
+
+router.delete('/profile-photo', requireAuth, async (req, res) => {
+  try {
+    req.user.profilePhoto = null
+    await req.user.save()
+    res.json({ ok: true, user: req.user.toJSON() })
+  } catch (err) {
+    console.error('[DELETE /api/users/profile-photo] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to remove profile photo.' })
+  }
+})
+
+router.delete('/:userId', requireAuth, async (req, res, next) => {
+  if (req.params.userId === 'profile-photo') {
+    return next()
+  }
   try {
     if (req.params.userId !== req.user.id) {
       return res.status(403).json({ ok: false, error: 'You can only delete your own account.' })
@@ -462,17 +484,23 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
   try {
     let photoUrl
     if (isCloudinaryConfigured()) {
-      const result = await uploadPostImage(req.file.buffer, {
-        folder: process.env.CLOUDINARY_AVATARS_FOLDER || 'swish/avatars',
-        width: 400,
-        height: 400,
-        crop: 'fill',
-        gravity: 'face',
-        quality: 'auto',
-        fetch_format: 'auto',
-      })
-      photoUrl = result.secureUrl
-    } else {
+      try {
+        const result = await uploadPostImage(req.file.buffer, {
+          folder: process.env.CLOUDINARY_AVATARS_FOLDER?.trim() || 'swish/avatars',
+          width: 400,
+          height: 400,
+          crop: 'fill',
+          gravity: 'face',
+          quality: 'auto',
+          fetch_format: 'auto',
+        })
+        photoUrl = result.secureUrl
+      } catch (cErr) {
+        console.warn('[upload-photo] Cloudinary error, falling back to local storage:', cErr.message)
+      }
+    }
+
+    if (!photoUrl) {
       // Local fallback
       const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'profile-photos')
       fs.mkdirSync(UPLOAD_DIR, { recursive: true })
@@ -481,7 +509,6 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
       fs.writeFileSync(path.join(UPLOAD_DIR, filename), req.file.buffer)
       photoUrl = `/uploads/profile-photos/${filename}`
     }
-
     if (req.file) {
       req.file.buffer = null
       delete req.file.buffer
@@ -496,18 +523,7 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
   }
 })
 
-// ── DELETE /api/users/profile-photo ─────────────────────────────────────────────
-// Remove profile photo
-router.delete('/profile-photo', requireAuth, async (req, res) => {
-  try {
-    req.user.profilePhoto = null
-    await req.user.save()
-    res.json({ ok: true, user: req.user.toJSON() })
-  } catch (err) {
-    console.error('[DELETE /api/users/profile-photo] Error:', err)
-    res.status(500).json({ ok: false, error: 'Failed to remove profile photo.' })
-  }
-})
+
 
 
 router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {

@@ -359,8 +359,11 @@ export async function apiCheckDomain(domain) {
 }
 
 // ── Change Password ─────────────────────────────────────────────────────────
-export async function apiChangePassword(currentPassword, newPassword) {
-  return apiFetch('/api/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } })
+export async function apiChangePassword(currentPassword, newPassword, confirmPassword) {
+  return apiFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: { currentPassword, newPassword, confirmPassword: confirmPassword || newPassword },
+  })
 }
 
 // ── Departments API ─────────────────────────────────────────────────────────
@@ -491,4 +494,11 @@ export async function apiHideComment(id, reason) {
 
 export async function apiRestoreComment(id) {
   return apiFetch(`/api/moderation/comments/${id}/restore`, { method: 'PATCH' })
+}
+
+export function getAvatarUrl(url) {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  const apiBase = BASE_URL || 'http://localhost:3001'
+  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`
 }
