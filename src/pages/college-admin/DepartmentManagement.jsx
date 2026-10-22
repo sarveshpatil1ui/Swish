@@ -253,6 +253,7 @@ export default function DepartmentManagement() {
                 <tr>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Code</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Students</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Head</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
@@ -277,6 +278,11 @@ export default function DepartmentManagement() {
                     <td className="px-6 py-4">
                       <span className="text-xs font-mono text-slate-600 dark:text-gray-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                         {dept.code}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        {dept.studentCount || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4">

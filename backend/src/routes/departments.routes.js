@@ -9,6 +9,7 @@ import { body, validationResult } from 'express-validator'
 
 import Department from '../models/Department.js'
 import College from '../models/College.js'
+import User from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -77,12 +78,29 @@ async function requireCollegeAccess(req, res, next) {
 }
 
 // ── GET /api/departments ─────────────────────────────────────────────────────
-// Get departments for the college admin's college
+// Get departments for the college admin's college with student counts
 router.get('/', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { collegeId: req.collegeId }
-    const departments = await Department.find(filter).sort({ name: 1 })
-    return res.status(200).json({ ok: true, departments: departments.map(d => d.toJSON()) })
+    const departments = await Department.find(filter).sort({ name: 1 }).lean()
+
+    // Add student count for each department
+    const departmentsWithCounts = await Promise.all(
+      departments.map(async (dept) => {
+        const studentCount = await User.countDocuments({
+          dept: dept.name,
+          collegeId: dept.collegeId,
+          role: 'student',
+          deactivated: false
+        })
+        return {
+          ...dept,
+          studentCount
+        }
+      })
+    )
+
+    return res.status(200).json({ ok: true, departments: departmentsWithCounts })
   } catch (err) {
     console.error('[GET /departments]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch departments.' })
