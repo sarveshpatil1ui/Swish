@@ -2,6 +2,7 @@ import { Server } from 'socket.io'
 import { createServer } from 'http'
 import { createAdapter } from '@socket.io/redis-adapter'
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
 import { isOriginAllowed } from '../config/cors.js'
@@ -14,13 +15,8 @@ export function isUserOnline(userId) { return onlineUsers.has(String(userId)) }
 export function getOnlineUsers() { return [...onlineUsers.keys()] }
 
 export function emitToUser(userId, event, data) {
-  if (!_io) return
-  const socketIds = onlineUsers.get(String(userId))
-  if (socketIds) {
-    for (const sid of socketIds) {
-      _io.to(sid).emit(event, data)
-    }
-  }
+  if (!_io || !userId) return
+  _io.to(`user:${String(userId)}`).emit(event, data)
 }
 
 export function broadcastEvent(event, data) {
@@ -90,6 +86,9 @@ export function initSocket(app, { pubClient, subClient } = {}) {
   _io.on('connection', async (socket) => {
     const userId = socket.user._id.toString()
 
+    // Join user-specific room for targeted, multi-instance delivery across tabs and instances
+    socket.join(`user:${userId}`)
+
     // Track this socket (a user may have multiple tabs open)
     if (!onlineUsers.has(userId)) {
       onlineUsers.set(userId, new Set())
@@ -129,59 +128,65 @@ export function initSocket(app, { pubClient, subClient } = {}) {
       try {
         if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
-        const conv = await Conversation.findOne({ _id: convId, participants: userId })
-        if (!conv) return ack?.({ ok: false, error: 'Conversation not found.' })
-
-        const msg = {
+        const cleanText = text.trim()
+        const now = new Date()
+        const msgId = new mongoose.Types.ObjectId()
+        const newMsg = {
+          _id: msgId,
           sender: socket.user._id,
-          text:   text.trim(),
+          text: cleanText,
           readBy: [socket.user._id],
+          createdAt: now,
+          updatedAt: now,
           ...(storyReply && { storyReply }),
           ...(postShare && { postShare }),
         }
-        conv.messages.push(msg)
-        conv.lastMessage   = text.trim().slice(0, 100)
-        conv.lastMessageAt = new Date()
-        conv.lastSender    = socket.user._id
-        await conv.save()
 
-        const saved = conv.messages[conv.messages.length - 1]
+        // Atomic append with authorization verification in the database filter
+        const conv = await Conversation.findOneAndUpdate(
+          { _id: convId, participants: socket.user._id },
+          {
+            $push: { messages: newMsg },
+            $set: {
+              lastMessage: cleanText.slice(0, 100),
+              lastMessageAt: now,
+              lastSender: socket.user._id,
+            },
+          },
+          { new: false, select: 'participants' }
+        )
+
+        if (!conv) return ack?.({ ok: false, error: 'Conversation not found.' })
+
         const payload = {
-          id:         saved._id.toString(),
+          id:         msgId.toString(),
           convId,
           senderId:   userId,
           senderName: socket.user.name,
-          text:       saved.text,
-          createdAt:  saved.createdAt,
-          readBy:     saved.readBy.map(r => r.toString()),
-          storyReply: saved.storyReply || null,
-          postShare:  saved.postShare || null,
+          text:       cleanText,
+          createdAt:  now.toISOString(),
+          readBy:     [userId],
+          storyReply: storyReply || null,
+          postShare:  postShare || null,
         }
 
         // Emit to other participants in the conversation room (sender gets message via ack)
         socket.to(`conv:${convId}`).emit('msg:new', payload)
 
-        // Also notify participants who are online but NOT in the room
+        // Also notify participants outside the room across all instances
         for (const participantId of conv.participants) {
           const pid = participantId.toString()
           if (pid === userId) continue
-          const socketIds = onlineUsers.get(pid)
-          if (socketIds && socket.user.preferences?.privacy?.activity !== false) {
-            for (const sid of socketIds) {
-              const participantSocket = _io.sockets.sockets.get(sid)
-              if (participantSocket && !participantSocket.rooms.has(`conv:${convId}`)) {
-                participantSocket.emit('msg:notification', {
-                  convId,
-                  senderId:   userId,
-                  senderName: socket.user.name,
-                  text:       saved.text,
-                  createdAt:  saved.createdAt,
-                })
-              }
-            }
-          }
+          emitToUser(pid, 'msg:notification', {
+            convId,
+            senderId:   userId,
+            senderName: socket.user.name,
+            text:       cleanText,
+            createdAt:  now.toISOString(),
+          })
         }
 
+        // Acknowledge sender only after persistence has fully succeeded
         ack?.({ ok: true, message: payload })
       } catch (err) {
         console.error('[Socket msg:send]', err)
@@ -203,40 +208,41 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     })
 
     // ── Mark messages as read ─────────────────────────────────────────────────
-    socket.on('msg:read', async ({ convId }) => {
+    socket.on('msg:read', async ({ convId }, ack) => {
       try {
-        const conv = await Conversation.findOne({ _id: convId, participants: userId })
-        if (!conv) return
+        if (!convId) return ack?.({ ok: false, error: 'convId is required.' })
 
-        let modified = false
-        for (const msg of conv.messages) {
-          if (msg.sender.toString() !== userId && !msg.readBy.map(r => r.toString()).includes(userId)) {
-            msg.readBy.push(socket.user._id)
-            modified = true
-          }
+        // Atomic read marking using arrayFilters without full-document fetch/save
+        const updateRes = await Conversation.updateOne(
+          { _id: convId, participants: socket.user._id },
+          { $addToSet: { 'messages.$[elem].readBy': socket.user._id } },
+          { arrayFilters: [{ 'elem.sender': { $ne: socket.user._id }, 'elem.readBy': { $ne: socket.user._id } }] }
+        )
+
+        if (updateRes.matchedCount === 0) {
+          return ack?.({ ok: false, error: 'Conversation not found.' })
         }
-        if (modified) {
-          await conv.save()
+
+        // Broadcast to other participants in the room if unread messages were marked read
+        if (updateRes.modifiedCount > 0) {
           socket.to(`conv:${convId}`).emit('msg:read', { convId, readBy: userId })
         }
+
+        ack?.({ ok: true, readBy: userId })
       } catch (err) {
         console.error('[Socket msg:read]', err)
+        ack?.({ ok: false, error: 'Failed to mark as read.' })
       }
     })
 
     // ── Follow notification ───────────────────────────────────────────────────
     socket.on('follow:notify', ({ targetUserId }) => {
-      const socketIds = onlineUsers.get(String(targetUserId))
-      if (socketIds) {
-        for (const sid of socketIds) {
-          _io.to(sid).emit('follow:received', {
-            fromUserId:   userId,
-            fromUserName: socket.user.name,
-            fromInitials: socket.user.initials,
-            fromColor:    socket.user.avatarColor,
-          })
-        }
-      }
+      emitToUser(targetUserId, 'follow:received', {
+        fromUserId:   userId,
+        fromUserName: socket.user.name,
+        fromInitials: socket.user.initials,
+        fromColor:    socket.user.avatarColor,
+      })
     })
 
     // ── Disconnect ────────────────────────────────────────────────────────────
