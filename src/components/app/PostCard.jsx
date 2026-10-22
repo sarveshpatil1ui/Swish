@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -22,6 +22,8 @@ function Avatar({ initials, color, profilePhoto, size = 9 }) {
       <img
         src={src}
         alt=""
+        loading="lazy"
+        decoding="async"
         onError={() => setImgError(true)}
         className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`}
       />
@@ -53,7 +55,7 @@ function GradientCard({ emoji, label, gradientFrom, gradientTo }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function PostCard({ post }) {
+function PostCard({ post }) {
   const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost, toggleSavePost } = useSwish()
 
   // Likes/comment-count now live in the `post` prop (owned by SwishContext),
@@ -366,6 +368,8 @@ export default function PostCard({ post }) {
             <img
               src={post.imageUrl}
               alt={post.label}
+              loading="lazy"
+              decoding="async"
               onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
               className={`w-full h-full object-cover transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
@@ -619,3 +623,4 @@ export default function PostCard({ post }) {
     </>
   )
 }
+export default memo(PostCard)

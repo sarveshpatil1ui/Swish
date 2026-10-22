@@ -23,7 +23,7 @@ function formatRelativeTime(date) {
   return `${Math.floor(diffHr / 24)}d ago`
 }
 
-function serializeStory(story, currentUserId, viewsCount = 0, hasSeen = false) {
+export function serializeStory(story, currentUserId, viewsCount = 0, hasSeen = false) {
   const user = story.user
   const authorId = user?._id?.toString() || user?.id || (typeof user === 'string' ? user : '')
   const isOwn = authorId === currentUserId?.toString()
@@ -99,9 +99,6 @@ export async function cleanupExpiredStories() {
 // Returns stories for the current user and users they follow, filtered to active (unexpired).
 router.get('/', requireAuth, async (req, res) => {
   try {
-    // Non-blocking cleanup of expired stories in the background
-    cleanupExpiredStories().catch(() => {})
-
     // Find all users the current user follows
     const follows = await Follow.find({ follower: req.user._id }).select('following')
     const followingIds = follows.map(f => f.following)
@@ -116,6 +113,7 @@ router.get('/', requireAuth, async (req, res) => {
       .sort({ createdAt: 1 })
       .populate('user', 'name username initials avatarColor profilePhoto')
       .populate('replies.user', 'name username initials avatarColor profilePhoto')
+      .lean()
 
     const ownStoryIds = []
     const otherStoryIds = []

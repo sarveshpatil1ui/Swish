@@ -35,8 +35,11 @@ function formatConv(conv, myId) {
 // ── GET /api/messages — list all conversations for current user ───────────────
 router.get('/', async (req, res) => {
   try {
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
     const convs = await Conversation.find({ participants: req.user._id })
-      .sort({ lastMessageAt: -1 })
+      .sort({ lastMessageAt: -1, updatedAt: -1 })
+      .limit(limit)
+      .select('participants lastMessage lastMessageAt lastSender updatedAt messages.sender messages.readBy')
       .populate('participants', 'name username initials avatarColor profilePhoto')
       .lean({ virtuals: true })
 

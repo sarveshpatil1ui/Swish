@@ -7,6 +7,7 @@ import compression from 'compression'
 
 import { validateEnvironment } from './config/env.js'
 import { connectDB } from './config/db.js'
+import { initRedis, closeRedis, getRedisPubClient, getRedisSubClient } from './services/redis.service.js'
 
 validateEnvironment()
 import { initSocket } from './services/socket.service.js'
@@ -21,6 +22,7 @@ import noticesRoutes from './routes/notices.routes.js'
 import onboardingRoutes from './routes/onboarding.routes.js'
 import adminRoutes from './routes/admin.routes.js'
 import storiesRoutes from './routes/stories.routes.js'
+import { createStoryCleanupScheduler } from './services/storyCleanup.service.js'
 import notificationsRoutes from './routes/notifications.routes.js'
 import reportsRoutes from './routes/reports.routes.js'
 import analyticsRoutes from './routes/analytics.routes.js'
@@ -87,12 +89,34 @@ app.use((err, req, res, _next) => {
 })
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+// ── Optional Redis init (must run before initSocket so the adapter can be attached) ──
+initRedis()
+
 connectDB().then(() => {
-  const httpServer = initSocket(app)
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  const httpServer = initSocket(app, {
+    pubClient: getRedisPubClient(),
+    subClient: getRedisSubClient(),
+  })
+
+  // Controlled background cleanup of expired stories (runs after 5s startup, then every 15m post-settle)
+  // Non-overlapping, error-safe, and unref'd so it won't hold the process open
+  const cleanupScheduler = createStoryCleanupScheduler()
+
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀  Swish backend running at http://localhost:${PORT}`)
     console.log(`   Health: http://localhost:${PORT}/api/health`)
     console.log(`   Socket: ws://localhost:${PORT}`)
     console.log(`   Allowed origins: ${getAllowedOrigins().join(', ')}`)
   })
+
+  // Graceful shutdown — close HTTP, story scheduler, and Redis connections
+  const shutdown = () => {
+    cleanupScheduler.stop()
+    server.close(async () => {
+      await closeRedis()
+      process.exit(0)
+    })
+  }
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
 })

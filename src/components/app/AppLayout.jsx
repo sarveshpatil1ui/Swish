@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { UserPlus, MessageSquare, Heart, MessageCircle, Share2 } from 'lucide-react'
@@ -115,7 +115,15 @@ export default function AppLayout() {
 
         {/* Main Content — pb accounts for fixed bottom nav on mobile */}
         <main className="flex-1 min-w-0 pb-[70px] md:pb-0">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-24" role="status" aria-label="Loading content">
+                <div className="w-7 h-7 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

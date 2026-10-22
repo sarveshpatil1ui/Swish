@@ -10,7 +10,7 @@
  * - Listeners registered via `on()` must be cleaned up by the caller with `off()`.
  */
 
-import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { io } from 'socket.io-client'
 import { getStoredToken } from '../utils/auth'
 
@@ -110,14 +110,16 @@ export function SocketProvider({ userId, children }) {
     socketRef.current?.off(event, handler)
   }, [])
 
-  const value = {
+  const isOnline = useCallback((uid) => onlineUsers.has(String(uid)), [onlineUsers])
+
+  const value = useMemo(() => ({
     connected,
     onlineUsers,
-    isOnline: (uid) => onlineUsers.has(String(uid)),
+    isOnline,
     emit,
     on,
     off,
-  }
+  }), [connected, onlineUsers, isOnline, emit, on, off])
 
   return (
     <SocketContext.Provider value={value}>

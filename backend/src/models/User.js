@@ -81,6 +81,7 @@ const UserSchema = new Schema(
 )
 
 UserSchema.index({ collegeId: 1, role: 1 })
+UserSchema.index({ 'preferences.privacy.private': 1 })
 
 UserSchema.set('toJSON', {
   virtuals: true,

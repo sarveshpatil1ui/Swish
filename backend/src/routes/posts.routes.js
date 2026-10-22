@@ -25,13 +25,25 @@ function handleValidationErrors(req, res) {
   return null
 }
 
-function serializePost(post, viewerId) {
-  const json = post.toJSON()
+export function serializePost(post, viewerId) {
+  const json = typeof post.toJSON === 'function' ? post.toJSON() : { ...post, id: (post._id ? post._id.toString() : post.id) }
+  delete json._id
+  delete json.__v
+  if (json.user && typeof json.user === 'object') {
+    const userObjId = json.user._id ? json.user._id.toString() : (json.user.id ? json.user.id.toString() : '')
+    json.user = {
+      ...json.user,
+      id: userObjId,
+    }
+  }
+  const likes = json.likes || []
+  const savedBy = json.savedBy || []
+  const viewerStr = viewerId ? viewerId.toString() : ''
   return {
     ...json,
-    likeCount: post.likes.length,
-    liked: post.likes.some(id => id.toString() === viewerId),
-    saved: post.savedBy.some(id => id.toString() === viewerId),
+    likeCount: likes.length,
+    liked: likes.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
+    saved: savedBy.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
     likes: undefined, // don't ship the full liker-id list to every client
     savedBy: undefined,
   }
@@ -173,23 +185,14 @@ router.get('/', requireAuth, async (req, res) => {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
     const cursor = req.query.cursor // ISO date string of last-seen createdAt
 
-    let filter = {}
+    const filter = { hidden: false }
 
     // College-specific feed for college_admin role
     if (req.user.role === 'college_admin' && req.user.collegeId) {
       // Get all users from the same college
       const collegeUsers = await User.find({ collegeId: req.user.collegeId }).select('_id').lean()
       const collegeUserIds = collegeUsers.map(u => u._id)
-      
-      const [privateUsers] = await Promise.all([
-        User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
-      ])
-      const privateUserIds = privateUsers.map(user => user._id)
-      
-      // Show posts from college users, excluding private users from other colleges
-      filter = {
-        user: { $in: collegeUserIds },
-      }
+      filter.user = { $in: collegeUserIds }
     } else {
       // Standard feed for students and faculty
       const [follows, privateUsers] = await Promise.all([
@@ -198,25 +201,21 @@ router.get('/', requireAuth, async (req, res) => {
       ])
       const visibleUserIds = [req.user._id, ...follows.map(follow => follow.following)]
       const privateUserIds = privateUsers.map(user => user._id)
-      filter = {
-        $or: [
-          { user: { $in: visibleUserIds } },
-          { user: { $nin: privateUserIds } },
-        ],
-      }
+      filter.$or = [
+        { user: { $in: visibleUserIds } },
+        { user: { $nin: privateUserIds } },
+      ]
     }
 
     if (cursor) {
-      filter = { $and: [filter, { createdAt: { $lt: new Date(cursor) } }] }
+      filter.createdAt = { $lt: new Date(cursor) }
     }
-
-    // Exclude hidden posts from feed
-    filter = { $and: [filter, { hidden: false }] }
 
     const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
       .populate('user', 'name username initials avatarColor profilePhoto')
+      .lean()
 
     const hasMore = posts.length > limit
     if (hasMore) posts.pop()
@@ -273,6 +272,7 @@ router.get('/:postId', requireAuth, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
       .populate('user', 'name username initials avatarColor profilePhoto preferences')
+      .lean()
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
@@ -441,10 +441,10 @@ router.get('/:postId/comments', requireAuth, async (req, res) => {
       ok: true,
       comments: comments.map(c => ({
         id: c._id.toString(),
-        userId: c.user.id,
-        userName: c.user.name,
-        userInitials: c.user.initials,
-        avatarColor: c.user.avatarColor,
+        userId: c.user?.id || (c.user?._id ? c.user._id.toString() : ''),
+        userName: c.user?.name || 'User',
+        userInitials: c.user?.initials || 'U',
+        avatarColor: c.user?.avatarColor || '#6366f1',
         profilePhoto: c.user.profilePhoto || null,
         text: c.text,
         createdAt: c.createdAt,

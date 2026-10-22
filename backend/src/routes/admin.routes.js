@@ -9,7 +9,10 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import {sendCollegeAdminCredentialsEmail,sendCollegeRegistrationRejectedEmail,} from '../services/email.service.js'
 import { getSignedProofUrl } from '../services/cloudinary.service.js'
+import { del, cacheKey } from '../services/cache.service.js'
 const router = express.Router()
+
+const COLLEGES_LIST_KEY = cacheKey('colleges', 'list')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/dashboard
@@ -170,6 +173,9 @@ router.patch(
 
       college.active = !college.active
       await college.save()
+
+      // Invalidate public colleges list cache
+      await del(COLLEGES_LIST_KEY)
 
       return res.status(200).json({
         ok: true,
@@ -613,6 +619,9 @@ router.post(
         location: request.location || '',
         active: true,
       })
+
+      // Invalidate public colleges list cache
+      await del(COLLEGES_LIST_KEY)
 
       // ------------------------------------------------------------
       // 4. Generate temporary password

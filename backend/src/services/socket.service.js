@@ -1,5 +1,6 @@
 import { Server } from 'socket.io'
 import { createServer } from 'http'
+import { createAdapter } from '@socket.io/redis-adapter'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
@@ -29,10 +30,10 @@ export function broadcastEvent(event, data) {
 
 let _io
 
-export function initSocket(app) {
+export function initSocket(app, { pubClient, subClient } = {}) {
   const httpServer = createServer(app)
 
-  _io = new Server(httpServer, {
+  const serverOptions = {
     cors: {
       origin: (origin, cb) => {
         if (isOriginAllowed(origin)) {
@@ -45,7 +46,24 @@ export function initSocket(app) {
       methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
-  })
+  }
+
+  // ── Optional Redis adapter (Stage 2) ─────────────────────────────────────
+  // Configure adapter directly on Server instantiation when clients are provided.
+  // This avoids dynamic adapter swapping during active traffic and prevents
+  // room memberships from being orphaned.
+  if (pubClient && subClient) {
+    try {
+      serverOptions.adapter = createAdapter(pubClient, subClient)
+      console.log('[Socket] Redis adapter configured (multi-instance broadcasts enabled)')
+    } catch (adapterErr) {
+      console.error('[Socket] Redis adapter attach failed — using in-memory adapter:', adapterErr.message)
+    }
+  } else {
+    console.log('[Socket] Redis adapter not configured — using in-memory adapter (single-instance mode)')
+  }
+
+  _io = new Server(httpServer, serverOptions)
 
   // ── Auth middleware: verify JWT cookie or auth header on connect ───────────
   _io.use(async (socket, next) => {

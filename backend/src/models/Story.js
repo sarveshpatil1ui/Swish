@@ -88,6 +88,7 @@ const StorySchema = new Schema(
 // TTL Index: MongoDB automatically removes documents when current time reaches expiresAt
 StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 StorySchema.index({ user: 1, createdAt: -1 })
+StorySchema.index({ user: 1, expiresAt: 1, createdAt: 1 })
 
 StorySchema.set('toJSON', {
   virtuals: true,

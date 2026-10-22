@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -229,7 +229,15 @@ export default function CollegeAdminLayout() {
       {/* Main Content */}
       <main className="lg:ml-60 min-h-screen">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-20 lg:pt-6">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-24" role="status" aria-label="Loading dashboard view">
+                <div className="w-7 h-7 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 

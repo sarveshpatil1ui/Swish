@@ -214,6 +214,38 @@ router.get('/stats', requireAuth, requireRole('admin', 'college_admin'), async (
   }
 })
 
+// ── PATCH /api/users/preferences ───────────────────────────────────────────
+router.patch('/preferences', requireAuth, async (req, res) => {
+  try {
+    const preferences = req.body?.preferences
+    if (!preferences || typeof preferences !== 'object') {
+      return res.status(422).json({ ok: false, error: 'Preferences are required.' })
+    }
+
+    const allowed = {
+      notifications: ['likes', 'comments', 'follows', 'mentions', 'events'],
+      privacy: ['private', 'showEmail', 'activity', 'tagged'],
+      security: ['twoFactor'],
+    }
+    for (const [section, keys] of Object.entries(allowed)) {
+      if (!preferences[section] || typeof preferences[section] !== 'object') continue
+      for (const key of keys) {
+        if (preferences[section][key] !== undefined) {
+          if (typeof preferences[section][key] !== 'boolean') {
+            return res.status(422).json({ ok: false, error: `${section}.${key} must be a boolean.` })
+          }
+          req.user.preferences[section][key] = preferences[section][key]
+        }
+      }
+    }
+    await req.user.save()
+    res.json({ ok: true, user: req.user.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/users/preferences] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to update preferences.' })
+  }
+})
+
 router.get('/:userId', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
@@ -241,37 +273,6 @@ router.get('/:userId', requireAuth, async (req, res) => {
         isFollowing: Boolean(isFollowing),
         isSelf: req.user.id === user.id,
       },
-    })
-
-    router.patch('/preferences', requireAuth, async (req, res) => {
-      try {
-        const preferences = req.body?.preferences
-        if (!preferences || typeof preferences !== 'object') {
-          return res.status(422).json({ ok: false, error: 'Preferences are required.' })
-        }
-
-        const allowed = {
-          notifications: ['likes', 'comments', 'follows', 'mentions', 'events'],
-          privacy: ['private', 'showEmail', 'activity', 'tagged'],
-          security: ['twoFactor'],
-        }
-        for (const [section, keys] of Object.entries(allowed)) {
-          if (!preferences[section] || typeof preferences[section] !== 'object') continue
-          for (const key of keys) {
-            if (preferences[section][key] !== undefined) {
-              if (typeof preferences[section][key] !== 'boolean') {
-                return res.status(422).json({ ok: false, error: `${section}.${key} must be a boolean.` })
-              }
-              req.user.preferences[section][key] = preferences[section][key]
-            }
-          }
-        }
-        await req.user.save()
-        res.json({ ok: true, user: req.user.toJSON() })
-      } catch (err) {
-        console.error('[PATCH /api/users/preferences] Error:', err)
-        res.status(500).json({ ok: false, error: 'Failed to update preferences.' })
-      }
     })
   } catch (err) {
     console.error('[GET /api/users/:userId] Error:', err)

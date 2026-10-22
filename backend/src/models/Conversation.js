@@ -60,8 +60,8 @@ const ConversationSchema = new Schema(
   { timestamps: true }
 )
 
-// Ensure exactly one conversation per pair
-ConversationSchema.index({ participants: 1 })
+// Ensure fast participant queries and ordered conversation list without in-memory sort
+ConversationSchema.index({ participants: 1, lastMessageAt: -1 })
 
 ConversationSchema.set('toJSON', {
   virtuals: true,

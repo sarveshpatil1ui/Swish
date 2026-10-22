@@ -93,6 +93,7 @@ const PostSchema = new Schema(
 PostSchema.index({ user: 1, createdAt: -1 });
 PostSchema.index({ likes: 1 });
 PostSchema.index({ createdAt: -1 });
+PostSchema.index({ hidden: 1, createdAt: -1 });
 
 PostSchema.virtual('comments', {
   ref: 'Comment',

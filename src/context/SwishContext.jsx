@@ -13,7 +13,7 @@
 // for now — they will be migrated to real API routes in future phases.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 
 import {
   apiLogin, apiRegister, apiLogout, apiMe, apiCheckCollegeDomain,
@@ -94,6 +94,11 @@ export function SwishProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading]       = useState(true) // true until /me check done
   const [mustChangePassword, setMustChangePassword] = useState(false)
+  const currentUserRef                      = useRef(currentUser)
+
+  useEffect(() => {
+    currentUserRef.current = currentUser
+  }, [currentUser])
 
   // ── Colleges ───────────────────────────────────────────────────────────────
   const [colleges, setColleges] = useState(() => {
@@ -171,31 +176,84 @@ export function SwishProvider({ children }) {
     }
   }, [isAuthenticated, currentUser])
 
-  // ── Fetch posts once authenticated ───────────────────────────────────────────
-  const fetchPosts = async () => {
-    setPostsLoading(true)
-    try {
-      const res = await apiGetPosts()
-      if (res.ok) setPosts(res.posts.map(normalizePost))
-    } finally {
-      setPostsLoading(false)
+  const pendingPostsPromise = useRef(null)
+  const lastPostsFetchTime = useRef(0)
+  const fetchPostsSeq = useRef(0)
+
+  // ── Fetch posts once authenticated (with in-flight deduplication & sequence safety)
+  const fetchPosts = async ({ force = false } = {}) => {
+    const now = Date.now()
+    if (!force && pendingPostsPromise.current) {
+      return pendingPostsPromise.current
     }
+    if (!force && now - lastPostsFetchTime.current < 2500 && posts.length > 0) {
+      return
+    }
+
+    const reqSeq = ++fetchPostsSeq.current
+    setPostsLoading(true)
+    const promise = (async () => {
+      try {
+        const res = await apiGetPosts()
+        if (reqSeq !== fetchPostsSeq.current) return
+        if (res.ok && Array.isArray(res.posts)) {
+          setPosts(res.posts.map(normalizePost))
+          lastPostsFetchTime.current = Date.now()
+        }
+      } catch (err) {
+        if (reqSeq === fetchPostsSeq.current) {
+          console.error('Failed to fetch posts:', err)
+        }
+      } finally {
+        if (reqSeq === fetchPostsSeq.current) {
+          pendingPostsPromise.current = null
+          setPostsLoading(false)
+        }
+      }
+    })()
+    pendingPostsPromise.current = promise
+    return promise
   }
 
   // ── Stories (FR-Stories) ───────────────────────────────────────────────────
   const [stories, setStories] = useState([])
   const [storiesLoading, setStoriesLoading] = useState(false)
+  const pendingStoriesPromise = useRef(null)
+  const lastStoriesFetchTime = useRef(0)
+  const fetchStoriesSeq = useRef(0)
 
-  const fetchStories = async () => {
-    setStoriesLoading(true)
-    try {
-      const res = await apiGetStories()
-      if (res.ok) setStories(res.stories || [])
-    } catch (err) {
-      console.error('Failed to fetch stories:', err)
-    } finally {
-      setStoriesLoading(false)
+  const fetchStories = async ({ force = false } = {}) => {
+    const now = Date.now()
+    if (!force && pendingStoriesPromise.current) {
+      return pendingStoriesPromise.current
     }
+    if (!force && now - lastStoriesFetchTime.current < 2500 && stories.length > 0) {
+      return
+    }
+
+    const reqSeq = ++fetchStoriesSeq.current
+    setStoriesLoading(true)
+    const promise = (async () => {
+      try {
+        const res = await apiGetStories()
+        if (reqSeq !== fetchStoriesSeq.current) return
+        if (res.ok && Array.isArray(res.stories)) {
+          setStories(res.stories || [])
+          lastStoriesFetchTime.current = Date.now()
+        }
+      } catch (err) {
+        if (reqSeq === fetchStoriesSeq.current) {
+          console.error('Failed to fetch stories:', err)
+        }
+      } finally {
+        if (reqSeq === fetchStoriesSeq.current) {
+          pendingStoriesPromise.current = null
+          setStoriesLoading(false)
+        }
+      }
+    })()
+    pendingStoriesPromise.current = promise
+    return promise
   }
 
   const createStory = async ({ imageFile, caption, music, filter, sticker, expiresAt }) => {
@@ -275,7 +333,7 @@ export function SwishProvider({ children }) {
     }
   }
 
-  const updateStoryReplyRealtime = ({ storyId, reply }) => {
+  const updateStoryReplyRealtime = useCallback(({ storyId, reply }) => {
     if (!storyId || !reply) return
     setStories(prev => prev.map(s => {
       if (s.id !== storyId) return s
@@ -287,7 +345,7 @@ export function SwishProvider({ children }) {
         replies: [...(s.replies || []), reply],
       }
     }))
-  }
+  }, [])
 
   const fetchStoryReplies = async (storyId) => {
     try {
@@ -299,17 +357,42 @@ export function SwishProvider({ children }) {
     }
   }
 
-  // ── Notifications (real API + persistence) ───────────────────────────────────
-  const fetchNotifications = async () => {
-    try {
-      const res = await apiGetNotifications()
-      if (res.ok && Array.isArray(res.notifications)) {
-        setNotifications(res.notifications)
-        saveNotifications(res.notifications)
-      }
-    } catch (err) {
-      console.warn('Failed to fetch notifications:', err)
+  // ── Notifications (real API + persistence with in-flight deduplication) ───────
+  const pendingNotifsPromise = useRef(null)
+  const lastNotifsFetchTime = useRef(0)
+  const fetchNotifsSeq = useRef(0)
+
+  const fetchNotifications = async ({ force = false } = {}) => {
+    const now = Date.now()
+    if (!force && pendingNotifsPromise.current) {
+      return pendingNotifsPromise.current
     }
+    if (!force && now - lastNotifsFetchTime.current < 2500 && notifications.length > 0) {
+      return
+    }
+
+    const reqSeq = ++fetchNotifsSeq.current
+    const promise = (async () => {
+      try {
+        const res = await apiGetNotifications()
+        if (reqSeq !== fetchNotifsSeq.current) return
+        if (res.ok && Array.isArray(res.notifications)) {
+          setNotifications(res.notifications)
+          saveNotifications(res.notifications)
+          lastNotifsFetchTime.current = Date.now()
+        }
+      } catch (err) {
+        if (reqSeq === fetchNotifsSeq.current) {
+          console.warn('Failed to fetch notifications:', err)
+        }
+      } finally {
+        if (reqSeq === fetchNotifsSeq.current) {
+          pendingNotifsPromise.current = null
+        }
+      }
+    })()
+    pendingNotifsPromise.current = promise
+    return promise
   }
 
   const markNotificationRead = async (id) => {
@@ -339,11 +422,12 @@ export function SwishProvider({ children }) {
   }
 
   // ── Real-time Socket Event Handlers ─────────────────────────────────────────
-  const updatePostLikeRealtime = ({ postId, likeCount, userId, action }) => {
+  const updatePostLikeRealtime = useCallback(({ postId, likeCount, userId, action }) => {
     setPosts(prev =>
       prev.map(p => {
         if (p.id === postId) {
-          const isSelf = currentUser && (currentUser.id === userId || currentUser._id === userId)
+          const current = currentUserRef.current
+          const isSelf = current && (current.id === userId || current._id === userId)
           return {
             ...p,
             likes: likeCount,
@@ -353,9 +437,9 @@ export function SwishProvider({ children }) {
         return p
       })
     )
-  }
+  }, [])
 
-  const updatePostCommentRealtime = ({ postId, commentCount }) => {
+  const updatePostCommentRealtime = useCallback(({ postId, commentCount }) => {
     setPosts(prev =>
       prev.map(p => {
         if (p.id === postId) {
@@ -367,16 +451,16 @@ export function SwishProvider({ children }) {
         return p
       })
     )
-  }
+  }, [])
 
-  const addNotificationRealtime = (newNotif) => {
+  const addNotificationRealtime = useCallback((newNotif) => {
     setNotifications(prev => {
       const filtered = prev.filter(n => n.id !== newNotif.id)
       const updated = [newNotif, ...filtered]
       saveNotifications(updated)
       return updated
     })
-  }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -384,12 +468,22 @@ export function SwishProvider({ children }) {
       fetchStories()
       fetchNotifications()
     } else {
+      fetchPostsSeq.current++
+      fetchStoriesSeq.current++
+      fetchNotifsSeq.current++
+      pendingPostsPromise.current = null
+      pendingStoriesPromise.current = null
+      pendingNotifsPromise.current = null
+      lastPostsFetchTime.current = 0
+      lastStoriesFetchTime.current = 0
+      lastNotifsFetchTime.current = 0
       setPosts([])
       setStories([])
       setNotifications([])
+      saveNotifications([])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated])
+  }, [isAuthenticated, currentUser?.id])
 
   // ── createPost — supports image, caption, tags, and music
   const createPost = async ({ caption, imageFile, tags, music }) => {
@@ -565,9 +659,19 @@ export function SwishProvider({ children }) {
 
   // ── logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
-    // Clear local auth state even if the server cannot be reached. The
-    // httpOnly cookie is best-effort cleared by the API request, while the UI
-    // must never continue presenting an authenticated session after logout.
+    // Clear local auth state and cancel/invalidate any in-flight promises so data
+    // cannot leak across accounts.
+    fetchPostsSeq.current++
+    fetchStoriesSeq.current++
+    fetchNotifsSeq.current++
+    pendingPostsPromise.current = null
+    pendingStoriesPromise.current = null
+    pendingNotifsPromise.current = null
+    lastPostsFetchTime.current = 0
+    lastStoriesFetchTime.current = 0
+    lastNotifsFetchTime.current = 0
+    saveNotifications([])
+
     try {
       await apiLogout()
     } catch (error) {
