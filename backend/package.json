@@ -13,6 +13,7 @@
     "get-gmail-token": "node scripts/get-refresh-token.js"
   },
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.11.0",
     "compression": "^1.8.2",
@@ -23,6 +24,7 @@
     "express-rate-limit": "^8.7.1",
     "express-validator": "^7.1.0",
     "googleapis": "^186.0.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "multer": "^2.3.0",

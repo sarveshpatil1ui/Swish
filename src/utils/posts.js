@@ -37,8 +37,8 @@ export function resolveImageUrl(url) {
 
 export function normalizePost(raw) {
   return {
-    id: raw.id,
-    userId: raw.user?.id,
+    id: raw.id ?? (raw._id ? raw._id.toString() : undefined),
+    userId: raw.user?.id ?? (raw.user?._id ? raw.user._id.toString() : raw.userId),
     userName: raw.user?.name ?? 'Unknown',
     userInitials: raw.user?.initials ?? '?',
     userAvatarColor: raw.user?.avatarColor ?? '#6366f1',
@@ -55,5 +55,6 @@ export function normalizePost(raw) {
     liked: Boolean(raw.liked),
     commentCount: raw.commentCount ?? 0,
     saved: Boolean(raw.saved),
+    music: raw.music ?? null,
   }
 }

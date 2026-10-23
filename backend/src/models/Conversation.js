@@ -2,12 +2,37 @@ import mongoose from 'mongoose'
 
 const { Schema } = mongoose
 
+// ── Story Reply Subschema ─────────────────────────────────────────────────────
+const StoryReplySchema = new Schema(
+  {
+    storyId:       { type: Schema.Types.ObjectId, ref: 'Story', default: null },
+    imageUrl:      { type: String, default: null },
+    reaction:      { type: String, default: null },
+    caption:       { type: String, default: null },
+    storyAuthorId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  },
+  { _id: false }
+)
+
+// ── Post Share Subschema ──────────────────────────────────────────────────────
+const PostShareSchema = new Schema(
+  {
+    postId:     { type: Schema.Types.ObjectId, ref: 'Post', default: null },
+    imageUrl:   { type: String, default: null },
+    caption:    { type: String, default: null },
+    authorName: { type: String, default: null },
+  },
+  { _id: false }
+)
+
 // ── Message (embedded in Conversation) ────────────────────────────────────────
 const MessageSchema = new Schema(
   {
-    sender:  { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    text:    { type: String, required: true, trim: true, maxlength: 2000 },
-    readBy:  [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    sender:     { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    text:       { type: String, required: true, trim: true, maxlength: 2000 },
+    readBy:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    storyReply: { type: StoryReplySchema, default: null },
+    postShare:  { type: PostShareSchema, default: null },
   },
   { timestamps: true }
 )
@@ -35,8 +60,8 @@ const ConversationSchema = new Schema(
   { timestamps: true }
 )
 
-// Ensure exactly one conversation per pair
-ConversationSchema.index({ participants: 1 })
+// Ensure fast participant queries and ordered conversation list without in-memory sort
+ConversationSchema.index({ participants: 1, lastMessageAt: -1 })
 
 ConversationSchema.set('toJSON', {
   virtuals: true,

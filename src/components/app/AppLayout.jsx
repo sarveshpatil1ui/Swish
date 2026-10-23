@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { UserPlus, MessageSquare, Heart, MessageCircle } from 'lucide-react'
+import { UserPlus, MessageSquare, Heart, MessageCircle, Share2 } from 'lucide-react'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import MobileTopBar from './MobileTopBar'
@@ -27,12 +27,15 @@ function GlobalToast({ toasts }) {
                 ? 'bg-indigo-100 dark:bg-indigo-950/60'
                 : t.type === 'follow'
                 ? 'bg-emerald-100 dark:bg-emerald-950/60'
+                : t.type === 'share'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60'
                 : 'bg-violet-100 dark:bg-violet-950/60'
             }`}>
               {t.type === 'like' && <Heart size={17} className="text-rose-500 fill-rose-500" />}
               {t.type === 'comment' && <MessageCircle size={17} className="text-indigo-600 dark:text-indigo-400" />}
               {t.type === 'follow' && <UserPlus size={17} className="text-emerald-600 dark:text-emerald-400" />}
-              {t.type !== 'like' && t.type !== 'comment' && t.type !== 'follow' && (
+              {t.type === 'share' && <Share2 size={17} className="text-emerald-600 dark:text-emerald-400" />}
+              {t.type !== 'like' && t.type !== 'comment' && t.type !== 'follow' && t.type !== 'share' && (
                 <MessageSquare size={17} className="text-violet-600 dark:text-violet-400" />
               )}
             </div>
@@ -58,7 +61,16 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
-    if (!on || !off) return
+    const onCustomToast = (e) => {
+      if (e.detail) addToast(e.detail)
+    }
+    window.addEventListener('swish:toast', onCustomToast)
+
+    if (!on || !off) {
+      return () => {
+        window.removeEventListener('swish:toast', onCustomToast)
+      }
+    }
 
     // Someone followed you
     const onFollowReceived = ({ fromUserName }) => {
@@ -85,6 +97,7 @@ export default function AppLayout() {
     return () => {
       off('follow:received', onFollowReceived)
       off('notification:new', onNotificationNew)
+      window.removeEventListener('swish:toast', onCustomToast)
     }
   }, [on, off])
 
@@ -102,7 +115,15 @@ export default function AppLayout() {
 
         {/* Main Content — pb accounts for fixed bottom nav on mobile */}
         <main className="flex-1 min-w-0 pb-[70px] md:pb-0">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-24" role="status" aria-label="Loading content">
+                <div className="w-7 h-7 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

@@ -26,6 +26,18 @@ const PostSchema = new Schema(
       type: String,
       default: null,
     },
+
+    music: {
+      id: { type: String, default: null },
+      title: { type: String, default: null },
+      artist: { type: String, default: null },
+      language: { type: String, default: null },
+      vibe: { type: String, default: null },
+      category: { type: String, default: null },
+      audioUrl: { type: String, default: null },
+      coverColor: { type: String, default: null },
+      duration: { type: String, default: '0:30' },
+    },
     
     tags: [{
       type: String,
@@ -95,6 +107,7 @@ PostSchema.index({ createdAt: -1 });
 PostSchema.index({ tags: 1, createdAt: -1 });
 PostSchema.index({ createdAt: -1, likeCount: -1 });
 PostSchema.index({ collegeId: 1, createdAt: -1 });
+PostSchema.index({ hidden: 1, createdAt: -1 });
 
 PostSchema.virtual('comments', {
   ref: 'Comment',

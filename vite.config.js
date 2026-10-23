@@ -14,5 +14,22 @@ export default defineConfig({
     commonjsOptions: {
       include: [/socket\.io-client/, /node_modules/],
     },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react'
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion'
+            }
+            if (id.includes('socket.io-client') || id.includes('engine.io-client')) {
+              return 'vendor-socket'
+            }
+          }
+        },
+      },
+    },
   },
 })

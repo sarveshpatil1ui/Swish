@@ -24,6 +24,14 @@ const StoryViewSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+    reaction: {
+      type: String,
+      default: null,
+    },
+    reactedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 )

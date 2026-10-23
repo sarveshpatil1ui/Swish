@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
@@ -72,21 +72,22 @@ export default function HomePage() {
   // Strip leading # so we can match against both caption text and tag words
   const wordQ     = rawQ.replace(/^#/, '')
 
-  const filteredPosts = hasSearch
-    ? posts.filter(p => {
-        const userName = (p.userName || '').toLowerCase()
-        const caption  = (p.caption || '').toLowerCase()
-        const tags     = Array.isArray(p.tags) ? p.tags : []
-        return (
-          userName.includes(rawQ) ||
-          caption.includes(wordQ) ||
-          tags.some(tag => {
-            const tagWord = (tag || '').toLowerCase().replace('#', '')
-            return tagWord.includes(wordQ) || wordQ.includes(tagWord)
-          })
-        )
-      })
-    : posts
+  const filteredPosts = useMemo(() => {
+    if (!hasSearch) return posts
+    return posts.filter(p => {
+      const userName = (p.userName || '').toLowerCase()
+      const caption  = (p.caption || '').toLowerCase()
+      const tags     = Array.isArray(p.tags) ? p.tags : []
+      return (
+        userName.includes(rawQ) ||
+        caption.includes(wordQ) ||
+        tags.some(tag => {
+          const tagWord = (tag || '').toLowerCase().replace('#', '')
+          return tagWord.includes(wordQ) || wordQ.includes(tagWord)
+        })
+      )
+    })
+  }, [posts, hasSearch, rawQ, wordQ])
 
   const noResults = hasSearch && filteredPosts.length === 0
 

@@ -17,8 +17,13 @@ import User from '../models/User.js'
 import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
 import { requireAuth, requireRole, invalidateCollegeCache } from '../middleware/auth.middleware.js'
+import { getOrSet, del, cacheKey } from '../services/cache.service.js'
 
 const router = Router()
+
+// ── Cache keys ────────────────────────────────────────────────────────────────
+const COLLEGES_LIST_KEY = cacheKey('colleges', 'list')
+const COLLEGES_TTL = 60 // seconds
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,8 +44,12 @@ function handleValidationErrors(req, res) {
 // Public — returns all colleges (admin page lists them, signup uses for display)
 router.get('/', async (_req, res) => {
   try {
-    const colleges = await College.find().sort({ name: 1 })
-    return res.status(200).json({ ok: true, colleges: colleges.map(c => c.toJSON()) })
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    const data = await getOrSet(COLLEGES_LIST_KEY, COLLEGES_TTL, async () => {
+      const colleges = await College.find().sort({ name: 1 })
+      return { ok: true, colleges: colleges.map(c => c.toJSON()) }
+    })
+    return res.status(200).json(data)
   } catch (err) {
     console.error('[GET /colleges]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch colleges.' })
@@ -152,6 +161,7 @@ router.get(
 
     try {
       const domain = req.query.domain.trim().toLowerCase()
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
 
       // Hardcoded admin bypass
       if (domain === 'swish.com') {
@@ -209,6 +219,9 @@ router.post(
         location: (location || '').trim(),
         active:   true,
       })
+
+      // Invalidate the colleges list cache so the next GET reflects the new entry
+      await del(COLLEGES_LIST_KEY)
 
       return res.status(201).json({ ok: true, college: college.toJSON() })
     } catch (err) {
@@ -295,6 +308,9 @@ router.patch(
       await college.save()
       invalidateCollegeCache(college.domain)
 
+      // Invalidate the colleges list cache (active state changed)
+      await del(COLLEGES_LIST_KEY)
+
       return res.status(200).json({ ok: true, college: college.toJSON() })
     } catch (err) {
       console.error('[PATCH /colleges/:id/toggle]', err)
@@ -348,6 +364,9 @@ router.put(
 
       await college.save()
       invalidateCollegeCache(college.domain)
+
+      // Invalidate the colleges list cache (college metadata changed)
+      await del(COLLEGES_LIST_KEY)
 
       return res.status(200).json({ ok: true, college: college.toJSON() })
     } catch (err) {

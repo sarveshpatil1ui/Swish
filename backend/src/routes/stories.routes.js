@@ -1,10 +1,14 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { uploadStoryPhoto } from '../middleware/upload.middleware.js'
 import { uploadStoryImage, deleteStoryImage } from '../services/cloudinary.service.js'
 import Story from '../models/Story.js'
 import StoryView from '../models/StoryView.js'
 import Follow from '../models/Follow.js'
+import { Conversation } from '../models/Conversation.js'
+import { emitToUser, getIO } from '../services/socket.service.js'
+import { createNotification } from '../services/notification.service.js'
 
 const router = Router()
 
@@ -19,10 +23,13 @@ function formatRelativeTime(date) {
   return `${Math.floor(diffHr / 24)}d ago`
 }
 
-function serializeStory(story, currentUserId, viewsCount = 0, hasSeen = false) {
+export function serializeStory(story, currentUserId, viewsCount = 0, hasSeen = false) {
   const user = story.user
   const authorId = user?._id?.toString() || user?.id || (typeof user === 'string' ? user : '')
   const isOwn = authorId === currentUserId?.toString()
+  const likes = story.likes || []
+  const replies = story.replies || []
+
   return {
     id: story._id.toString(),
     userId: authorId,
@@ -40,6 +47,23 @@ function serializeStory(story, currentUserId, viewsCount = 0, hasSeen = false) {
     imageUrl: story.imageUrl,
     imagePublicId: story.imagePublicId,
     caption: story.caption || '',
+    music: story.music || null,
+    filter: story.filter || 'normal',
+    sticker: story.sticker || null,
+    likesCount: likes.length,
+    isLiked: likes.some(l => (l?._id?.toString() || l?.toString()) === currentUserId?.toString()),
+    repliesCount: replies.length,
+    replies: replies.map(r => ({
+      id: r._id ? r._id.toString() : undefined,
+      userId: r.user?._id?.toString() || r.user?.toString(),
+      name: r.user?.name || 'User',
+      username: r.user?.username || '',
+      initials: r.user?.initials || 'U',
+      avatarColor: r.user?.avatarColor || '#6366f1',
+      profilePhoto: r.user?.profilePhoto || null,
+      text: r.text,
+      createdAt: r.createdAt,
+    })),
     createdAt: story.createdAt,
     expiresAt: story.expiresAt,
     isOwnStory: isOwn,
@@ -75,9 +99,6 @@ export async function cleanupExpiredStories() {
 // Returns stories for the current user and users they follow, filtered to active (unexpired).
 router.get('/', requireAuth, async (req, res) => {
   try {
-    // Non-blocking cleanup of expired stories in the background
-    cleanupExpiredStories().catch(() => {})
-
     // Find all users the current user follows
     const follows = await Follow.find({ follower: req.user._id }).select('following')
     const followingIds = follows.map(f => f.following)
@@ -91,6 +112,8 @@ router.get('/', requireAuth, async (req, res) => {
     })
       .sort({ createdAt: 1 })
       .populate('user', 'name username initials avatarColor profilePhoto')
+      .populate('replies.user', 'name username initials avatarColor profilePhoto')
+      .lean()
 
     const ownStoryIds = []
     const otherStoryIds = []
@@ -200,11 +223,34 @@ router.post(
         expiresAt = new Date(req.body.expiresAt)
       }
 
+      let music = null
+      if (req.body.music) {
+        try {
+          music = typeof req.body.music === 'string' ? JSON.parse(req.body.music) : req.body.music
+        } catch {
+          music = null
+        }
+      }
+
+      let sticker = null
+      if (req.body.sticker) {
+        try {
+          sticker = typeof req.body.sticker === 'string' ? JSON.parse(req.body.sticker) : req.body.sticker
+        } catch {
+          sticker = null
+        }
+      }
+
+      const filter = req.body.filter || 'normal'
+
       const story = await Story.create({
         user: req.user.id,
         imageUrl,
         imagePublicId,
         caption: (req.body.caption || '').trim(),
+        music,
+        filter,
+        sticker,
         expiresAt,
       })
 
@@ -286,8 +332,9 @@ router.post('/:storyId/view', requireAuth, async (req, res) => {
       }
     }
 
-    // Do NOT count the story owner as a viewer of their own story
-    if (isAuthor) {
+    // In production, do not count the story owner as a viewer. In development, allow recording so self-tests show up in viewers.
+    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== 'production'
+    if (isAuthor && !isDev) {
       const viewsCount = await StoryView.countDocuments({ story: story._id })
       return res.json({ ok: true, viewsCount, message: 'Owner view not recorded.' })
     }
@@ -340,6 +387,8 @@ router.get('/:storyId/viewers', requireAuth, async (req, res) => {
         initials: v.viewer.initials || (v.viewer.name ? v.viewer.name.slice(0, 2).toUpperCase() : 'U'),
         avatarColor: v.viewer.avatarColor || '#6366f1',
         profilePhoto: v.viewer.profilePhoto || null,
+        reaction: v.reaction || null,
+        reactedAt: v.reactedAt || null,
         viewedAt: v.viewedAt,
         time: formatRelativeTime(v.viewedAt),
       }))
@@ -356,6 +405,395 @@ router.get('/:storyId/viewers', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Story not found.' })
     }
     res.status(500).json({ ok: false, error: 'Failed to fetch viewers.' })
+  }
+})
+
+// ── LIKE / UNLIKE STORY ───────────────────────────────────────────────────────
+// POST /api/stories/:storyId/like
+router.post('/:storyId/like', requireAuth, async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.storyId)
+    if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+    if (story.expiresAt && story.expiresAt <= new Date()) {
+      return res.status(410).json({ ok: false, error: 'Story has expired.' })
+    }
+
+    const alreadyLiked = (story.likes || []).some(l => l.toString() === req.user.id)
+    if (alreadyLiked) {
+      await Story.updateOne({ _id: story._id }, { $pull: { likes: req.user._id } })
+      await StoryView.updateOne(
+        { story: story._id, viewer: req.user._id, reaction: '❤️' },
+        { $set: { reaction: null, reactedAt: null } }
+      )
+    } else {
+      await Story.updateOne({ _id: story._id }, { $addToSet: { likes: req.user._id } })
+      await StoryView.findOneAndUpdate(
+        { story: story._id, viewer: req.user._id },
+        {
+          $set: { reaction: '❤️', reactedAt: new Date() },
+          $setOnInsert: { viewedAt: new Date() },
+        },
+        { upsert: true }
+      )
+    }
+
+    const updated = await Story.findById(story._id).select('likes')
+    const isLiked = !alreadyLiked
+    const likesCount = (updated.likes || []).length
+
+    const authorObjectId = story.user?._id || story.user
+    const authorId = authorObjectId.toString()
+    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== 'production'
+    const shouldNotify = (authorId !== req.user.id) || isDev
+
+    if (!alreadyLiked && shouldNotify) {
+      try {
+        await createNotification({
+          recipient: authorObjectId,
+          sender: req.user._id,
+          type: 'like',
+          text: 'liked your story',
+          subtext: story.caption ? story.caption.slice(0, 50) : '',
+        })
+      } catch (notifErr) {
+        console.error('[Story like notification error]', notifErr)
+      }
+    }
+
+    res.json({ ok: true, isLiked, likesCount })
+  } catch (err) {
+    console.error('[POST /api/stories/:storyId/like] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to update story like.' })
+  }
+})
+
+// ── REACT TO STORY (EMOJI REACTION) ──────────────────────────────────────────
+// POST /api/stories/:storyId/react
+router.post('/:storyId/react', requireAuth, async (req, res) => {
+  try {
+    let emoji = req.body?.emoji
+    if (!emoji && typeof req.body === 'string') {
+      try {
+        const parsed = JSON.parse(req.body)
+        emoji = parsed?.emoji || parsed
+      } catch {}
+    }
+
+    if (typeof emoji !== 'string' || !emoji.trim()) {
+      return res.status(400).json({ ok: false, error: 'Reaction emoji is required.' })
+    }
+
+    const story = await Story.findById(req.params.storyId)
+    if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+    if (story.expiresAt && story.expiresAt <= new Date()) {
+      return res.status(410).json({ ok: false, error: 'Story has expired.' })
+    }
+
+    const trimmedEmoji = emoji.trim()
+
+    // Upsert or update the viewer's StoryView with this reaction
+    await StoryView.findOneAndUpdate(
+      { story: story._id, viewer: req.user._id },
+      {
+        $set: { reaction: trimmedEmoji, reactedAt: new Date() },
+        $setOnInsert: { viewedAt: new Date() },
+      },
+      { upsert: true, new: true }
+    )
+
+    // If reaction is ❤️, also ensure likes is updated on the story
+    if (trimmedEmoji === '❤️') {
+      await Story.updateOne({ _id: story._id }, { $addToSet: { likes: req.user._id } })
+    }
+
+    const authorObjectId = story.user?._id || story.user
+    const authorId = authorObjectId.toString()
+    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== 'production'
+    const shouldNotify = (authorId !== req.user.id) || isDev
+
+    // Forward as direct message to story author if sender is not the author
+    if (authorId !== req.user.id) {
+      try {
+        let conv = await Conversation.findOne({
+          participants: { $all: [req.user._id, authorObjectId], $size: 2 },
+        })
+        if (!conv) {
+          conv = await Conversation.create({
+            participants: [req.user._id, authorObjectId],
+            messages: [],
+          })
+        }
+        const dmText = `Reacted ${trimmedEmoji} to your story`
+        const storyReplyData = {
+          storyId: story._id,
+          imageUrl: story.imageUrl,
+          reaction: trimmedEmoji,
+          caption: story.caption || '',
+          storyAuthorId: authorObjectId,
+        }
+        conv.messages.push({
+          sender: req.user._id,
+          text: dmText,
+          readBy: [req.user._id],
+          storyReply: storyReplyData,
+        })
+        conv.lastMessage = dmText.slice(0, 100)
+        conv.lastMessageAt = new Date()
+        conv.lastSender = req.user._id
+        await conv.save()
+
+        const savedMsg = conv.messages[conv.messages.length - 1]
+        const msgPayload = {
+          id: savedMsg._id.toString(),
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: dmText,
+          createdAt: savedMsg.createdAt,
+          readBy: [req.user.id],
+          storyReply: {
+            storyId: story._id.toString(),
+            imageUrl: story.imageUrl,
+            reaction: trimmedEmoji,
+            caption: story.caption || '',
+            storyAuthorId: authorId,
+          },
+        }
+
+        // Socket notifications for messaging reflection in real-time
+        emitToUser(authorId, 'msg:new', msgPayload)
+        emitToUser(authorId, 'msg:notification', {
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: dmText,
+          createdAt: savedMsg.createdAt,
+          storyReply: msgPayload.storyReply,
+        })
+
+        const io = getIO()
+        if (io) {
+          io.to(`conv:${conv._id.toString()}`).emit('msg:new', msgPayload)
+        }
+      } catch (dmErr) {
+        console.warn('[Story React] DM sync warning:', dmErr)
+      }
+    }
+
+    // Real-time story react update to author
+    emitToUser(authorId, 'story:react', {
+      storyId: story._id.toString(),
+      viewerId: req.user.id,
+      emoji: trimmedEmoji,
+      viewer: {
+        id: req.user.id,
+        name: req.user.name,
+        username: req.user.username,
+        initials: req.user.initials,
+        avatarColor: req.user.avatarColor,
+        profilePhoto: req.user.profilePhoto || null,
+        reaction: trimmedEmoji,
+      },
+    })
+
+    // Create & emit notification for emoji reaction
+    if (shouldNotify) {
+      try {
+        await createNotification({
+          recipient: authorObjectId,
+          sender: req.user._id,
+          type: 'comment',
+          text: `reacted ${trimmedEmoji} to your story`,
+          subtext: trimmedEmoji,
+        })
+      } catch (notifErr) {
+        console.error('[Story reaction notification error]', notifErr)
+      }
+    }
+
+    res.json({ ok: true, message: 'Reaction recorded.', reaction: trimmedEmoji })
+  } catch (err) {
+    console.error('[POST /api/stories/:storyId/react] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to record reaction.' })
+  }
+})
+
+// ── REPLY / COMMENT ON STORY ─────────────────────────────────────────────────
+// POST /api/stories/:storyId/reply
+router.post('/:storyId/reply', requireAuth, async (req, res) => {
+  try {
+    let text = req.body?.text
+    if (!text && typeof req.body === 'string') {
+      try {
+        const parsed = JSON.parse(req.body)
+        text = parsed?.text || parsed
+      } catch {}
+    }
+
+    if (typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ ok: false, error: 'Reply text cannot be empty.' })
+    }
+
+    const story = await Story.findById(req.params.storyId)
+    if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+    if (story.expiresAt && story.expiresAt <= new Date()) {
+      return res.status(410).json({ ok: false, error: 'Story has expired.' })
+    }
+
+    const replyId = new mongoose.Types.ObjectId()
+    const replyItem = {
+      _id: replyId,
+      user: req.user._id,
+      text: text.trim().slice(0, 500),
+      createdAt: new Date(),
+    }
+
+    if (!Array.isArray(story.replies)) {
+      story.replies = []
+    }
+    story.replies.push(replyItem)
+    await story.save()
+
+    const formattedReply = {
+      id: replyId.toString(),
+      _id: replyId.toString(),
+      userId: req.user._id.toString(),
+      name: req.user.name || 'User',
+      username: req.user.username || '',
+      initials: req.user.initials || (req.user.name ? req.user.name.slice(0, 2).toUpperCase() : 'U'),
+      avatarColor: req.user.avatarColor || '#6366f1',
+      profilePhoto: req.user.profilePhoto || null,
+      text: replyItem.text,
+      createdAt: replyItem.createdAt,
+      time: 'Just now',
+    }
+
+    const authorObjectId = story.user?._id || story.user
+    const authorId = authorObjectId.toString()
+    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== 'production'
+    const shouldNotify = (authorId !== req.user.id) || isDev
+
+    // Forward as direct message to story author if sender is not the author (Instagram-style)
+    if (authorId !== req.user.id) {
+      try {
+        let conv = await Conversation.findOne({
+          participants: { $all: [req.user._id, authorObjectId], $size: 2 },
+        })
+        if (!conv) {
+          conv = await Conversation.create({
+            participants: [req.user._id, authorObjectId],
+            messages: [],
+          })
+        }
+        const dmText = text.trim()
+        const storyReplyData = {
+          storyId: story._id,
+          imageUrl: story.imageUrl,
+          reaction: null,
+          caption: story.caption || '',
+          storyAuthorId: authorObjectId,
+        }
+        conv.messages.push({
+          sender: req.user._id,
+          text: dmText,
+          readBy: [req.user._id],
+          storyReply: storyReplyData,
+        })
+        conv.lastMessage = `Replied to story: ${dmText}`.slice(0, 100)
+        conv.lastMessageAt = new Date()
+        conv.lastSender = req.user._id
+        await conv.save()
+
+        const savedMsg = conv.messages[conv.messages.length - 1]
+        const msgPayload = {
+          id: savedMsg._id.toString(),
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: dmText,
+          createdAt: savedMsg.createdAt,
+          readBy: [req.user.id],
+          storyReply: {
+            storyId: story._id.toString(),
+            imageUrl: story.imageUrl,
+            reaction: null,
+            caption: story.caption || '',
+            storyAuthorId: authorId,
+          },
+        }
+
+        emitToUser(authorId, 'msg:new', msgPayload)
+        emitToUser(authorId, 'msg:notification', {
+          convId: conv._id.toString(),
+          senderId: req.user.id,
+          senderName: req.user.name,
+          text: `Replied to your story: ${dmText}`,
+          createdAt: savedMsg.createdAt,
+          storyReply: msgPayload.storyReply,
+        })
+
+        const io = getIO()
+        if (io) {
+          io.to(`conv:${conv._id.toString()}`).emit('msg:new', msgPayload)
+        }
+      } catch (dmErr) {
+        console.warn('[Story Reply] DM sync warning:', dmErr)
+      }
+    }
+
+    // Real-time story comment update for comment section
+    emitToUser(authorId, 'story:reply', {
+      storyId: story._id.toString(),
+      reply: formattedReply,
+    })
+
+    // Create & emit notification for comment
+    if (shouldNotify) {
+      try {
+        await createNotification({
+          recipient: authorObjectId,
+          sender: req.user._id,
+          type: 'comment',
+          text: `commented on your story: "${text.trim().slice(0, 45)}"`,
+          subtext: text.trim(),
+        })
+      } catch (notifErr) {
+        console.error('[Story reply notification error]', notifErr)
+      }
+    }
+
+    res.json({ ok: true, message: 'Reply sent successfully.', reply: formattedReply })
+  } catch (err) {
+    console.error('[POST /api/stories/:storyId/reply] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to send reply.' })
+  }
+})
+
+// ── GET STORY REPLIES ────────────────────────────────────────────────────────
+// GET /api/stories/:storyId/replies
+router.get('/:storyId/replies', requireAuth, async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.storyId)
+      .populate('replies.user', 'name username initials avatarColor profilePhoto')
+    if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+
+    const replies = (story.replies || []).map(r => ({
+      id: r._id ? r._id.toString() : undefined,
+      userId: r.user?._id?.toString() || r.user?.id || (typeof r.user === 'string' ? r.user : ''),
+      name: r.user?.name || (r.user?.toString() === req.user.id ? req.user.name : 'User'),
+      username: r.user?.username || (r.user?.toString() === req.user.id ? req.user.username : ''),
+      initials: r.user?.initials || (r.user?.name ? r.user.name.slice(0, 2).toUpperCase() : 'U'),
+      avatarColor: r.user?.avatarColor || '#6366f1',
+      profilePhoto: r.user?.profilePhoto || null,
+      text: r.text,
+      createdAt: r.createdAt,
+      time: formatRelativeTime(r.createdAt),
+    }))
+
+    res.json({ ok: true, replies })
+  } catch (err) {
+    console.error('[GET /api/stories/:storyId/replies] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch replies.' })
   }
 })
 

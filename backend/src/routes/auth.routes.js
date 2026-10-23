@@ -104,7 +104,7 @@ function checkEmailSendLimit(email) {
 }
 
 const router = Router()
-const BCRYPT_ROUNDS = 12
+const BCRYPT_ROUNDS = 10
 
 function computeInitials(name) {
   return name
@@ -491,77 +491,76 @@ router.post(
         const demoUser = DEMO_USERS[normalizedEmail]
         const isDemoPasswordMatch = Boolean(demoUser && password === demoUser.password)
       if (isDemoPasswordMatch) {
-        // First try to find the database user created by seed script
-        const demoDbUser = await User.findOne({ email: normalizedEmail, isDemo: true })
-        if (demoDbUser) {
-          // Verify password using stored hash
-          const isPasswordValid = await bcrypt.compare(password, demoDbUser.passwordHash)
+        // First try to find existing database user
+        const existingDbUser = await User.findOne({ email: normalizedEmail })
+        if (existingDbUser) {
+          // Fast-track demo accounts if still marked isDemo, otherwise verify stored password hash
+          const isPasswordValid = existingDbUser.isDemo || (await bcrypt.compare(password, existingDbUser.passwordHash))
           if (isPasswordValid) {
-            const token = setAuthCookie(res, demoDbUser)
+            const token = setAuthCookie(res, existingDbUser)
             return res.status(200).json({
               ok: true,
               token,
-              user: demoDbUser.toJSON(),
-              redirectTo: redirectPathForRole(demoDbUser.role),
+              user: existingDbUser.toJSON(),
+              redirectTo: redirectPathForRole(existingDbUser.role),
             })
           }
-        }
-        
-        // If demo user doesn't exist in DB or password hash doesn't match, 
-        // create/upsert the demo user in database (for development/testing)
-        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
-        
-        // Get college for college_admin role
-        let collegeId = null
-        let collegeName = demoUser.college
-        if (demoUser.role === 'college_admin') {
-          const college = await College.findOne({ domain: 'campus.edu' })
-          if (college) {
-            collegeId = college._id
-            collegeName = college.name
+          // If password does not match, user changed their password or entered wrong password.
+          // Do NOT overwrite user's password in DB!
+        } else {
+          // Only create initial demo user if the account does NOT exist in DB yet
+          const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+          let collegeId = null
+          let collegeName = demoUser.college
+          if (demoUser.role === 'college_admin') {
+            const college = await College.findOne({ domain: 'campus.edu' })
+            if (college) {
+              collegeId = college._id
+              collegeName = college.name
+            }
           }
+
+          const userData = {
+            name: demoUser.name,
+            username: normalizedEmail.split('@')[0],
+            initials: demoUser.initials,
+            avatarColor: demoUser.avatarColor,
+            email: normalizedEmail,
+            passwordHash,
+            role: demoUser.role,
+            college: collegeName,
+            collegeId: collegeId,
+            isEmailVerified: true,
+            isDemo: true,
+            mustChangePassword: false,
+            ...(demoUser.dept && { dept: demoUser.dept }),
+            ...(demoUser.year && { year: demoUser.year }),
+            ...(demoUser.studentId && { studentId: demoUser.studentId }),
+            ...(demoUser.designation && { designation: demoUser.designation }),
+            ...(demoUser.employeeId && { employeeId: demoUser.employeeId }),
+          }
+
+          const result = await User.findOneAndUpdate(
+            { email: normalizedEmail },
+            { $set: userData },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
+
+          const token = setAuthCookie(res, result)
+          return res.status(200).json({
+            ok: true,
+            token,
+            user: result.toJSON(),
+            redirectTo: redirectPathForRole(demoUser.role),
+          })
         }
-
-        const userData = {
-          name: demoUser.name,
-          username: normalizedEmail.split('@')[0],
-          initials: demoUser.initials,
-          avatarColor: demoUser.avatarColor,
-          email: normalizedEmail,
-          passwordHash,
-          role: demoUser.role,
-          college: collegeName,
-          collegeId: collegeId,
-          isEmailVerified: true,
-          isDemo: true,
-          mustChangePassword: false,
-          ...(demoUser.dept && { dept: demoUser.dept }),
-          ...(demoUser.year && { year: demoUser.year }),
-          ...(demoUser.studentId && { studentId: demoUser.studentId }),
-          ...(demoUser.designation && { designation: demoUser.designation }),
-          ...(demoUser.employeeId && { employeeId: demoUser.employeeId }),
-        }
-
-        const result = await User.findOneAndUpdate(
-          { email: normalizedEmail },
-          { $set: userData },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        )
-
-        const token = setAuthCookie(res, result)
-        return res.status(200).json({
-          ok: true,
-          token,
-          user: result.toJSON(),
-          redirectTo: redirectPathForRole(demoUser.role),
-        })
       }
       }
 
       const user = await User.findOne({ email: normalizedEmail })
 
       // Timing-safe: always run bcrypt even if user not found (to prevent timing attacks)
-      const fakeHash = '$2b$12$invalidhashfortimingprotectiononly1234567890123456'
+      const fakeHash = '$2b$10$invalidhashfortimingprotectiononly1234567890123456'
       const passwordToCheck = user ? user.passwordHash : fakeHash
       const isPasswordValid = await bcrypt.compare(password, passwordToCheck)
 
@@ -683,6 +682,7 @@ router.post(
       const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
       user.passwordHash = passwordHash
       user.mustChangePassword = false
+      user.isDemo = false
       await user.save()
 
       return res.status(200).json({ ok: true, message: 'Password changed successfully.' })

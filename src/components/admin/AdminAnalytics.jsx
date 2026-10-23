@@ -258,16 +258,22 @@ export default function AdminAnalytics({ onOpenSidebar }) {
         }
       }
 
-      // If requests only returned PENDING, supplement approved from colleges with createdAt
-      const hasApproved = requestsData.some(r => r.status === 'APPROVED')
-      if (!hasApproved && collegesData.length > 0) {
-        const syntheticApproved = collegesData.map(c => ({
-          id: c.id,
+      // Complement any colleges in collegesData not already present in onboarding requests
+      const existingReqNames = new Set(
+        requestsData.map(r => (r.collegeName || '').trim().toLowerCase())
+      )
+      const missingApprovedColleges = collegesData
+        .filter(c => c.name && !existingReqNames.has(c.name.trim().toLowerCase()))
+        .map(c => ({
+          id: c.id || c._id,
           collegeName: c.name,
+          collegeCode: c.code || '',
           status: 'APPROVED',
           createdAt: c.createdAt,
+          emailVerified: true,
         }))
-        requestsData = [...requestsData, ...syntheticApproved]
+      if (missingApprovedColleges.length > 0) {
+        requestsData = [...requestsData, ...missingApprovedColleges]
       }
       setRequests(requestsData)
     } catch (err) {
@@ -482,7 +488,12 @@ export default function AdminAnalytics({ onOpenSidebar }) {
     const totalPending = requests.filter(r => r.status?.toUpperCase() === 'PENDING').length
     const totalRejected = requests.filter(r => r.status?.toUpperCase() === 'REJECTED').length
 
-    return { points, totalApproved, totalPending, totalRejected }
+    const maxVal = Math.max(
+      3,
+      ...points.map(p => Math.max(p.approved, p.pending, p.rejected, p.total))
+    )
+
+    return { points, totalApproved, totalPending, totalRejected, maxVal }
   }, [requests, requestsTimeframe])
 
   if (loading) {
@@ -1363,8 +1374,7 @@ export default function AdminAnalytics({ onOpenSidebar }) {
         {/* Bar Chart Visualization */}
         <div className="relative h-48 w-full mt-4 select-none">
           {(() => {
-            const { points } = requestsChartData
-            const maxVal = 3
+            const { points, maxVal = 3 } = requestsChartData
             const svgHeight = 160
             const svgWidth = 900
             const padLeft = 30
@@ -1377,7 +1387,8 @@ export default function AdminAnalytics({ onOpenSidebar }) {
 
             const barW = Math.max(4, Math.min(14, chartW / (points.length * 2.2)))
 
-            const yTicks = [0, 1, 2, 3]
+            const rawYTicks = [0, Math.ceil(maxVal * 0.33), Math.ceil(maxVal * 0.66), maxVal]
+            const yTicks = Array.from(new Set(rawYTicks)).sort((a, b) => a - b)
             const numReqTicks = points.length <= 8 ? points.length : 7
             const xTicks = []
             for (let i = 0; i < numReqTicks; i++) {

@@ -1,6 +1,8 @@
 import { Server } from 'socket.io'
 import { createServer } from 'http'
+import { createAdapter } from '@socket.io/redis-adapter'
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
 import { isOriginAllowed } from '../config/cors.js'
@@ -13,26 +15,30 @@ export function isUserOnline(userId) { return onlineUsers.has(String(userId)) }
 export function getOnlineUsers() { return [...onlineUsers.keys()] }
 
 export function emitToUser(userId, event, data) {
+  if (!_io || !userId) return
+  _io.to(`user:${String(userId)}`).emit(event, data)
+}
+
+export function broadcastEvent(event, data, options = {}) {
   if (!_io) return
-  const socketIds = onlineUsers.get(String(userId))
-  if (socketIds) {
-    for (const sid of socketIds) {
-      _io.to(sid).emit(event, data)
-    }
+  if (options?.collegeId) {
+    _io.to(`college:${String(options.collegeId)}`).emit(event, data)
+  } else {
+    _io.emit(event, data)
   }
 }
 
-export function broadcastEvent(event, data) {
-  if (!_io) return
-  _io.emit(event, data)
+export function emitToCollege(collegeId, event, data) {
+  if (!_io || !collegeId) return
+  _io.to(`college:${String(collegeId)}`).emit(event, data)
 }
 
 let _io
 
-export function initSocket(app) {
+export function initSocket(app, { pubClient, subClient } = {}) {
   const httpServer = createServer(app)
 
-  _io = new Server(httpServer, {
+  const serverOptions = {
     cors: {
       origin: (origin, cb) => {
         if (isOriginAllowed(origin)) {
@@ -45,7 +51,24 @@ export function initSocket(app) {
       methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
-  })
+  }
+
+  // ── Optional Redis adapter (Stage 2) ─────────────────────────────────────
+  // Configure adapter directly on Server instantiation when clients are provided.
+  // This avoids dynamic adapter swapping during active traffic and prevents
+  // room memberships from being orphaned.
+  if (pubClient && subClient) {
+    try {
+      serverOptions.adapter = createAdapter(pubClient, subClient)
+      console.log('[Socket] Redis adapter configured (multi-instance broadcasts enabled)')
+    } catch (adapterErr) {
+      console.error('[Socket] Redis adapter attach failed — using in-memory adapter:', adapterErr.message)
+    }
+  } else {
+    console.log('[Socket] Redis adapter not configured — using in-memory adapter (single-instance mode)')
+  }
+
+  _io = new Server(httpServer, serverOptions)
 
   // ── Auth middleware: verify JWT cookie or auth header on connect ───────────
   _io.use(async (socket, next) => {
@@ -71,6 +94,14 @@ export function initSocket(app) {
 
   _io.on('connection', async (socket) => {
     const userId = socket.user._id.toString()
+
+    // Join user-specific room for targeted, multi-instance delivery across tabs and instances
+    socket.join(`user:${userId}`)
+
+    // Join college-specific room so post likes and campus updates are scoped without global broadcast storms
+    if (socket.user.collegeId) {
+      socket.join(`college:${socket.user.collegeId.toString()}`)
+    }
 
     // Track this socket (a user may have multiple tabs open)
     if (!onlineUsers.has(userId)) {
@@ -107,59 +138,69 @@ export function initSocket(app) {
     })
 
     // ── Send a message ────────────────────────────────────────────────────────
-    socket.on('msg:send', async ({ convId, text }, ack) => {
+    socket.on('msg:send', async ({ convId, text, storyReply, postShare }, ack) => {
       try {
         if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
-        const conv = await Conversation.findOne({ _id: convId, participants: userId })
+        const cleanText = text.trim()
+        const now = new Date()
+        const msgId = new mongoose.Types.ObjectId()
+        const newMsg = {
+          _id: msgId,
+          sender: socket.user._id,
+          text: cleanText,
+          readBy: [socket.user._id],
+          createdAt: now,
+          updatedAt: now,
+          ...(storyReply && { storyReply }),
+          ...(postShare && { postShare }),
+        }
+
+        // Atomic append with authorization verification in the database filter
+        const conv = await Conversation.findOneAndUpdate(
+          { _id: convId, participants: socket.user._id },
+          {
+            $push: { messages: newMsg },
+            $set: {
+              lastMessage: cleanText.slice(0, 100),
+              lastMessageAt: now,
+              lastSender: socket.user._id,
+            },
+          },
+          { new: false, select: 'participants' }
+        )
+
         if (!conv) return ack?.({ ok: false, error: 'Conversation not found.' })
 
-        const msg = {
-          sender: socket.user._id,
-          text:   text.trim(),
-          readBy: [socket.user._id],
-        }
-        conv.messages.push(msg)
-        conv.lastMessage   = text.trim().slice(0, 100)
-        conv.lastMessageAt = new Date()
-        conv.lastSender    = socket.user._id
-        await conv.save()
-
-        const saved = conv.messages[conv.messages.length - 1]
         const payload = {
-          id:         saved._id.toString(),
+          id:         msgId.toString(),
           convId,
           senderId:   userId,
           senderName: socket.user.name,
-          text:       saved.text,
-          createdAt:  saved.createdAt,
-          readBy:     saved.readBy.map(r => r.toString()),
+          text:       cleanText,
+          createdAt:  now.toISOString(),
+          readBy:     [userId],
+          storyReply: storyReply || null,
+          postShare:  postShare || null,
         }
 
         // Emit to other participants in the conversation room (sender gets message via ack)
         socket.to(`conv:${convId}`).emit('msg:new', payload)
 
-        // Also notify participants who are online but NOT in the room
+        // Also notify participants outside the room across all instances
         for (const participantId of conv.participants) {
           const pid = participantId.toString()
           if (pid === userId) continue
-          const socketIds = onlineUsers.get(pid)
-          if (socketIds && socket.user.preferences?.privacy?.activity !== false) {
-            for (const sid of socketIds) {
-              const participantSocket = _io.sockets.sockets.get(sid)
-              if (participantSocket && !participantSocket.rooms.has(`conv:${convId}`)) {
-                participantSocket.emit('msg:notification', {
-                  convId,
-                  senderId:   userId,
-                  senderName: socket.user.name,
-                  text:       saved.text,
-                  createdAt:  saved.createdAt,
-                })
-              }
-            }
-          }
+          emitToUser(pid, 'msg:notification', {
+            convId,
+            senderId:   userId,
+            senderName: socket.user.name,
+            text:       cleanText,
+            createdAt:  now.toISOString(),
+          })
         }
 
+        // Acknowledge sender only after persistence has fully succeeded
         ack?.({ ok: true, message: payload })
       } catch (err) {
         console.error('[Socket msg:send]', err)
@@ -181,40 +222,41 @@ export function initSocket(app) {
     })
 
     // ── Mark messages as read ─────────────────────────────────────────────────
-    socket.on('msg:read', async ({ convId }) => {
+    socket.on('msg:read', async ({ convId }, ack) => {
       try {
-        const conv = await Conversation.findOne({ _id: convId, participants: userId })
-        if (!conv) return
+        if (!convId) return ack?.({ ok: false, error: 'convId is required.' })
 
-        let modified = false
-        for (const msg of conv.messages) {
-          if (msg.sender.toString() !== userId && !msg.readBy.map(r => r.toString()).includes(userId)) {
-            msg.readBy.push(socket.user._id)
-            modified = true
-          }
+        // Atomic read marking using arrayFilters without full-document fetch/save
+        const updateRes = await Conversation.updateOne(
+          { _id: convId, participants: socket.user._id },
+          { $addToSet: { 'messages.$[elem].readBy': socket.user._id } },
+          { arrayFilters: [{ 'elem.sender': { $ne: socket.user._id }, 'elem.readBy': { $ne: socket.user._id } }] }
+        )
+
+        if (updateRes.matchedCount === 0) {
+          return ack?.({ ok: false, error: 'Conversation not found.' })
         }
-        if (modified) {
-          await conv.save()
+
+        // Broadcast to other participants in the room if unread messages were marked read
+        if (updateRes.modifiedCount > 0) {
           socket.to(`conv:${convId}`).emit('msg:read', { convId, readBy: userId })
         }
+
+        ack?.({ ok: true, readBy: userId })
       } catch (err) {
         console.error('[Socket msg:read]', err)
+        ack?.({ ok: false, error: 'Failed to mark as read.' })
       }
     })
 
     // ── Follow notification ───────────────────────────────────────────────────
     socket.on('follow:notify', ({ targetUserId }) => {
-      const socketIds = onlineUsers.get(String(targetUserId))
-      if (socketIds) {
-        for (const sid of socketIds) {
-          _io.to(sid).emit('follow:received', {
-            fromUserId:   userId,
-            fromUserName: socket.user.name,
-            fromInitials: socket.user.initials,
-            fromColor:    socket.user.avatarColor,
-          })
-        }
-      }
+      emitToUser(targetUserId, 'follow:received', {
+        fromUserId:   userId,
+        fromUserName: socket.user.name,
+        fromInitials: socket.user.initials,
+        fromColor:    socket.user.avatarColor,
+      })
     })
 
     // ── Disconnect ────────────────────────────────────────────────────────────

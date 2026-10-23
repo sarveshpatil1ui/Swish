@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { Conversation } from '../models/Conversation.js'
 import User from '../models/User.js'
@@ -10,11 +11,12 @@ router.use(requireAuth)
 
 // ── Helper: format conversation for client ────────────────────────────────────
 function formatConv(conv, myId) {
-  const other = conv.participants.find(p => p._id.toString() !== myId.toString())
+  const other = (conv.participants || []).find(p => p && (p._id ? p._id.toString() : p.toString()) !== myId.toString())
 
-  // Count unread messages (sent by other, not read by me)
-  const unread = conv.messages.filter(
-    m => m.sender.toString() !== myId.toString() && !m.readBy.map(r => r.toString()).includes(myId.toString())
+  // Count unread messages (sent by other, not read by me) from recent slice
+  const myIdStr = myId.toString()
+  const unread = (conv.messages || []).filter(
+    m => m && m.sender && m.sender.toString() !== myIdStr && !(m.readBy || []).map(r => r ? r.toString() : '').includes(myIdStr)
   ).length
 
   return {
@@ -35,8 +37,20 @@ function formatConv(conv, myId) {
 // ── GET /api/messages — list all conversations for current user ───────────────
 router.get('/', async (req, res) => {
   try {
-    const convs = await Conversation.find({ participants: req.user._id })
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
+    const convs = await Conversation.find(
+      { participants: req.user._id },
+      {
+        participants: 1,
+        lastMessage: 1,
+        lastMessageAt: 1,
+        lastSender: 1,
+        updatedAt: 1,
+        messages: { $slice: -30 },
+      }
+    )
       .sort({ lastMessageAt: -1 })
+      .limit(limit)
       .populate('participants', 'name username initials avatarColor profilePhoto')
       .lean({ virtuals: true })
 
@@ -78,37 +92,46 @@ router.get('/:convId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Invalid conversation ID.' })
     }
 
-    const conv = await Conversation.findOne({
-      _id:          req.params.convId,
-      participants: req.user._id,
-    }).populate('participants', 'name username initials avatarColor profilePhoto')
-      .populate('messages.sender', 'name username initials avatarColor profilePhoto')
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
+
+    // Slice recent messages using .lean() without pulling lifetime conversation history
+    const conv = await Conversation.findOne(
+      {
+        _id:          req.params.convId,
+        participants: req.user._id,
+      },
+      {
+        messages: { $slice: -limit },
+      }
+    ).lean()
 
     if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
 
-    // Mark all unread messages as read
-    let modified = false
-    for (const msg of conv.messages) {
-      const alreadyRead = msg.readBy.map(r => r.toString()).includes(req.user._id.toString())
-      if (!alreadyRead && msg.sender.toString() !== req.user._id.toString()) {
-        msg.readBy.push(req.user._id)
-        modified = true
-      }
-    }
-    if (modified) await conv.save()
-
-    const messages = conv.messages.map(m => ({
-      id:        m._id.toString(),
-      senderId:  m.sender._id ? m.sender._id.toString() : m.sender.toString(),
+    const messages = (conv.messages || []).map(m => ({
+      id:        m._id ? m._id.toString() : m.id,
+      senderId:  m.sender ? (m.sender._id ? m.sender._id.toString() : m.sender.toString()) : '',
       text:      m.text,
       createdAt: m.createdAt,
-      readBy:    m.readBy.map(r => r.toString()),
+      readBy:    (m.readBy || []).map(r => r.toString()),
+      storyReply: m.storyReply && (m.storyReply.imageUrl || m.storyReply.storyId) ? {
+        storyId:       m.storyReply.storyId ? m.storyReply.storyId.toString() : null,
+        imageUrl:      m.storyReply.imageUrl || null,
+        reaction:      m.storyReply.reaction || null,
+        caption:       m.storyReply.caption || '',
+        storyAuthorId: m.storyReply.storyAuthorId ? m.storyReply.storyAuthorId.toString() : null,
+      } : null,
+      postShare: m.postShare && m.postShare.postId ? {
+        postId:     m.postShare.postId ? m.postShare.postId.toString() : null,
+        imageUrl:   m.postShare.imageUrl || null,
+        caption:    m.postShare.caption || '',
+        authorName: m.postShare.authorName || '',
+      } : null,
     }))
 
-    res.json({ ok: true, messages })
+    return res.status(200).json({ ok: true, messages })
   } catch (err) {
     console.error('[GET /messages/:convId]', err)
-    res.status(500).json({ ok: false, error: 'Failed to load messages.' })
+    return res.status(500).json({ ok: false, error: 'Failed to load messages.' })
   }
 })
 
@@ -148,39 +171,50 @@ router.post('/:convId/send', async (req, res) => {
     const { text } = req.body
     if (!text?.trim()) return res.status(400).json({ ok: false, error: 'Message text is required.' })
 
-    const conv = await Conversation.findOne({
-      _id:          req.params.convId,
-      participants: req.user._id,
-    })
-    if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
-
+    const cleanText = text.trim()
+    const now = new Date()
+    const msgId = new mongoose.Types.ObjectId()
     const msg = {
-      sender:  req.user._id,
-      text:    text.trim(),
-      readBy:  [req.user._id],
+      _id: msgId,
+      sender: req.user._id,
+      text: cleanText,
+      readBy: [req.user._id],
+      createdAt: now,
+      updatedAt: now,
     }
 
-    conv.messages.push(msg)
-    conv.lastMessage   = text.trim().slice(0, 100)
-    conv.lastMessageAt = new Date()
-    conv.lastSender    = req.user._id
+    const updateRes = await Conversation.updateOne(
+      {
+        _id: req.params.convId,
+        participants: req.user._id,
+      },
+      {
+        $push: { messages: msg },
+        $set: {
+          lastMessage: cleanText.slice(0, 100),
+          lastMessageAt: now,
+          lastSender: req.user._id,
+        },
+      }
+    )
 
-    await conv.save()
+    if (updateRes.matchedCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
 
-    const saved = conv.messages[conv.messages.length - 1]
-    res.json({
+    return res.status(200).json({
       ok: true,
       message: {
-        id:        saved._id.toString(),
-        senderId:  req.user._id.toString(),
-        text:      saved.text,
-        createdAt: saved.createdAt,
-        readBy:    saved.readBy.map(r => r.toString()),
+        id: msgId.toString(),
+        senderId: req.user._id.toString(),
+        text: cleanText,
+        createdAt: now.toISOString(),
+        readBy: [req.user._id.toString()],
       },
     })
   } catch (err) {
     console.error('[POST /messages/:convId/send]', err)
-    res.status(500).json({ ok: false, error: 'Failed to send message.' })
+    return res.status(500).json({ ok: false, error: 'Failed to send message.' })
   }
 })
 

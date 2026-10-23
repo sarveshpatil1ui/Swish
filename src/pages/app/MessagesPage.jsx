@@ -10,6 +10,7 @@ import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
 import { getStoredToken } from '../../utils/auth'
 import EmojiPicker from '../../components/app/EmojiPicker'
+import { resolveImageUrl } from '../../utils/posts'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -81,21 +82,103 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
 function MessageBubble({ msg, isMe }) {
+  const storyReply = msg.storyReply
+  const isReaction = msg.text?.startsWith('Reacted ') && msg.text?.includes(' to your story')
+  const reactionEmoji =
+    storyReply?.reaction ||
+    (isReaction ? msg.text.replace('Reacted ', '').replace(' to your story', '').trim() : null)
+
+  const resolvedStoryImg = storyReply?.imageUrl ? resolveImageUrl(storyReply.imageUrl) : null
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.16 }}
-      className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1`}
+      className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}
     >
-      <div className={`max-w-[72%] group flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-          isMe
-            ? 'bg-indigo-600 text-white rounded-br-sm'
-            : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
-        }`}>
-          {msg.text}
-        </div>
+      <div className={`max-w-[85%] sm:max-w-[70%] group flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+        
+        {/* ── Story Reaction / Reply Preview Card (Instagram Style) ── */}
+        {storyReply && resolvedStoryImg ? (
+          <div
+            className={`rounded-2xl p-2 shadow-sm border transition-all ${
+              isMe
+                ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
+                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+            }`}
+          >
+            {/* Header tag */}
+            <div className="flex items-center gap-1.5 px-1 pb-1.5 text-[11px] font-semibold opacity-90">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>{isMe ? 'You replied to story' : 'Replied to your story'}</span>
+            </div>
+
+            {/* Story Thumbnail Card with vertical aspect ratio */}
+            <div className="relative w-40 h-56 sm:w-48 sm:h-64 rounded-xl overflow-hidden bg-slate-950 shadow-inner group/card">
+              <img
+                src={resolvedStoryImg}
+                alt="Story"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+
+              {/* Story caption overlay if present */}
+              {storyReply.caption && (
+                <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+                  <p className="text-white text-[11px] line-clamp-2 leading-tight drop-shadow font-medium">
+                    {storyReply.caption}
+                  </p>
+                </div>
+              )}
+
+              {/* Floating Reaction Emoji Badge on bottom corner */}
+              {reactionEmoji && (
+                <div className="absolute -bottom-1 -right-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-full p-1 shadow-lg ring-2 ring-white/30 transform scale-110 flex items-center justify-center">
+                  <span className="text-2xl leading-none select-none">{reactionEmoji}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Message text below story card */}
+            {(!isReaction || (msg.text && !msg.text.startsWith('Reacted '))) && (
+              <div className="pt-2 px-1 text-sm font-medium leading-relaxed">
+                {msg.text}
+              </div>
+            )}
+            {isReaction && (
+              <div className="pt-2 px-1 text-xs opacity-90 font-medium flex items-center gap-1">
+                <span>Reacted {reactionEmoji}</span>
+              </div>
+            )}
+          </div>
+        ) : isReaction ? (
+          /* Fallback for older reaction messages: Instagram-like reaction pill */
+          <div
+            className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed flex items-center gap-2 border shadow-sm ${
+              isMe
+                ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
+                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+            }`}
+          >
+            <span className="text-2xl leading-none">{reactionEmoji}</span>
+            <span className="text-xs font-semibold opacity-90">Reacted to story</span>
+          </div>
+        ) : (
+          /* Standard Message Bubble */
+          <div
+            className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              isMe
+                ? 'bg-indigo-600 text-white rounded-br-sm'
+                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
+            }`}
+          >
+            {msg.text}
+          </div>
+        )}
+
         <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
           <span className="text-[10px] text-slate-400 dark:text-gray-500">{msgTime(msg.createdAt)}</span>
           {isMe && (

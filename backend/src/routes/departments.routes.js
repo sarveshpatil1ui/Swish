@@ -11,8 +11,12 @@ import Department from '../models/Department.js'
 import College from '../models/College.js'
 import User from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
+import { getOrSet, delPattern, cacheKey } from '../services/cache.service.js'
 
 const router = Router()
+
+// ── Cache keys ────────────────────────────────────────────────────────────────
+const DEPT_BY_DOMAIN_TTL = 60 // seconds
 
 // ── GET /api/departments/by-domain?domain= — Public endpoint for registration ──
 // Fetch active departments for a college by domain (used during registration)
@@ -23,17 +27,29 @@ router.get('/by-domain', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Domain is required.' })
     }
 
-    const college = await College.findOne({ domain: domain.toLowerCase(), active: true })
-    if (!college) {
+    const normDomain = domain.toLowerCase()
+    const key = cacheKey('departments', 'by-domain', normDomain)
+
+    const result = await getOrSet(key, DEPT_BY_DOMAIN_TTL, async () => {
+      const college = await College.findOne({ domain: normDomain, active: true })
+      if (!college) {
+        return null // Don't cache non-existent colleges
+      }
+
+      const departments = await Department.find({ collegeId: college._id, active: true })
+        .sort({ name: 1 })
+        .select('name code')
+        .lean()
+
+      return { ok: true, departments }
+    })
+
+    if (!result) {
       return res.status(404).json({ ok: false, error: 'College not found.' })
     }
 
-    const departments = await Department.find({ collegeId: college._id, active: true })
-      .sort({ name: 1 })
-      .select('name code')
-      .lean()
-
-    return res.status(200).json({ ok: true, departments })
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    return res.status(200).json(result)
   } catch (err) {
     console.error('[GET /departments/by-domain]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch departments.' })
@@ -149,6 +165,9 @@ router.post(
         active: true,
       })
 
+      // Invalidate department caches
+      await delPattern(cacheKey('departments', 'by-domain', '*'))
+
       return res.status(201).json({ ok: true, department: department.toJSON() })
     } catch (err) {
       console.error('[POST /departments]', err)
@@ -214,6 +233,9 @@ router.put(
 
       await department.save()
 
+      // Invalidate department caches
+      await delPattern(cacheKey('departments', 'by-domain', '*'))
+
       return res.status(200).json({ ok: true, department: department.toJSON() })
     } catch (err) {
       console.error('[PUT /departments/:id]', err)
@@ -243,6 +265,9 @@ router.patch(
       department.active = !department.active
       await department.save()
 
+      // Invalidate department caches
+      await delPattern(cacheKey('departments', 'by-domain', '*'))
+
       return res.status(200).json({ ok: true, department: department.toJSON() })
     } catch (err) {
       console.error('[PATCH /departments/:id/toggle]', err)
@@ -263,6 +288,9 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requir
     if (!department) {
       return res.status(404).json({ ok: false, error: 'Department not found.' })
     }
+
+    // Invalidate department caches
+    await delPattern(cacheKey('departments', 'by-domain', '*'))
 
     return res.status(200).json({ ok: true, message: 'Department deleted successfully.' })
   } catch (err) {

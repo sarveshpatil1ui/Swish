@@ -9,6 +9,7 @@ import {
 import { motion } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import CollegeNoticePanel from '../../components/app/CollegeNoticePanel'
+import Stories from '../../components/app/Stories'
 
 function StatCard({
   icon: Icon,
@@ -367,6 +368,13 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
+
+          {/* ====================================================
+              CAMPUS STORIES
+          ==================================================== */}
+          <div className="mb-8">
+            <Stories />
+          </div>
 
           {/* ====================================================
               STAT CARDS
