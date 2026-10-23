@@ -11,11 +11,12 @@ router.use(requireAuth)
 
 // ── Helper: format conversation for client ────────────────────────────────────
 function formatConv(conv, myId) {
-  const other = conv.participants.find(p => p._id.toString() !== myId.toString())
+  const other = (conv.participants || []).find(p => p && (p._id ? p._id.toString() : p.toString()) !== myId.toString())
 
-  // Count unread messages (sent by other, not read by me)
-  const unread = conv.messages.filter(
-    m => m.sender.toString() !== myId.toString() && !m.readBy.map(r => r.toString()).includes(myId.toString())
+  // Count unread messages (sent by other, not read by me) from recent slice
+  const myIdStr = myId.toString()
+  const unread = (conv.messages || []).filter(
+    m => m && m.sender && m.sender.toString() !== myIdStr && !(m.readBy || []).map(r => r ? r.toString() : '').includes(myIdStr)
   ).length
 
   return {
@@ -37,10 +38,19 @@ function formatConv(conv, myId) {
 router.get('/', async (req, res) => {
   try {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
-    const convs = await Conversation.find({ participants: req.user._id })
-      .sort({ lastMessageAt: -1, updatedAt: -1 })
+    const convs = await Conversation.find(
+      { participants: req.user._id },
+      {
+        participants: 1,
+        lastMessage: 1,
+        lastMessageAt: 1,
+        lastSender: 1,
+        updatedAt: 1,
+        messages: { $slice: -30 },
+      }
+    )
+      .sort({ lastMessageAt: -1 })
       .limit(limit)
-      .select('participants lastMessage lastMessageAt lastSender updatedAt messages.sender messages.readBy')
       .populate('participants', 'name username initials avatarColor profilePhoto')
       .lean({ virtuals: true })
 
@@ -82,13 +92,18 @@ router.get('/:convId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Invalid conversation ID.' })
     }
 
-    // Pure read-only query using .lean() without redundant populates or blocking document writes
-    const conv = await Conversation.findOne({
-      _id:          req.params.convId,
-      participants: req.user._id,
-    })
-      .select('messages')
-      .lean()
+    const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
+
+    // Slice recent messages using .lean() without pulling lifetime conversation history
+    const conv = await Conversation.findOne(
+      {
+        _id:          req.params.convId,
+        participants: req.user._id,
+      },
+      {
+        messages: { $slice: -limit },
+      }
+    ).lean()
 
     if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
 
