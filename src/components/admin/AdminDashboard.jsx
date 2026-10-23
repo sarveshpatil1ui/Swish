@@ -331,11 +331,15 @@ export default function AdminDashboard({ onNavigate, user }) {
 
   // Metrics
   const metrics = useMemo(() => {
-    const totalUsers = users.length || dashboardStats?.activeUsers || 8
-    const activeUsers = users.filter(u => !u.deactivated && !u.suspended).length || dashboardStats?.activeUsers || 8
-    const totalColleges = colleges.length || dashboardStats?.totalColleges || 2
-    const activeColleges = colleges.filter(c => c.active !== false).length || dashboardStats?.activeColleges || 2
-    const inactiveColleges = totalColleges - activeColleges
+    const totalUsers = users?.length ?? dashboardStats?.activeUsers ?? 0
+    const activeUsers = users
+      ? users.filter(u => !u.deactivated && !u.suspended).length
+      : (dashboardStats?.activeUsers ?? 0)
+    const totalColleges = colleges?.length ?? dashboardStats?.totalColleges ?? 0
+    const activeColleges = colleges
+      ? colleges.filter(c => c.active !== false).length
+      : (dashboardStats?.activeColleges ?? 0)
+    const inactiveColleges = Math.max(0, totalColleges - activeColleges)
     const pendingRequests = dashboardStats?.pendingCollegeRequests ?? requests.filter(r => r.status === 'PENDING').length
 
     return {
@@ -355,7 +359,7 @@ export default function AdminDashboard({ onNavigate, user }) {
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
 
     // 1. Total Users
-    const totalUsers = users.length || dashboardStats?.activeUsers || 10
+    const totalUsers = users?.length ?? dashboardStats?.activeUsers ?? 0
     const usersLast30 = users.filter(u => u.createdAt && new Date(u.createdAt) >= thirtyDaysAgo).length
     const usersPrev30 = users.filter(u => {
       if (!u.createdAt) return false
@@ -380,7 +384,7 @@ export default function AdminDashboard({ onNavigate, user }) {
     }
 
     // 2. Total Colleges
-    const totalColleges = colleges.length || dashboardStats?.totalColleges || 4
+    const totalColleges = colleges?.length ?? dashboardStats?.totalColleges ?? 0
     const collegesLast30 = colleges.filter(c => c.createdAt && new Date(c.createdAt) >= thirtyDaysAgo).length
     const collegesPrev30 = colleges.filter(c => {
       if (!c.createdAt) return false
@@ -396,7 +400,7 @@ export default function AdminDashboard({ onNavigate, user }) {
       const cappedPct = Math.min(100, Math.abs(rawPct))
       collegeTrend = `${rawPct >= 0 ? '+' : '-'}${cappedPct}%`
       collegeTrendPositive = rawPct >= 0
-    } else if (collegesLast30 > 0) {
+    } else if (collegesLast30 > 0 && totalColleges > 0) {
       const pct = Math.min(100, Math.round((collegesLast30 / totalColleges) * 100))
       collegeTrend = `+${pct}%`
       collegeTrendPositive = true
@@ -405,7 +409,9 @@ export default function AdminDashboard({ onNavigate, user }) {
     }
 
     // 3. Active Users
-    const activeUsers = users.filter(u => !u.deactivated && !u.suspended).length || dashboardStats?.activeUsers || 9
+    const activeUsers = users
+      ? users.filter(u => !u.deactivated && !u.suspended).length
+      : (dashboardStats?.activeUsers ?? 0)
     const activeRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 100
 
     // 4. Pending Requests
@@ -424,15 +430,15 @@ export default function AdminDashboard({ onNavigate, user }) {
       dayDate.setHours(23, 59, 59, 999)
 
       const uCount = users.filter(u => u.createdAt && new Date(u.createdAt) <= dayDate).length
-      userSparkline.push(uCount || 1)
+      userSparkline.push(uCount)
 
       const cCount = colleges.filter(c => c.createdAt && new Date(c.createdAt) <= dayDate).length
-      collegeSparkline.push(cCount || 1)
+      collegeSparkline.push(cCount)
 
       const aCount = users.filter(
         u => !u.deactivated && !u.suspended && u.createdAt && new Date(u.createdAt) <= dayDate
       ).length
-      activeSparkline.push(aCount || 1)
+      activeSparkline.push(aCount)
 
       const pCount = requests.filter(
         r => r.status === 'PENDING' && r.createdAt && new Date(r.createdAt) <= dayDate

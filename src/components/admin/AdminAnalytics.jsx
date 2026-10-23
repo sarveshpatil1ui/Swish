@@ -313,7 +313,7 @@ export default function AdminAnalytics({ onOpenSidebar }) {
     const activeColleges = colleges.filter(c => c.active !== false).length || dashboardStats?.activeColleges || 0
     const inactiveColleges = totalColleges - activeColleges
 
-    const totalPosts = posts.length || 2 // published posts count
+    const totalPosts = posts?.length ?? 0 // published posts count
     const pendingRequests =
       dashboardStats?.pendingCollegeRequests ?? requests.filter(r => r.status === 'PENDING').length
 
