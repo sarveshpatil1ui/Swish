@@ -12,17 +12,24 @@ router.use(requireAuth)
 
 // ── Helper: format conversation for client ────────────────────────────────────
 function formatConv(conv, myId) {
-  const other = (conv.participants || []).find(p => p && (p._id ? p._id.toString() : p.toString()) !== myId.toString())
+  const myIdStr = String(myId?._id || myId || '')
+  const other = (conv.participants || []).find(p => {
+    const pid = String(p?._id || p || '')
+    return pid && pid !== myIdStr
+  })
 
   // Count unread messages (sent by other, not read by me) from recent slice
-  const myIdStr = myId.toString()
-  const unread = (conv.messages || []).filter(
-    m => m && m.sender && m.sender.toString() !== myIdStr && !(m.readBy || []).map(r => r ? r.toString() : '').includes(myIdStr)
-  ).length
+  const unread = (conv.messages || []).filter(m => {
+    if (!m) return false
+    const senderId = String(m.sender?._id || m.sender || '')
+    if (!senderId || senderId === myIdStr) return false
+    const readBy = (m.readBy || []).map(r => String(r?._id || r || ''))
+    return !readBy.includes(myIdStr)
+  }).length
 
   return {
     id:           conv._id.toString(),
-    participantId: other?._id?.toString(),
+    participantId: other?._id ? other._id.toString() : other ? other.toString() : undefined,
     name:         other?.name         ?? 'Unknown',
     username:     other?.username     ?? '',
     initials:     other?.initials     ?? '??',
@@ -30,7 +37,7 @@ function formatConv(conv, myId) {
     profilePhoto: other?.profilePhoto ?? null,
     lastMessage:  conv.lastMessage    ?? '',
     lastMessageAt:conv.lastMessageAt  ?? conv.updatedAt,
-    lastSenderId: conv.lastSender?.toString() ?? null,
+    lastSenderId: conv.lastSender?._id ? conv.lastSender._id.toString() : conv.lastSender?.toString() ?? null,
     unread,
   }
 }
@@ -67,7 +74,7 @@ router.get('/', async (req, res) => {
 // ── GET /api/messages/unread-count — get total unread message count ───────────
 router.get('/unread-count', async (req, res) => {
   try {
-    const myIdStr = req.user._id.toString()
+    const myIdStr = String(req.user?._id || req.user?.id || '')
     const convs = await Conversation.find(
       { participants: req.user._id },
       { messages: { $slice: -30 } }
@@ -76,11 +83,12 @@ router.get('/unread-count', async (req, res) => {
     let count = 0
     for (const conv of convs) {
       for (const m of (conv.messages || [])) {
-        if (m && m.sender && m.sender.toString() !== myIdStr) {
-          const readBy = (m.readBy || []).map(r => (r ? r.toString() : ''))
-          if (!readBy.includes(myIdStr)) {
-            count++
-          }
+        if (!m) continue
+        const senderId = String(m.sender?._id || m.sender || '')
+        if (!senderId || senderId === myIdStr) continue
+        const readBy = (m.readBy || []).map(r => String(r?._id || r || ''))
+        if (!readBy.includes(myIdStr)) {
+          count++
         }
       }
     }

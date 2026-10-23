@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
-import { getStoredToken } from '../../utils/auth'
+import { getStoredToken, apiMarkConvRead } from '../../utils/auth'
 import EmojiPicker from '../../components/app/EmojiPicker'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -294,8 +294,12 @@ export default function CollegeAdminMessages() {
   const loadConvs = useCallback(async () => {
     const data = await api('/api/messages')
     if (data.ok && Array.isArray(data.conversations)) {
-      setConvs(data.conversations)
-      const totalUnread = data.conversations.reduce((s, c) => s + (c.unread || 0), 0)
+      const currentActiveId = activeConvRef.current
+      const updatedConvs = data.conversations.map(c =>
+        currentActiveId && c.id === currentActiveId ? { ...c, unread: 0 } : c
+      )
+      setConvs(updatedConvs)
+      const totalUnread = updatedConvs.reduce((s, c) => s + (c.unread || 0), 0)
       setUnreadMsgCount?.(totalUnread)
     }
     setLoadingConvs(false)
@@ -314,14 +318,17 @@ export default function CollegeAdminMessages() {
   }, [queryConvId, convs, activeConvId])
 
   useEffect(() => {
+    const myId = String(currentUser?.id || currentUser?._id || '')
+
     const onNewMsg = (msg) => {
       const { convId } = msg
       const currentConvId = activeConvRef.current
+      const isFromMe = myId && String(msg.senderId) === myId
 
       if (currentConvId === convId) {
         setMessages(prev => {
           if (prev.some(m => m.id === msg.id)) return prev
-          if (msg.senderId === currentUser?.id) {
+          if (isFromMe) {
             const tempIdx = prev.findIndex(m => m._temp && m.text === msg.text)
             if (tempIdx !== -1) {
               const next = [...prev]
@@ -331,7 +338,10 @@ export default function CollegeAdminMessages() {
           }
           return [...prev, msg]
         })
-        emit('msg:read', { convId })
+        if (!isFromMe) {
+          emit('msg:read', { convId })
+          apiMarkConvRead(convId).catch(() => {})
+        }
       }
 
       setConvs(prev => prev.map(c =>
@@ -341,15 +351,20 @@ export default function CollegeAdminMessages() {
               lastMessage:   msg.text,
               lastMessageAt: msg.createdAt,
               lastSenderId:  msg.senderId,
-              unread: currentConvId === convId
+              unread: (currentConvId === convId || isFromMe)
                 ? 0
-                : (c.unread || 0) + (msg.senderId !== currentUser?.id ? 1 : 0),
+                : (c.unread || 0) + 1,
             }
           : c
       ))
     }
 
     const onNotification = (msg) => {
+      const isFromMe = myId && String(msg.senderId) === myId
+      const isOpen = activeConvRef.current === msg.convId
+
+      if (isFromMe || isOpen) return
+
       setUnreadNotifs(prev => [...prev.slice(-4), msg])
       setTimeout(() => setUnreadNotifs(prev => prev.slice(1)), 4000)
 
@@ -370,11 +385,11 @@ export default function CollegeAdminMessages() {
     }
 
     const onTypingStart = ({ convId, userId: uid, name }) => {
-      if (uid === currentUser?.id) return
+      if (myId && String(uid) === myId) return
       setTypingUsers(prev => ({ ...prev, [convId]: { userId: uid, name } }))
     }
     const onTypingStop = ({ convId, userId: uid }) => {
-      if (uid === currentUser?.id) return
+      if (myId && String(uid) === myId) return
       setTypingUsers(prev => {
         const next = { ...prev }
         delete next[convId]
@@ -404,7 +419,7 @@ export default function CollegeAdminMessages() {
       off('typing:stop',      onTypingStop)
       off('msg:read',         onRead)
     }
-  }, [on, off, emit, currentUser?.id])
+  }, [on, off, emit, currentUser?.id, currentUser?._id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -428,6 +443,7 @@ export default function CollegeAdminMessages() {
 
     emit('conv:join', conv.id)
     emit('msg:read', { convId: conv.id })
+    apiMarkConvRead(conv.id).catch(() => {})
     loadMessages(conv.id)
 
     setTimeout(() => inputRef.current?.focus(), 100)
@@ -459,16 +475,18 @@ export default function CollegeAdminMessages() {
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
+    const myId = currentUser?.id || currentUser?._id
+
     emit('typing:stop', { convId: activeConvId })
     clearTimeout(typingTimer.current)
 
     const tempId = `temp-${Date.now()}`
     const tempMsg = {
       id:        tempId,
-      senderId:  currentUser?.id,
+      senderId:  myId,
       text,
       createdAt: new Date().toISOString(),
-      readBy:    [currentUser?.id],
+      readBy:    [myId],
       _temp:     true,
     }
     setMessages(prev => [...prev, tempMsg])
@@ -489,7 +507,7 @@ export default function CollegeAdminMessages() {
         })
         setConvs(prev => prev.map(c =>
           c.id === sentToConvId
-            ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: currentUser?.id }
+            ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: myId, unread: 0 }
             : c
         ))
       } else {

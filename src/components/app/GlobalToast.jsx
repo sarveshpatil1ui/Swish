@@ -55,12 +55,15 @@ export default function GlobalToast() {
     // ── Real-time Direct Message Notification ─────────────────────────────
     const onMsgNotification = (data) => {
       if (!data) return
+      const myId = String(currentUser?.id || currentUser?._id || '')
+      const senderId = String(data.senderId?._id || data.senderId || '')
+
       // Ignore if sent by current user
-      if (data.senderId && currentUser?.id && String(data.senderId) === String(currentUser.id)) {
+      if (myId && senderId && myId === senderId) {
         return
       }
 
-      // If the user currently has this exact conversation open, don't show the popup toast
+      // If the user currently has this exact conversation open, don't show the popup toast or increment badge
       if (activeChatConvId && String(activeChatConvId) === String(data.convId)) {
         return
       }
@@ -153,7 +156,7 @@ export default function GlobalToast() {
       off('follow:received', onFollowReceived)
       window.removeEventListener('swish:toast', onCustomToast)
     }
-  }, [on, off, currentUser?.id, currentUser?.role, activeChatConvId, setUnreadMsgCount, navigate])
+  }, [on, off, currentUser?.id, currentUser?._id, currentUser?.role, activeChatConvId, setUnreadMsgCount, navigate])
 
   return (
     <div

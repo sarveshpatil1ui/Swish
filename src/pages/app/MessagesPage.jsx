@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
-import { getStoredToken } from '../../utils/auth'
+import { getStoredToken, apiMarkConvRead } from '../../utils/auth'
 import EmojiPicker from '../../components/app/EmojiPicker'
 import { resolveImageUrl } from '../../utils/posts'
 
@@ -379,8 +379,12 @@ export default function MessagesPage() {
   const loadConvs = useCallback(async () => {
     const data = await api('/api/messages')
     if (data.ok && Array.isArray(data.conversations)) {
-      setConvs(data.conversations)
-      const totalUnread = data.conversations.reduce((s, c) => s + (c.unread || 0), 0)
+      const currentActiveId = activeConvRef.current
+      const updatedConvs = data.conversations.map(c =>
+        currentActiveId && c.id === currentActiveId ? { ...c, unread: 0 } : c
+      )
+      setConvs(updatedConvs)
+      const totalUnread = updatedConvs.reduce((s, c) => s + (c.unread || 0), 0)
       setUnreadMsgCount?.(totalUnread)
     }
     setLoadingConvs(false)
@@ -403,10 +407,13 @@ export default function MessagesPage() {
   // that causes the effect to re-run on every message, re-registering listeners
   // and producing duplicate messages. Use refs to access current state.
   useEffect(() => {
+    const myId = String(currentUser?.id || currentUser?._id || '')
+
     // ── New message received ────────────────────────────────────────────────
     const onNewMsg = (msg) => {
       const { convId } = msg
       const currentConvId = activeConvRef.current
+      const isFromMe = myId && String(msg.senderId) === myId
 
       if (currentConvId === convId) {
         setMessages(prev => {
@@ -414,7 +421,7 @@ export default function MessagesPage() {
           if (prev.some(m => m.id === msg.id)) return prev
 
           // If this message is from current user and matches a pending optimistic message, replace it
-          if (msg.senderId === currentUser?.id) {
+          if (isFromMe) {
             const tempIdx = prev.findIndex(m => m._temp && m.text === msg.text)
             if (tempIdx !== -1) {
               const next = [...prev]
@@ -425,7 +432,10 @@ export default function MessagesPage() {
 
           return [...prev, msg]
         })
-        emit('msg:read', { convId })
+        if (!isFromMe) {
+          emit('msg:read', { convId })
+          apiMarkConvRead(convId).catch(() => {})
+        }
       }
 
       // Update conversation list preview
@@ -436,10 +446,10 @@ export default function MessagesPage() {
               lastMessage:   msg.text,
               lastMessageAt: msg.createdAt,
               lastSenderId:  msg.senderId,
-              // Only increment unread if this chat is NOT currently open
-              unread: currentConvId === convId
+              // Only increment unread if this chat is NOT currently open AND message was sent by someone else
+              unread: (currentConvId === convId || isFromMe)
                 ? 0
-                : (c.unread || 0) + (msg.senderId !== currentUser?.id ? 1 : 0),
+                : (c.unread || 0) + 1,
             }
           : c
       ))
@@ -447,6 +457,12 @@ export default function MessagesPage() {
 
     // ── Notification for messages in other (non-open) convs ─────────────────
     const onNotification = (msg) => {
+      const isFromMe = myId && String(msg.senderId) === myId
+      const isOpen = activeConvRef.current === msg.convId
+
+      // If message is from current user OR is for the currently open conversation, ignore
+      if (isFromMe || isOpen) return
+
       setUnreadNotifs(prev => [...prev.slice(-4), msg])
       setTimeout(() => setUnreadNotifs(prev => prev.slice(1)), 4000)
 
@@ -469,11 +485,11 @@ export default function MessagesPage() {
 
     // ── Typing indicators ───────────────────────────────────────────────────
     const onTypingStart = ({ convId, userId: uid, name }) => {
-      if (uid === currentUser?.id) return
+      if (myId && String(uid) === myId) return
       setTypingUsers(prev => ({ ...prev, [convId]: { userId: uid, name } }))
     }
     const onTypingStop = ({ convId, userId: uid }) => {
-      if (uid === currentUser?.id) return
+      if (myId && String(uid) === myId) return
       setTypingUsers(prev => {
         const next = { ...prev }
         delete next[convId]
@@ -505,7 +521,7 @@ export default function MessagesPage() {
       off('msg:read',         onRead)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, off, emit, currentUser?.id])
+  }, [on, off, emit, currentUser?.id, currentUser?._id])
   // ^ Only stable values here. `convs` and `loadConvs` are intentionally EXCLUDED.
   //   They would re-run this effect on every message, creating duplicate listeners.
 
@@ -533,9 +549,10 @@ export default function MessagesPage() {
     }
     setConvs(prev => prev.map(c => c.id === conv.id ? { ...c, unread: 0 } : c))
 
-    // Join socket room + load messages via REST
+    // Join socket room + mark read via socket AND REST fallback
     emit('conv:join', conv.id)
     emit('msg:read', { convId: conv.id })
+    apiMarkConvRead(conv.id).catch(() => {})
     loadMessages(conv.id)
 
     setTimeout(() => inputRef.current?.focus(), 100)
@@ -570,6 +587,8 @@ export default function MessagesPage() {
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
+    const myId = currentUser?.id || currentUser?._id
+
     // Stop typing indicator
     emit('typing:stop', { convId: activeConvId })
     clearTimeout(typingTimer.current)
@@ -578,10 +597,10 @@ export default function MessagesPage() {
     const tempId = `temp-${Date.now()}`
     const tempMsg = {
       id:        tempId,
-      senderId:  currentUser?.id,
+      senderId:  myId,
       text,
       createdAt: new Date().toISOString(),
-      readBy:    [currentUser?.id],
+      readBy:    [myId],
       _temp:     true,
     }
     setMessages(prev => [...prev, tempMsg])
@@ -604,7 +623,7 @@ export default function MessagesPage() {
         })
         setConvs(prev => prev.map(c =>
           c.id === sentToConvId
-            ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: currentUser?.id }
+            ? { ...c, lastMessage: text, lastMessageAt: new Date().toISOString(), lastSenderId: myId, unread: 0 }
             : c
         ))
       } else {
