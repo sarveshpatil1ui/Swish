@@ -114,12 +114,15 @@ function Sparkline({ points = [], color = '#6366f1', height = 28, width = 75 }) 
 
   const min = Math.min(...points)
   const max = Math.max(...points)
-  const range = max - min || 1
+  const range = max - min
   const padding = 3
 
   const coords = points.map((val, idx) => {
     const x = (idx / (points.length - 1)) * width
-    const y = height - padding - ((val - min) / range) * (height - padding * 2)
+    const y =
+      range === 0
+        ? height * 0.6
+        : height - padding - ((val - min) / range) * (height - padding * 2)
     return [x, y]
   })
 
@@ -219,6 +222,8 @@ export default function AdminDashboard({ onNavigate, user }) {
   const [error, setError] = useState('')
 
   const [growthTimeframe, setGrowthTimeframe] = useState('30')
+  const [growthMetric, setGrowthMetric] = useState('all') // 'all' | 'users' | 'colleges'
+  const [growthMode, setGrowthMode] = useState('cumulative') // 'cumulative' | 'daily'
   const [distributionTimeframe, setDistributionTimeframe] = useState('all')
 
   const [dashboardStats, setDashboardStats] = useState(null)
@@ -343,7 +348,117 @@ export default function AdminDashboard({ onNavigate, user }) {
     }
   }, [users, colleges, requests, dashboardStats])
 
-  // Platform Growth Line Chart Data (Users & Colleges)
+  // Real KPI Card Statistics, Dynamic Trends, and Real Sparklines
+  const cardStats = useMemo(() => {
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
+
+    // 1. Total Users
+    const totalUsers = users.length || dashboardStats?.activeUsers || 10
+    const usersLast30 = users.filter(u => u.createdAt && new Date(u.createdAt) >= thirtyDaysAgo).length
+    const usersPrev30 = users.filter(u => {
+      if (!u.createdAt) return false
+      const d = new Date(u.createdAt)
+      return d >= sixtyDaysAgo && d < thirtyDaysAgo
+    }).length
+
+    let userTrend = '+100%'
+    let userTrendPositive = true
+    if (usersPrev30 > 0) {
+      const diff = usersLast30 - usersPrev30
+      const rawPct = Math.round((diff / usersPrev30) * 100)
+      const cappedPct = Math.min(100, Math.abs(rawPct))
+      userTrend = `${rawPct >= 0 ? '+' : '-'}${cappedPct}%`
+      userTrendPositive = rawPct >= 0
+    } else if (usersLast30 > 0) {
+      const pct = Math.min(100, Math.round((usersLast30 / totalUsers) * 100))
+      userTrend = `+${pct}%`
+      userTrendPositive = true
+    } else {
+      userTrend = '+0%'
+    }
+
+    // 2. Total Colleges
+    const totalColleges = colleges.length || dashboardStats?.totalColleges || 4
+    const collegesLast30 = colleges.filter(c => c.createdAt && new Date(c.createdAt) >= thirtyDaysAgo).length
+    const collegesPrev30 = colleges.filter(c => {
+      if (!c.createdAt) return false
+      const d = new Date(c.createdAt)
+      return d >= sixtyDaysAgo && d < thirtyDaysAgo
+    }).length
+
+    let collegeTrend = '+100%'
+    let collegeTrendPositive = true
+    if (collegesPrev30 > 0) {
+      const diff = collegesLast30 - collegesPrev30
+      const rawPct = Math.round((diff / collegesPrev30) * 100)
+      const cappedPct = Math.min(100, Math.abs(rawPct))
+      collegeTrend = `${rawPct >= 0 ? '+' : '-'}${cappedPct}%`
+      collegeTrendPositive = rawPct >= 0
+    } else if (collegesLast30 > 0) {
+      const pct = Math.min(100, Math.round((collegesLast30 / totalColleges) * 100))
+      collegeTrend = `+${pct}%`
+      collegeTrendPositive = true
+    } else {
+      collegeTrend = '+0%'
+    }
+
+    // 3. Active Users
+    const activeUsers = users.filter(u => !u.deactivated && !u.suspended).length || dashboardStats?.activeUsers || 9
+    const activeRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 100
+
+    // 4. Pending Requests
+    const pendingRequests =
+      dashboardStats?.pendingCollegeRequests ?? requests.filter(r => r.status === 'PENDING').length
+    const pendingTrend = pendingRequests === 0 ? 'All clear' : `+${pendingRequests} new`
+
+    // Real dynamic 7-day sparklines (cumulative progression)
+    const userSparkline = []
+    const collegeSparkline = []
+    const activeSparkline = []
+    const pendingSparkline = []
+
+    for (let i = 6; i >= 0; i--) {
+      const dayDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+      dayDate.setHours(23, 59, 59, 999)
+
+      const uCount = users.filter(u => u.createdAt && new Date(u.createdAt) <= dayDate).length
+      userSparkline.push(uCount || 1)
+
+      const cCount = colleges.filter(c => c.createdAt && new Date(c.createdAt) <= dayDate).length
+      collegeSparkline.push(cCount || 1)
+
+      const aCount = users.filter(
+        u => !u.deactivated && !u.suspended && u.createdAt && new Date(u.createdAt) <= dayDate
+      ).length
+      activeSparkline.push(aCount || 1)
+
+      const pCount = requests.filter(
+        r => r.status === 'PENDING' && r.createdAt && new Date(r.createdAt) <= dayDate
+      ).length
+      pendingSparkline.push(pCount)
+    }
+
+    return {
+      totalUsers,
+      userTrend,
+      userTrendPositive,
+      userSparkline,
+      totalColleges,
+      collegeTrend,
+      collegeTrendPositive,
+      collegeSparkline,
+      activeUsers,
+      activeRate,
+      activeSparkline,
+      pendingRequests,
+      pendingTrend,
+      pendingSparkline,
+    }
+  }, [users, colleges, requests, dashboardStats])
+
+  // Platform Growth Line Chart Data (Smooth Cumulative & Daily Modes)
   const growthData = useMemo(() => {
     const days = growthTimeframe === 'all' ? 30 : parseInt(growthTimeframe, 10) || 30
     const today = new Date()
@@ -363,19 +478,54 @@ export default function AdminDashboard({ onNavigate, user }) {
       colCountsByDay[k] = (colCountsByDay[k] || 0) + 1
     })
 
+    // Baseline counts before current timeframe window for smooth cumulative curve
+    const windowStart = new Date(today.getTime() - (days - 1) * 24 * 60 * 60 * 1000)
+    windowStart.setHours(0, 0, 0, 0)
+
+    let runningUsers = users.filter(u => u.createdAt && new Date(u.createdAt) < windowStart).length
+    let runningColleges = colleges.filter(c => c.createdAt && new Date(c.createdAt) < windowStart).length
+
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
       const key = d.toISOString().split('T')[0]
-      const userCount = userCountsByDay[key] || 0
-      const colCount = colCountsByDay[key] || 0
+      const dailyUsers = userCountsByDay[key] || 0
+      const dailyColleges = colCountsByDay[key] || 0
+
+      runningUsers += dailyUsers
+      runningColleges += dailyColleges
+
       const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       const fullDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      points.push({ date: key, label, fullDate, users: userCount, colleges: colCount })
+
+      const usersVal = growthMode === 'cumulative' ? runningUsers : dailyUsers
+      const colVal = growthMode === 'cumulative' ? runningColleges : dailyColleges
+
+      points.push({
+        date: key,
+        label,
+        fullDate,
+        users: usersVal,
+        colleges: colVal,
+        dailyUsers,
+        dailyColleges,
+        totalUsers: runningUsers,
+        totalColleges: runningColleges,
+      })
     }
 
-    const maxVal = Math.max(...points.map(p => Math.max(p.users, p.colleges)), 10)
+    let rawMax = 4
+    if (growthMetric === 'users') {
+      rawMax = Math.max(...points.map(p => p.users), 4)
+    } else if (growthMetric === 'colleges') {
+      rawMax = Math.max(...points.map(p => p.colleges), 3)
+    } else {
+      rawMax = Math.max(...points.map(p => Math.max(p.users, p.colleges)), 4)
+    }
+
+    // Ensure nice integer upper bound
+    const maxVal = Math.max(rawMax, growthMetric === 'colleges' ? 3 : 4)
     return { points, maxVal }
-  }, [users, colleges, growthTimeframe])
+  }, [users, colleges, growthTimeframe, growthMetric, growthMode])
 
   // User Distribution Data (Donut)
   const distributionData = useMemo(() => {
@@ -614,7 +764,7 @@ export default function AdminDashboard({ onNavigate, user }) {
               <Users size={17} />
             </div>
             <Sparkline
-              points={[2, 3, 3, 5, 4, 7, 8]}
+              points={cardStats.userSparkline}
               color="#6366f1"
               height={26}
               width={75}
@@ -629,8 +779,14 @@ export default function AdminDashboard({ onNavigate, user }) {
               >
                 {metrics.totalUsers}
               </span>
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                ↑ +0%
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                  cardStats.userTrendPositive
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {cardStats.userTrendPositive ? '↑' : '↓'} {cardStats.userTrend}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-0.5">Registered accounts</p>
@@ -647,7 +803,7 @@ export default function AdminDashboard({ onNavigate, user }) {
               <Building2 size={17} />
             </div>
             <Sparkline
-              points={[1, 1, 1, 2, 2, 2, 2]}
+              points={cardStats.collegeSparkline}
               color="#a855f7"
               height={26}
               width={75}
@@ -662,8 +818,14 @@ export default function AdminDashboard({ onNavigate, user }) {
               >
                 {metrics.totalColleges}
               </span>
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                ↑ +0%
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                  cardStats.collegeTrendPositive
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {cardStats.collegeTrendPositive ? '↑' : '↓'} {cardStats.collegeTrend}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-0.5">Registered institutions</p>
@@ -680,8 +842,8 @@ export default function AdminDashboard({ onNavigate, user }) {
               <UserCheck size={17} />
             </div>
             <Sparkline
-              points={[2, 3, 4, 6, 6, 7, 8]}
-              color="#6366f1"
+              points={cardStats.activeSparkline}
+              color="#10b981"
               height={26}
               width={75}
             />
@@ -695,8 +857,8 @@ export default function AdminDashboard({ onNavigate, user }) {
               >
                 {metrics.activeUsers}
               </span>
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                ↑ +0%
+              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                {cardStats.activeRate}% active
               </span>
             </div>
             <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-0.5">Currently active</p>
@@ -713,7 +875,7 @@ export default function AdminDashboard({ onNavigate, user }) {
               <Clock size={17} />
             </div>
             <Sparkline
-              points={[0, 0, 1, 0, 0, 0, 0]}
+              points={cardStats.pendingSparkline}
               color="#f59e0b"
               height={26}
               width={75}
@@ -728,8 +890,14 @@ export default function AdminDashboard({ onNavigate, user }) {
               >
                 {metrics.pendingRequests}
               </span>
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                ↑ +0%
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                  cardStats.pendingRequests === 0
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
+                }`}
+              >
+                {cardStats.pendingRequests === 0 ? '✓ All clear' : `↑ ${cardStats.pendingTrend}`}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-0.5">Awaiting review</p>
@@ -740,7 +908,7 @@ export default function AdminDashboard({ onNavigate, user }) {
       {/* ── Row 2: Middle Section (Platform Growth, User Distribution, Quick Actions) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Card 1: Platform Growth (Line Chart) */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 shadow-xs flex flex-col justify-between overflow-hidden">
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 shadow-xs flex flex-col justify-between relative">
           <div className="flex items-center justify-between pb-2">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
@@ -748,37 +916,121 @@ export default function AdminDashboard({ onNavigate, user }) {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Platform Growth</h3>
-                <p className="text-xs text-slate-400 dark:text-gray-500">User and college growth overview</p>
+                <p className="text-xs text-slate-400 dark:text-gray-500">
+                  {growthMode === 'cumulative'
+                    ? 'Cumulative platform reach trajectory'
+                    : 'Daily user and college additions'}
+                </p>
               </div>
             </div>
 
-            <div className="relative">
-              <select
-                value={growthTimeframe}
-                onChange={e => setGrowthTimeframe(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-1 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-600 cursor-pointer focus:outline-hidden"
-              >
-                <option value="7">Last 7 Days</option>
-                <option value="30">Last 30 Days</option>
-                <option value="90">Last 90 Days</option>
-                <option value="all">All Time</option>
-              </select>
-              <ChevronDown
-                size={13}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              />
+            <div className="flex items-center gap-2">
+              {/* Cumulative vs Daily Toggle */}
+              <div className="flex items-center bg-slate-100 dark:bg-gray-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-gray-700/60 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setGrowthMode('cumulative')}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                    growthMode === 'cumulative'
+                      ? 'bg-white dark:bg-gray-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                  }`}
+                  title="Smooth cumulative growth trajectory"
+                >
+                  Cumulative
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGrowthMode('daily')}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                    growthMode === 'daily'
+                      ? 'bg-white dark:bg-gray-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                  }`}
+                  title="Daily additions"
+                >
+                  Daily
+                </button>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={growthTimeframe}
+                  onChange={e => setGrowthTimeframe(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-1 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 hover:border-slate-300 dark:hover:border-gray-600 cursor-pointer focus:outline-hidden"
+                >
+                  <option value="7">Last 7 Days</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90">Last 90 Days</option>
+                  <option value="all">All Time</option>
+                </select>
+                <ChevronDown
+                  size={13}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 py-1 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-              <span className="font-semibold text-slate-600 dark:text-gray-300 text-xs">Users</span>
+          {/* Interactive Metric Filter & Legend */}
+          <div className="flex items-center justify-between py-1 px-1 text-xs border-b border-slate-100 dark:border-gray-800/60 pb-2.5">
+            <div className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-gray-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-gray-700/60">
+              <button
+                type="button"
+                onClick={() => setGrowthMetric('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  growthMetric === 'all'
+                    ? 'bg-white dark:bg-gray-900 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                }`}
+              >
+                All Metrics
+              </button>
+              <button
+                type="button"
+                onClick={() => setGrowthMetric('users')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                  growthMetric === 'users'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    growthMetric === 'users' ? 'bg-white' : 'bg-indigo-600'
+                  }`}
+                ></span>
+                <span>Users</span>
+                <span className="text-[10px] opacity-80 font-mono">({users.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGrowthMetric('colleges')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                  growthMetric === 'colleges'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    growthMetric === 'colleges' ? 'bg-white' : 'bg-emerald-500'
+                  }`}
+                ></span>
+                <span>Colleges</span>
+                <span className="text-[10px] opacity-80 font-mono">({colleges.length})</span>
+              </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-300 dark:bg-purple-400"></span>
-              <span className="font-semibold text-slate-600 dark:text-gray-300 text-xs">Colleges</span>
+
+            <div className="hidden sm:flex items-center gap-3 text-[11px] font-medium text-slate-500 dark:text-gray-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-1 rounded-full bg-indigo-600"></span>
+                <span>Users</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-1 rounded-full bg-emerald-500"></span>
+                <span>Colleges</span>
+              </span>
             </div>
           </div>
 
@@ -812,32 +1064,58 @@ export default function AdminDashboard({ onNavigate, user }) {
                 x: padLeft + (idx / Math.max(1, points.length - 1)) * chartW,
                 y: baseY - (p.colleges / maxVal) * chartH,
                 count: p.colleges,
+                date: p.date,
+                label: p.label,
+                fullDate: p.fullDate,
               }))
 
-              // Build smooth bezier for users
-              let userLine = `M ${userCoords[0].x},${userCoords[0].y}`
-              for (let i = 0; i < userCoords.length - 1; i++) {
-                const p1 = userCoords[i]
-                const p2 = userCoords[i + 1]
-                const p0 = userCoords[i === 0 ? 0 : i - 1]
-                const p3 = userCoords[i + 2] || p2
-                const dx = p2.x - p1.x
+              // Smooth curve builder with gentle tension and bounded control points
+              const buildSmoothPath = coords => {
+                if (!coords || coords.length === 0) return { line: '', area: '' }
+                if (coords.length === 1) {
+                  return {
+                    line: `M ${coords[0].x},${coords[0].y}`,
+                    area: `M ${coords[0].x},${coords[0].y} L ${coords[0].x},${baseY} Z`,
+                  }
+                }
 
-                let m1 = (p2.y - p0.y) / (p2.x - p0.x || 1)
-                let m2 = (p3.y - p1.y) / (p3.x - p1.x || 1)
-                if (p1.count === 0 && p2.count === 0) { m1 = 0; m2 = 0; }
-                else if (p1.count === 0) m1 = 0;
-                else if (p2.count === 0) m2 = 0;
+                let line = `M ${coords[0].x},${coords[0].y}`
+                for (let i = 0; i < coords.length - 1; i++) {
+                  const p0 = coords[i === 0 ? 0 : i - 1]
+                  const p1 = coords[i]
+                  const p2 = coords[i + 1]
+                  const p3 = coords[i + 2] || p2
+                  const dx = p2.x - p1.x
 
-                let cp1y = Math.min(baseY, Math.max(padTop, p1.y + m1 * (dx / 3)))
-                let cp2y = Math.min(baseY, Math.max(padTop, p2.y - m2 * (dx / 3)))
+                  // Gentle tension ensures curves are smooth rather than sharp spikes
+                  let cp1x = p1.x + dx / 3
+                  let cp1y = p1.y + ((p2.y - p0.y) / 6) * 0.75
 
-                userLine += ` C ${p1.x + dx / 3},${cp1y} ${p2.x - dx / 3},${cp2y} ${p2.x},${p2.y}`
+                  let cp2x = p2.x - dx / 3
+                  let cp2y = p2.y - ((p3.y - p1.y) / 6) * 0.75
+
+                  // Clamp Y control points within chart bounds
+                  cp1y = Math.min(baseY, Math.max(padTop, cp1y))
+                  cp2y = Math.min(baseY, Math.max(padTop, cp2y))
+
+                  line += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
+                }
+                const area = `${line} L ${coords[coords.length - 1].x},${baseY} L ${coords[0].x},${baseY} Z`
+                return { line, area }
               }
-              const userArea = `${userLine} L ${userCoords[userCoords.length - 1].x},${baseY} L ${userCoords[0].x},${baseY} Z`
 
-              // Y-ticks (0, 2, 4, 6, 8, 10)
-              const yTicks = [0, 2, 4, 6, 8, 10]
+              const { line: userLine, area: userArea } = buildSmoothPath(userCoords)
+              const { line: colLine, area: colArea } = buildSmoothPath(colCoords)
+
+              // Dynamic Y-ticks based on current maxVal
+              const rawYTicks = [
+                0,
+                Math.round(maxVal * 0.25),
+                Math.round(maxVal * 0.5),
+                Math.round(maxVal * 0.75),
+                maxVal,
+              ]
+              const yTicks = Array.from(new Set(rawYTicks)).sort((a, b) => a - b)
 
               // X-ticks
               const numTicks = points.length <= 7 ? points.length : 6
@@ -851,6 +1129,9 @@ export default function AdminDashboard({ onNavigate, user }) {
                 })
               }
 
+              const showUsers = growthMetric === 'all' || growthMetric === 'users'
+              const showColleges = growthMetric === 'all' || growthMetric === 'colleges'
+
               return (
                 <>
                   <svg
@@ -859,15 +1140,19 @@ export default function AdminDashboard({ onNavigate, user }) {
                     preserveAspectRatio="none"
                   >
                     <defs>
-                      <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="userGrowthGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
                         <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="colGrowthGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
                       </linearGradient>
                     </defs>
 
                     {/* Y Gridlines */}
                     {yTicks.map(val => {
-                      const yPos = baseY - (val / 10) * chartH
+                      const yPos = baseY - (val / maxVal) * chartH
                       return (
                         <g key={val}>
                           <line
@@ -892,42 +1177,98 @@ export default function AdminDashboard({ onNavigate, user }) {
                       )
                     })}
 
-                    {/* Users Area */}
-                    <path d={userArea} fill="url(#growthGrad)" />
+                    {/* Users Area & Line */}
+                    {showUsers && <path d={userArea} fill="url(#userGrowthGrad)" />}
+                    {showUsers && (
+                      <path
+                        d={userLine}
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    )}
 
-                    {/* Users Line */}
-                    <path
-                      d={userLine}
-                      fill="none"
-                      stroke="#6366f1"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
+                    {/* Colleges Area & Line */}
+                    {showColleges && <path d={colArea} fill="url(#colGrowthGrad)" />}
+                    {showColleges && (
+                      <path
+                        d={colLine}
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+                    )}
 
-                    {/* Data Points */}
-                    {userCoords.map((c, i) => (
-                      <g key={i}>
-                        {c.count > 0 && (
-                          <circle
-                            cx={c.x}
-                            cy={c.y}
-                            r={growthTooltip?.date === c.date ? 5 : 3.5}
-                            className="fill-indigo-600 stroke-white dark:stroke-gray-900 transition-all duration-200"
-                            strokeWidth="2"
-                          />
-                        )}
+                    {/* User Data Points */}
+                    {showUsers &&
+                      userCoords.map((c, i) => (
+                        <React.Fragment key={`user-dot-${i}`}>
+                          {c.count > 0 && (
+                            <circle
+                              cx={c.x}
+                              cy={c.y}
+                              r={growthTooltip?.date === c.date ? 5 : 3.5}
+                              className="fill-indigo-600 stroke-white dark:stroke-gray-900 transition-all duration-200"
+                              strokeWidth="2"
+                            />
+                          )}
+                        </React.Fragment>
+                      ))}
+
+                    {/* College Data Points */}
+                    {showColleges &&
+                      colCoords.map((c, i) => (
+                        <React.Fragment key={`col-dot-${i}`}>
+                          {c.count > 0 && (
+                            <circle
+                              cx={c.x}
+                              cy={c.y}
+                              r={growthTooltip?.date === c.date ? 5 : 3.5}
+                              className="fill-emerald-500 stroke-white dark:stroke-gray-900 transition-all duration-200"
+                              strokeWidth="2"
+                            />
+                          )}
+                        </React.Fragment>
+                      ))}
+
+                    {/* Interactive hover & click columns */}
+                    {points.map((p, idx) => {
+                      const x = padLeft + (idx / Math.max(1, points.length - 1)) * chartW
+                      return (
                         <rect
-                          x={c.x - chartW / (points.length * 2)}
+                          key={`hover-${idx}`}
+                          x={x - chartW / (points.length * 2)}
                           y={padTop}
                           width={chartW / points.length}
                           height={chartH}
                           fill="transparent"
                           className="cursor-pointer"
-                          onMouseEnter={() => setGrowthTooltip(c)}
+                          onClick={() =>
+                            setGrowthTooltip(curr =>
+                              curr?.date === p.date
+                                ? null
+                                : {
+                                    ...p,
+                                    x,
+                                    userY: userCoords[idx].y,
+                                    colY: colCoords[idx].y,
+                                  }
+                            )
+                          }
+                          onMouseEnter={() =>
+                            setGrowthTooltip({
+                              ...p,
+                              x,
+                              userY: userCoords[idx].y,
+                              colY: colCoords[idx].y,
+                            })
+                          }
                           onMouseLeave={() => setGrowthTooltip(null)}
                         />
-                      </g>
-                    ))}
+                      )
+                    })}
 
                     {/* X-axis labels */}
                     {xTicks.map((c, i) => (
@@ -943,23 +1284,82 @@ export default function AdminDashboard({ onNavigate, user }) {
                     ))}
                   </svg>
 
-                  {/* Tooltip */}
+                  {/* Dual Hover & Click Tooltip with smart non-clipping placement */}
                   {growthTooltip && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="absolute pointer-events-none z-30 px-3 py-2 rounded-xl bg-slate-900/95 dark:bg-black/95 text-white shadow-xl border border-slate-700/60 text-xs backdrop-blur-md"
-                      style={{
-                        left: `${(growthTooltip.x / svgWidth) * 100}%`,
-                        top: `${(growthTooltip.y / svgHeight) * 100 - 30}%`,
-                        transform: 'translate(-50%, -100%)',
-                      }}
+                      className="absolute pointer-events-none z-30 px-3.5 py-2.5 rounded-xl bg-slate-900/95 dark:bg-black/95 text-white shadow-2xl border border-slate-700/60 text-xs backdrop-blur-md min-w-[155px]"
+                      style={(() => {
+                        const xRatio = growthTooltip.x / svgWidth
+                        let transformOrigin = 'translate(-50%, -100%)'
+                        let leftPercent = xRatio * 100
+
+                        if (xRatio > 0.65) {
+                          // Tooltip sits to the LEFT of the hovered/clicked point
+                          transformOrigin = 'translate(-100%, -100%)'
+                          leftPercent = Math.min(xRatio * 100 + 4, 98)
+                        } else if (xRatio < 0.28) {
+                          // Tooltip sits to the RIGHT of the hovered/clicked point
+                          transformOrigin = 'translate(0%, -100%)'
+                          leftPercent = Math.max(xRatio * 100 - 4, 2)
+                        }
+
+                        const targetY = Math.min(
+                          showUsers ? growthTooltip.userY : 9999,
+                          showColleges ? growthTooltip.colY : 9999
+                        )
+                        const showBelow = targetY < 55
+                        const finalTransform = showBelow
+                          ? transformOrigin.replace('-100%)', '15px)')
+                          : transformOrigin.replace('-100%)', '-15px)')
+                        const topPercent = Math.max(10, Math.min(80, (targetY / svgHeight) * 100))
+
+                        return {
+                          left: `${leftPercent}%`,
+                          top: `${topPercent}%`,
+                          transform: finalTransform,
+                        }
+                      })()}
                     >
-                      <p className="text-[11px] font-bold text-slate-300">{growthTooltip.fullDate}</p>
-                      <p className="flex items-center gap-1.5 mt-1 font-semibold text-xs text-indigo-400">
-                        <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                        <span>{growthTooltip.count} new users</span>
-                      </p>
+                      <div className="flex items-center justify-between border-b border-slate-700/50 pb-1 mb-1.5 text-[11px] font-bold text-slate-300">
+                        <span>{growthTooltip.fullDate}</span>
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 font-semibold px-1 py-0.5 rounded bg-slate-800">
+                          {growthMode === 'cumulative' ? 'Total' : 'Daily'}
+                        </span>
+                      </div>
+                      {showUsers && (
+                        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-indigo-400">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                            <span>Users</span>
+                          </span>
+                          <div className="flex items-center gap-1.5 font-mono">
+                            <span className="text-white font-bold">{growthTooltip.users}</span>
+                            {growthMode === 'cumulative' && growthTooltip.dailyUsers > 0 && (
+                              <span className="text-[10px] text-indigo-300 font-normal">
+                                (+{growthTooltip.dailyUsers})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {showColleges && (
+                        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-emerald-400 mt-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span>Colleges</span>
+                          </span>
+                          <div className="flex items-center gap-1.5 font-mono">
+                            <span className="text-white font-bold">{growthTooltip.colleges}</span>
+                            {growthMode === 'cumulative' && growthTooltip.dailyColleges > 0 && (
+                              <span className="text-[10px] text-emerald-300 font-normal">
+                                (+{growthTooltip.dailyColleges})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </>
