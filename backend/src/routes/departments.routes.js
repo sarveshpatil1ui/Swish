@@ -48,6 +48,7 @@ router.get('/by-domain', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'College not found.' })
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
     return res.status(200).json(result)
   } catch (err) {
     console.error('[GET /departments/by-domain]', err)

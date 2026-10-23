@@ -1,9 +1,12 @@
 
 import { Router } from 'express'
+import path from 'path'
+import fs from 'fs'
+import crypto from 'crypto'
 import { body, validationResult } from 'express-validator'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { uploadPostPhoto } from '../middleware/upload.middleware.js'
-import { uploadPostImage, deletePostImage } from '../services/cloudinary.service.js'
+import { uploadPostImage, deletePostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
 import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
@@ -111,22 +114,30 @@ router.post(
       let imagePublicId = null
 
       if (req.file) {
-        try {
-          uploadedAsset = await uploadPostImage(req.file.buffer)
-          imageUrl = uploadedAsset.secureUrl
-          imagePublicId = uploadedAsset.publicId
-        } catch (uploadErr) {
-          console.error('[POST /api/posts] Cloudinary upload error:', uploadErr)
-          return res.status(502).json({
-            ok: false,
-            error: 'Failed to upload image. Please try again.',
-          })
-        } finally {
-          // Immediately free up memory buffer so it is not retained
-          if (req.file) {
-            req.file.buffer = null
-            delete req.file.buffer
+        if (isCloudinaryConfigured()) {
+          try {
+            uploadedAsset = await uploadPostImage(req.file.buffer)
+            imageUrl = uploadedAsset.secureUrl
+            imagePublicId = uploadedAsset.publicId
+          } catch (uploadErr) {
+            console.warn('[POST /api/posts] Cloudinary upload failed, falling back to local disk storage:', uploadErr.message)
           }
+        }
+
+        // Resilient fallback: save directly to uploads/posts if Cloudinary is unconfigured or fails
+        if (!imageUrl) {
+          const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'posts')
+          fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+          const ext = path.extname(req.file.originalname).toLowerCase() || '.jpg'
+          const filename = `${req.user.id}-${crypto.randomBytes(16).toString('hex')}${ext}`
+          fs.writeFileSync(path.join(UPLOAD_DIR, filename), req.file.buffer)
+          imageUrl = `/uploads/posts/${filename}`
+        }
+
+        // Immediately free up memory buffer so it is not retained in heap
+        if (req.file) {
+          req.file.buffer = null
+          delete req.file.buffer
         }
       }
 
@@ -351,13 +362,14 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
       { new: true }
     )
 
-    // Broadcast real-time like count to all connected clients
+    // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
+    const collegeId = post.user?.collegeId || req.user.collegeId
     broadcastEvent('post:like:update', {
       postId: updated.id,
       likeCount: updated.likes.length,
       userId: req.user.id,
       action: 'like',
-    })
+    }, { collegeId })
 
     // Create & emit notification to post owner if someone else liked
     if (post.user.toString() !== req.user.id) {
@@ -402,13 +414,14 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
       { new: true }
     )
 
-    // Broadcast real-time like count to all connected clients
+    // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
+    const collegeId = post.user?.collegeId || req.user.collegeId
     broadcastEvent('post:like:update', {
       postId: updated.id,
       likeCount: updated.likes.length,
       userId: req.user.id,
       action: 'unlike',
-    })
+    }, { collegeId })
 
     res.json({
       ok: true,
@@ -503,12 +516,13 @@ router.post(
         createdAt: comment.createdAt,
       }
 
-      // Broadcast real-time comment update to all connected clients
+      // Broadcast real-time comment update scoped to college room (avoids global broadcast storm)
+      const collegeId = post.user?.collegeId || req.user.collegeId
       broadcastEvent('post:comment:update', {
         postId: req.params.postId,
         commentCount: updatedPost ? updatedPost.commentCount : 1,
         comment: commentPayload,
-      })
+      }, { collegeId })
 
       // Create & emit notification to post owner if someone else commented
       if (post.user.toString() !== req.user.id) {

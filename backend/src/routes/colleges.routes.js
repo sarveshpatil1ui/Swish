@@ -44,6 +44,7 @@ function handleValidationErrors(req, res) {
 // Public — returns all colleges (admin page lists them, signup uses for display)
 router.get('/', async (_req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
     const data = await getOrSet(COLLEGES_LIST_KEY, COLLEGES_TTL, async () => {
       const colleges = await College.find().sort({ name: 1 })
       return { ok: true, colleges: colleges.map(c => c.toJSON()) }
@@ -160,6 +161,7 @@ router.get(
 
     try {
       const domain = req.query.domain.trim().toLowerCase()
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
 
       // Hardcoded admin bypass
       if (domain === 'swish.com') {

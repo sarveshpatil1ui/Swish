@@ -10,6 +10,7 @@ import { useSwish } from '../../context/SwishContext'
 import CommentDrawer from './CommentDrawer'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
+import ReportModal from './ReportModal'
 import { resolveImageUrl } from '../../utils/posts'
 import { resolveAudioUrl, playSharedAudio } from '../../utils/audioResolver'
 
@@ -71,6 +72,7 @@ function PostCard({ post }) {
   const [imgError,     setImgError]     = useState(false)
   const [showMenu,     setShowMenu]     = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [deleting,     setDeleting]     = useState(false)
   const [doubleTapAnim, setDoubleTapAnim] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -326,7 +328,7 @@ function PostCard({ post }) {
                     )}
                     {!isOwnPost && (
                       <button
-                        onClick={() => setShowMenu(false)}
+                        onClick={() => { setShowMenu(false); setShowReportModal(true) }}
                         className="w-full text-left px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                       >
                         Report
@@ -620,6 +622,15 @@ function PostCard({ post }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportedPostId={post.id}
+        reportedUserId={post.userId}
+        reportedUserName={post.userName}
+      />
     </>
   )
 }

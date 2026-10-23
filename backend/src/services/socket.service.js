@@ -19,9 +19,18 @@ export function emitToUser(userId, event, data) {
   _io.to(`user:${String(userId)}`).emit(event, data)
 }
 
-export function broadcastEvent(event, data) {
+export function broadcastEvent(event, data, options = {}) {
   if (!_io) return
-  _io.emit(event, data)
+  if (options?.collegeId) {
+    _io.to(`college:${String(options.collegeId)}`).emit(event, data)
+  } else {
+    _io.emit(event, data)
+  }
+}
+
+export function emitToCollege(collegeId, event, data) {
+  if (!_io || !collegeId) return
+  _io.to(`college:${String(collegeId)}`).emit(event, data)
 }
 
 let _io
@@ -88,6 +97,11 @@ export function initSocket(app, { pubClient, subClient } = {}) {
 
     // Join user-specific room for targeted, multi-instance delivery across tabs and instances
     socket.join(`user:${userId}`)
+
+    // Join college-specific room so post likes and campus updates are scoped without global broadcast storms
+    if (socket.user.collegeId) {
+      socket.join(`college:${socket.user.collegeId.toString()}`)
+    }
 
     // Track this socket (a user may have multiple tabs open)
     if (!onlineUsers.has(userId)) {

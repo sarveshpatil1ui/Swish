@@ -11,6 +11,7 @@ import { useSocket } from '../../context/SocketContext'
 import { formatRelativeTime, resolveImageUrl } from '../../utils/posts'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
+import ReportModal from './ReportModal'
 import { resolveAudioUrl, playSharedAudio } from '../../utils/audioResolver'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -36,6 +37,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const [copied, setCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
   const [showLikesModal, setShowLikesModal] = useState(false)
@@ -383,12 +385,19 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       <button onClick={() => { handleShare(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
                         Copy link
                       </button>
-                      {isOwnPost && (
+                      {isOwnPost ? (
                         <button
                           onClick={() => { setShowMenu(false); setShowDeleteConfirm(true) }}
                           className="w-full text-left px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-2"
                         >
                           <Trash2 size={14} /> Delete
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => { setShowMenu(false); setShowReportModal(true) }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center gap-2"
+                        >
+                          Report
                         </button>
                       )}
                     </motion.div>
@@ -572,6 +581,15 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportedPostId={post.id}
+        reportedUserId={post.userId}
+        reportedUserName={post.userName}
+      />
     </>
   )
 }
