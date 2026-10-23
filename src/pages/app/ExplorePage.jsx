@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, TrendingUp, X, UserX, Loader2, Users } from 'lucide-react'
+import { Search, TrendingUp, X, UserX, Loader2, Users, Flame, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
 import { getStoredToken } from '../../utils/auth'
@@ -224,14 +224,30 @@ export default function ExplorePage() {
 
       {/* ── Posts tab ── */}
       {activeTab === 'posts' && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={15} className="text-indigo-500" />
-            <h2 className="text-slate-900 dark:text-white font-semibold text-sm">Trending Posts</h2>
+            <h2 className="text-slate-900 dark:text-white font-semibold text-sm">Trending Posts & Media</h2>
           </div>
-          <div className="text-center py-12 px-4 bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800 rounded-2xl">
-            <p className="text-slate-900 dark:text-white font-semibold text-sm">Coming soon</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Trending posts will appear here.</p>
+          <div className="text-center py-10 px-6 bg-gradient-to-b from-indigo-50/50 to-white dark:from-gray-900 dark:to-gray-950 border border-indigo-100 dark:border-gray-800 rounded-3xl space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white mx-auto shadow-lg shadow-rose-500/25">
+              <Flame size={28} className="fill-white" />
+            </div>
+            <div className="space-y-1 max-w-sm mx-auto">
+              <h3 className="text-slate-900 dark:text-white font-bold text-base">Campus Trending Hub</h3>
+              <p className="text-slate-500 dark:text-gray-400 text-xs leading-relaxed">
+                Explore an Instagram-style tile grid of viral campus moments, trending hashtags, and suggested accounts.
+              </p>
+            </div>
+            <div>
+              <Link
+                to="/trending"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 transition-all active:scale-95"
+              >
+                <span>Go to Trending</span>
+                <ArrowRight size={15} />
+              </Link>
+            </div>
           </div>
         </div>
       )}

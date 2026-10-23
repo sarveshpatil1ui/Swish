@@ -230,6 +230,76 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/posts" }
         }
       ]
+    },
+    {
+      "name": "6. Forgot Password",
+      "item": [
+        {
+          "name": "POST forgot password — request OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/forgot-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@campus.edu\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST verify reset OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/verify-reset-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@campus.edu\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST reset password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resetToken\": \"your_reset_token_here\",\n  \"newPassword\": \"newPassword123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Trending & Discovery",
+      "item": [
+        {
+          "name": "GET trending posts (algorithm rank)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/posts?tab=trending&limit=20" }
+        },
+        {
+          "name": "GET for-you posts (personalized)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/posts?tab=foryou&limit=20" }
+        },
+        {
+          "name": "GET college posts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/posts?tab=college&limit=20" }
+        },
+        {
+          "name": "GET trending hashtags",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/hashtags?limit=12" }
+        },
+        {
+          "name": "GET posts by hashtag",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/hashtags/campus/posts?limit=20" }
+        },
+        {
+          "name": "GET suggested accounts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/trending/accounts?limit=8" }
+        }
+      ]
     }
   ]
 }

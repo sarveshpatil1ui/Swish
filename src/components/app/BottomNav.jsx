@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Compass, PlusSquare, User, MessageSquare } from 'lucide-react'
+import { Home, Compass, Flame, PlusSquare, User, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
@@ -13,6 +13,7 @@ export default function BottomNav() {
   const tabs = [
     { to: '/home',                                    icon: Home,          label: 'Home' },
     { to: '/explore',                                 icon: Compass,       label: 'Explore' },
+    { to: '/trending',                                icon: Flame,         label: 'Trending' },
     { create: true },
     { to: '/messages',                                icon: MessageSquare, label: 'Messages', badge: unreadMsgCount },
     { to: `/profile/${currentUser?.id || 'user-1'}`, icon: User,          label: 'Profile' },
@@ -25,7 +26,7 @@ export default function BottomNav() {
         aria-label="Mobile navigation"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex items-center justify-around h-[54px] px-6">
+        <div className="flex items-center justify-around h-[54px] px-2 sm:px-4">
           {tabs.map((tab) => {
 
             /* ── Create button ── */
@@ -35,9 +36,9 @@ export default function BottomNav() {
                   key="create"
                   onClick={() => setShowCreate(true)}
                   aria-label="Create post"
-                  className="flex items-center justify-center w-11 h-11 rounded-[12px] bg-indigo-600 active:scale-90 transition-transform duration-150 shadow-lg shadow-indigo-500/25"
+                  className="flex items-center justify-center w-10 h-10 rounded-[12px] bg-indigo-600 active:scale-90 transition-transform duration-150 shadow-lg shadow-indigo-500/25 flex-shrink-0"
                 >
-                  <PlusSquare size={21} className="text-white" strokeWidth={2} />
+                  <PlusSquare size={20} className="text-white" strokeWidth={2} />
                 </button>
               )
             }
@@ -49,7 +50,7 @@ export default function BottomNav() {
                 key={tab.to}
                 to={tab.to}
                 aria-label={tab.label}
-                className="relative flex items-center justify-center w-12 h-12 rounded-xl active:scale-90 transition-transform duration-150"
+                className="relative flex items-center justify-center w-11 h-11 rounded-xl active:scale-90 transition-transform duration-150 flex-shrink-0"
               >
                 {({ isActive }) => (
                   <>
@@ -69,7 +70,7 @@ export default function BottomNav() {
                     </AnimatePresence>
 
                     <Icon
-                      size={24}
+                      size={22}
                       strokeWidth={isActive ? 2.5 : 1.75}
                       className={`relative z-10 transition-all duration-150 ${
                         isActive
@@ -79,7 +80,7 @@ export default function BottomNav() {
                     />
 
                     {tab.badge > 0 && (
-                      <span className="absolute top-1.5 right-1.5 z-20 min-w-[16px] h-4 px-1 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-black leading-none shadow-sm shadow-indigo-500/30">
+                      <span className="absolute top-1 right-1 z-20 min-w-[15px] h-3.5 px-1 bg-indigo-600 rounded-full text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-black leading-none shadow-sm shadow-indigo-500/30">
                         {msgBadgeLabel}
                       </span>
                     )}

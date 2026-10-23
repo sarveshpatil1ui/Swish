@@ -172,9 +172,9 @@ async function seed() {
     const { password, ...rest } = account
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
-    // Add collegeId for college_admin role
+    // Add collegeId for campus.edu accounts or college_admin
     const userData = { ...rest, passwordHash }
-    if (rest.role === 'college_admin') {
+    if (rest.role === 'college_admin' || rest.college === 'KJSCE Mumbai') {
       userData.collegeId = demoCollege._id
     }
 
@@ -251,45 +251,53 @@ async function seed() {
     // ── Rahul's posts ─────────────────────────────────────────────
     {
       user:    rahul._id,
-      content: '🚀 Just shipped the first version of Swish — a campus social network built for students and faculty! Drop a follow if you want to stay updated 👇',
+      content: '🚀 Just shipped the first version of Swish — a campus social network built for students and faculty! Drop a follow if you want to stay updated 👇 #swish #campus #startup',
+      tags:    ['swish', 'campus', 'startup'],
       likes:   [student._id, faculty._id, priya._id, arjun._id, sneha._id],
     },
     {
       user:    rahul._id,
-      content: '📦 Tech stack breakdown for Swish:\n• Backend: Node.js + Express + MongoDB\n• Auth: JWT + bcrypt\n• Real-time: coming soon 👀\n\nWhat feature should I build next?',
+      content: '📦 Tech stack breakdown for Swish:\n• Backend: Node.js + Express + MongoDB\n• Auth: JWT + bcrypt\n• Real-time: coming soon 👀\n\nWhat feature should I build next? #webdev #coding #nodejs',
+      tags:    ['webdev', 'coding', 'nodejs'],
       likes:   [student._id, priya._id, sneha._id],
     },
     {
       user:    rahul._id,
-      content: '🎯 Hackathon tip: start with the problem, not the tech. We wasted 3 hours picking between Next.js and Vite before we even validated the idea. Lesson learnt 😅',
+      content: '🎯 Hackathon tip: start with the problem, not the tech. We wasted 3 hours picking between Next.js and Vite before we even validated the idea. Lesson learnt 😅 #hackathon #tech #kjsce',
+      tags:    ['hackathon', 'tech', 'kjsce'],
       likes:   [faculty._id, arjun._id],
     },
     // ── Priya's posts ─────────────────────────────────────────────
     {
       user:    priya._id,
-      content: '🎨 Just redesigned the Swish feed UI with glassmorphism cards and smooth hover animations. Dark mode looks *chef\'s kiss* 🤌\n\nDesign matters, people!',
+      content: '🎨 Just redesigned the Swish feed UI with glassmorphism cards and smooth hover animations. Dark mode looks *chef\'s kiss* 🤌\n\nDesign matters, people! #design #uiux #frontend',
+      tags:    ['design', 'uiux', 'frontend'],
       likes:   [rahul._id, sneha._id, student._id, arjun._id],
     },
     {
       user:    priya._id,
-      content: '💡 Figma tip: Use Auto Layout + Variables for a scalable design system. Saved me 10+ hours this semester on club event posters alone.',
+      content: '💡 Figma tip: Use Auto Layout + Variables for a scalable design system. Saved me 10+ hours this semester on club event posters alone. #design #figma #productivity',
+      tags:    ['design', 'figma', 'productivity'],
       likes:   [rahul._id, sneha._id],
     },
     // ── Arjun's post ──────────────────────────────────────────────
     {
       user:    arjun._id,
-      content: '🤖 Our robotics club just won 2nd place at TechFest! Built an autonomous line-follower with PID control and custom 3D-printed chassis.\n\nTeam effort all the way 💪🏆',
+      content: '🤖 Our robotics club just won 2nd place at TechFest! Built an autonomous line-follower with PID control and custom 3D-printed chassis.\n\nTeam effort all the way 💪🏆 #robotics #techfest #hardware #kjsce',
+      tags:    ['robotics', 'techfest', 'hardware', 'kjsce'],
       likes:   [rahul._id, priya._id, sneha._id, faculty._id, student._id],
     },
     // ── Sneha's posts ─────────────────────────────────────────────
     {
       user:    sneha._id,
-      content: '🧠 Finally cracked top 5% on the Kaggle Titanic challenge. Gradient boosting + feature engineering > fancy deep learning for tabular data.\n\nHappy to share my notebook if anyone wants to learn! 📓',
+      content: '🧠 Finally cracked top 5% on the Kaggle Titanic challenge. Gradient boosting + feature engineering > fancy deep learning for tabular data.\n\nHappy to share my notebook if anyone wants to learn! 📓 #ai #datascience #python #machinelearning',
+      tags:    ['ai', 'datascience', 'python', 'machinelearning'],
       likes:   [rahul._id, arjun._id, faculty._id],
     },
     {
       user:    sneha._id,
-      content: '📚 Open-source contribution #12 merged today! Fixed a memory leak in a popular Python ML library.\n\nContributing to OSS is the best way to level up as a developer. Don\'t be scared of "imposter syndrome" — just open that PR 🚀',
+      content: '📚 Open-source contribution #12 merged today! Fixed a memory leak in a popular Python ML library.\n\nContributing to OSS is the best way to level up as a developer. Don\'t be scared of "imposter syndrome" — just open that PR 🚀 #opensource #python #coding',
+      tags:    ['opensource', 'python', 'coding'],
       likes:   [rahul._id, priya._id, faculty._id, student._id],
     },
   ]
@@ -335,9 +343,17 @@ async function seed() {
   // Upsert posts (match by user + content so re-running seed is safe)
   const createdPosts = []
   for (const postData of DEMO_POSTS) {
+    const rawLikes = postData.likes || []
+    const postPayload = {
+      ...postData,
+      caption: postData.content,
+      collegeId: demoCollege._id,
+      likeCount: rawLikes.length,
+      tags: postData.tags || [],
+    }
     const post = await Post.findOneAndUpdate(
       { user: postData.user, content: postData.content },
-      { $set: postData },
+      { $set: postPayload },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
     createdPosts.push(post)
@@ -361,9 +377,9 @@ async function seed() {
       { $set: { post: post._id, user: c.user, text: c.text } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
-    // Keep commentsCount in sync
+    // Keep both commentsCount and commentCount in sync
     const count = await Comment.countDocuments({ post: post._id, isDeleted: false })
-    await Post.findByIdAndUpdate(post._id, { commentsCount: count })
+    await Post.findByIdAndUpdate(post._id, { commentsCount: count, commentCount: count })
     console.log(`  💬  Post[${c.postIndex}] — "${comment.text.slice(0, 45)}..."`)
   }
 

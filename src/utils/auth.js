@@ -69,6 +69,18 @@ export async function apiResendOtp(email) {
   return apiFetch('/api/auth/resend-otp', { method: 'POST', body: { email } })
 }
 
+export async function apiForgotPassword(email) {
+  return apiFetch('/api/auth/forgot-password', { method: 'POST', body: { email } })
+}
+
+export async function apiVerifyResetOtp(email, otp) {
+  return apiFetch('/api/auth/verify-reset-otp', { method: 'POST', body: { email, otp } })
+}
+
+export async function apiResetPassword(email, resetToken, newPassword) {
+  return apiFetch('/api/auth/reset-password', { method: 'POST', body: { email, resetToken, newPassword } })
+}
+
 export async function apiLogin(email, password) {
   const data = await apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
   if (data.ok && data.token) {
@@ -515,6 +527,38 @@ export async function apiPinNotice(id) {
   return apiFetch(`/api/notices/${id}/pin`, { method: 'PATCH' })
 }
 
+// ── Trending & Discovery API ────────────────────────────────────────────────
+/** On success: { ok: true, posts: Array, nextCursor: string|null, hasMore: boolean } */
+export async function apiGetTrendingPosts({ tab = 'trending', cursor, limit = 20 } = {}) {
+  const params = new URLSearchParams()
+  if (tab) params.append('tab', tab)
+  if (cursor) params.append('cursor', cursor)
+  if (limit) params.append('limit', limit)
+  const q = params.toString()
+  return apiFetch(`/api/trending/posts${q ? `?${q}` : ''}`)
+}
+
+/** On success: { ok: true, hashtags: Array<{ tag: string, count: number }> } */
+export async function apiGetTrendingHashtags(limit = 12) {
+  return apiFetch(`/api/trending/hashtags?limit=${limit}`)
+}
+
+/** On success: { ok: true, tag: string, posts: Array, nextCursor: string|null, hasMore: boolean } */
+export async function apiGetHashtagPosts(tag, { cursor, limit = 20 } = {}) {
+  const cleanTag = encodeURIComponent((tag || '').replace(/^#+/, ''))
+  const params = new URLSearchParams()
+  if (cursor) params.append('cursor', cursor)
+  if (limit) params.append('limit', limit)
+  const q = params.toString()
+  return apiFetch(`/api/trending/hashtags/${cleanTag}/posts${q ? `?${q}` : ''}`)
+}
+
+/** On success: { ok: true, accounts: Array } */
+export async function apiGetSuggestedAccounts(limit = 8) {
+  return apiFetch(`/api/trending/accounts?limit=${limit}`)
+}
+
+// ── Moderation API ──────────────────────────────────────────────────────────
 export async function apiGetModerationPosts() {
   return apiFetch('/api/moderation/posts')
 }

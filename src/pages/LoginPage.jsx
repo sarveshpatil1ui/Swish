@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, Eye, EyeOff, AlertCircle, ArrowLeft,
@@ -24,6 +24,7 @@ function ActivityChip({ delay, children }) {
 export default function LoginPage() {
   const { login, onVerified } = useSwish()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [email, setEmail]             = useState('')
   const [password, setPassword]       = useState('')
@@ -31,6 +32,11 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe]   = useState(false)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
+  const [successBanner, setSuccessBanner] = useState(
+    location.state?.passwordResetSuccess
+      ? 'Password updated successfully. Please sign in with your new password.'
+      : ''
+  )
 
   // ── OTP step (shown when login returns pendingVerification) ────────────
   const [otpStep,        setOtpStep]        = useState(false)
@@ -396,6 +402,23 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Success banner from password reset */}
+          <AnimatePresence mode="wait">
+            {successBanner && (
+              <motion.div
+                key="success-banner"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-start gap-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 mb-5"
+              >
+                <CheckCircle size={15} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                <p className="text-emerald-700 dark:text-emerald-300 text-sm leading-snug">{successBanner}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Error banner */}
           <AnimatePresence mode="wait">
             {error && (
@@ -450,12 +473,12 @@ export default function LoginPage() {
                 >
                   Password
                 </label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-indigo-600 dark:text-indigo-400 text-xs font-medium hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <Lock

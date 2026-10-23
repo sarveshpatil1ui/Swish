@@ -59,6 +59,17 @@ export async function requireAuth(req, res, next) {
       return res.status(403).json({ ok: false, error: 'This account has been suspended.' })
     }
 
+    // Invalidate JWTs issued before password change
+    if (user.passwordChangedAt && payload.iat) {
+      const passwordChangedSec = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000)
+      if (payload.iat < passwordChangedSec) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Password was recently changed. Please log in again.',
+        })
+      }
+    }
+
     // Check institution active status for non-admin users
     if (user.role !== 'admin' && user.role !== 'main_admin' && user.email) {
       const emailDomain = user.email.split('@')[1]

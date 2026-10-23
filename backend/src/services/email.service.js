@@ -391,6 +391,232 @@ Do not share this code with anyone. If you did not create a Swish account, you c
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Password Reset OTP Email
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendPasswordResetOtpEmail(toOrOptions, maybeName, maybeOtp) {
+  let to, name, otp, expiresInMinutes
+
+  if (typeof toOrOptions === 'object' && toOrOptions !== null) {
+    to = toOrOptions.to
+    name = toOrOptions.name || 'Swish User'
+    otp = toOrOptions.otp
+    expiresInMinutes = toOrOptions.expiresInMinutes || process.env.OTP_EXPIRES_MINUTES || 10
+  } else {
+    to = toOrOptions
+    name = maybeName || 'Swish User'
+    otp = maybeOtp
+    expiresInMinutes = process.env.OTP_EXPIRES_MINUTES || 10
+  }
+
+  if (!hasEmailProvider()) {
+    if (process.env.NODE_ENV === 'production') {
+      _log('error', 'production_no_email_provider')
+      throw new Error('Email delivery service is unavailable. Please contact system administrator.')
+    }
+    console.log('\n📬  [DEV EMAIL — PASSWORD RESET OTP not actually sent]')
+    console.log(`  To:   ${to}`)
+    console.log(`  Name: ${name}`)
+    console.log(`  OTP:  [redacted — check MASTER_OTP or local testing]`)
+    console.log(`  (Expires in ${expiresInMinutes} minutes)\n`)
+    return { ok: true, devMode: true }
+  }
+
+  const html = buildPasswordResetOtpHtml(name, otp, expiresInMinutes)
+  const text = buildPasswordResetOtpText(name, otp, expiresInMinutes)
+
+  return dispatchEmail({
+    to,
+    subject: `${otp} is your Swish password reset code`,
+    html,
+    text,
+  })
+}
+
+export function buildPasswordResetOtpHtml(name, otp, expiresMinutes) {
+  const safeName = escapeHtml(name)
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your Swish password</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px 40px;text-align:center;">
+              <span style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">⚡ Swish</span>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Campus Social Network</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px;">
+              <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#1e293b;">Reset your Swish password</h2>
+              <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+                Hi ${safeName},<br/><br/>
+                We received a request to reset your password. Use the verification code below to proceed with resetting your password.
+              </p>
+
+              <!-- OTP Box -->
+              <div style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+                <span style="font-family:'Courier New',Courier,monospace;font-size:38px;font-weight:900;color:#4f46e5;letter-spacing:10px;display:inline-block;">
+                  ${otp}
+                </span>
+                <p style="margin:12px 0 0;color:#94a3b8;font-size:13px;">
+                  Expires in <strong>${expiresMinutes} minutes</strong>
+                </p>
+              </div>
+
+              <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.6;">
+                If you did not request a password reset, you can safely ignore this email. Your password will not change until you verify the code and set a new one.
+                <strong>Do not share this code with anyone.</strong>
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:18px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                © ${new Date().getFullYear()} Swish Campus Network · Sent securely via Gmail API
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+}
+
+export function buildPasswordResetOtpText(name, otp, expiresMinutes) {
+  return `
+Hi ${name},
+
+Your Swish password reset code is: ${otp}
+
+This code expires in ${expiresMinutes} minutes.
+
+Do not share this code with anyone. If you did not request a password reset, you can safely ignore this email.
+
+— Swish Campus Network
+  `.trim()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Password Changed Confirmation Email
+// ─────────────────────────────────────────────────────────────────────────────
+export async function sendPasswordChangedEmail(toOrOptions, maybeName) {
+  let to, name
+
+  if (typeof toOrOptions === 'object' && toOrOptions !== null) {
+    to = toOrOptions.to
+    name = toOrOptions.name || 'Swish User'
+  } else {
+    to = toOrOptions
+    name = maybeName || 'Swish User'
+  }
+
+  if (!hasEmailProvider()) {
+    if (process.env.NODE_ENV === 'production') {
+      _log('error', 'production_no_email_provider')
+      throw new Error('Email delivery service is unavailable. Please contact system administrator.')
+    }
+    console.log('\n📬  [DEV EMAIL — PASSWORD CHANGED CONFIRMATION not actually sent]')
+    console.log(`  To:   ${to}`)
+    console.log(`  Name: ${name}\n`)
+    return { ok: true, devMode: true }
+  }
+
+  const html = buildPasswordChangedHtml(name)
+  const text = buildPasswordChangedText(name)
+
+  return dispatchEmail({
+    to,
+    subject: `Your Swish password has been changed`,
+    html,
+    text,
+  })
+}
+
+export function buildPasswordChangedHtml(name) {
+  const safeName = escapeHtml(name)
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swish Password Changed</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px 40px;text-align:center;">
+              <span style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">⚡ Swish</span>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Campus Social Network</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#1e293b;">Password Changed Successfully</h2>
+              <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+                Hi ${safeName},<br/><br/>
+                Your Swish password has been successfully updated. All previous active sessions have been invalidated for your security.
+              </p>
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:24px;">
+                <p style="margin:0;color:#166534;font-size:13px;line-height:1.6;">
+                  If you made this change, no further action is required.
+                </p>
+              </div>
+              <p style="margin:0;color:#ef4444;font-size:13px;line-height:1.6;">
+                <strong>Did not make this change?</strong> Please contact support immediately to secure your account.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f8fafc;padding:18px 40px;border-top:1px solid #f1f5f9;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:12px;">
+                © ${new Date().getFullYear()} Swish Campus Network · Security Notification
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+}
+
+export function buildPasswordChangedText(name) {
+  return `
+Hi ${name},
+
+Your Swish account password was successfully changed.
+
+If you made this change, you can safely ignore this email. All previous active sessions have been invalidated for your security.
+
+If you did NOT change your password, please contact your campus administrator or Swish support immediately.
+
+— Swish Campus Network
+  `.trim()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // sendCollegeAdminCredentialsEmail
 // Sends College Admin account credentials upon approval by Main Admin.
 // ─────────────────────────────────────────────────────────────────────────────

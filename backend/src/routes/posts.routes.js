@@ -28,6 +28,38 @@ function handleValidationErrors(req, res) {
   return null
 }
 
+export function normalizeTags(rawTags, caption = '') {
+  let list = Array.isArray(rawTags) ? rawTags : []
+  if (typeof rawTags === 'string') {
+    try {
+      const parsed = JSON.parse(rawTags)
+      if (Array.isArray(parsed)) list = parsed
+      else list = [rawTags]
+    } catch {
+      list = rawTags.split(',').map(t => t.trim())
+    }
+  }
+
+  // Auto-extract #hashtags from caption
+  const fromCaption = [...(caption || '').matchAll(/#([a-zA-Z0-9_]+)/g)].map(m => m[1])
+  const combined = [...list, ...fromCaption]
+
+  const normalizedSet = new Set()
+  for (const tag of combined) {
+    if (typeof tag !== 'string') continue
+    const cleaned = tag.trim().replace(/^#+/, '').toLowerCase()
+    if (cleaned && cleaned.length <= 50) {
+      normalizedSet.add(cleaned)
+    }
+    if (normalizedSet.size >= 10) break
+  }
+  return Array.from(normalizedSet)
+}
+
+export function extractHashtags(caption = '') {
+  return normalizeTags([], caption)
+}
+
 export function serializePost(post, viewerId) {
   const json = typeof post.toJSON === 'function' ? post.toJSON() : { ...post, id: (post._id ? post._id.toString() : post.id) }
   delete json._id
@@ -42,9 +74,10 @@ export function serializePost(post, viewerId) {
   const likes = json.likes || []
   const savedBy = json.savedBy || []
   const viewerStr = viewerId ? viewerId.toString() : ''
+  const likeCount = typeof json.likeCount === 'number' ? json.likeCount : likes.length
   return {
     ...json,
-    likeCount: likes.length,
+    likeCount,
     liked: likes.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
     saved: savedBy.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
     likes: undefined, // don't ship the full liker-id list to every client
@@ -86,15 +119,8 @@ router.post(
     let uploadedAsset = null
     try {
       const { caption = '' } = req.body
-      let tags = req.body.tags || []
-      
-      if (typeof tags === 'string') {
-        try {
-          tags = JSON.parse(tags)
-        } catch {
-          tags = []
-        }
-      }
+      const rawTags = req.body.tags || []
+      const tags = normalizeTags(rawTags, caption)
 
       const mentionedUsernames = [...caption.matchAll(/@([a-z0-9._-]+)/gi)].map(match => match[1].toLowerCase())
       if (mentionedUsernames.length > 0) {
@@ -156,7 +182,9 @@ router.post(
         imageUrl,
         imagePublicId,
         music,
-        tags: Array.isArray(tags) ? tags : [],
+        tags,
+        collegeId: req.user.collegeId || null,
+        likeCount: 0,
       })
       await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })
 
@@ -358,9 +386,16 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
     // like a post once, even under concurrent requests.
     const updated = await Post.findByIdAndUpdate(
       req.params.postId,
-      { $addToSet: { likes: req.user.id } },
+      {
+        $addToSet: { likes: req.user.id },
+        $inc: { likeCount: 1 },
+      },
       { new: true }
     )
+    if (updated && updated.likeCount !== updated.likes.length) {
+      updated.likeCount = updated.likes.length
+      await updated.save()
+    }
 
     // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
     const collegeId = post.user?.collegeId || req.user.collegeId
@@ -410,9 +445,16 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
     }
     const updated = await Post.findByIdAndUpdate(
       req.params.postId,
-      { $pull: { likes: req.user.id } },
+      {
+        $pull: { likes: req.user.id },
+        $inc: { likeCount: -1 },
+      },
       { new: true }
     )
+    if (updated && (updated.likeCount < 0 || updated.likeCount !== updated.likes.length)) {
+      updated.likeCount = Math.max(0, updated.likes.length)
+      await updated.save()
+    }
 
     // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
     const collegeId = post.user?.collegeId || req.user.collegeId

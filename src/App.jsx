@@ -24,6 +24,7 @@ function PageFallback() {
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const JoinPage = lazy(() => import('./pages/JoinPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const CollegeOnboardingPage = lazy(() => import('./pages/CollegeOnboardingPage'))
 import ProtectedRoute from './pages/ProtectedRoute'
 
@@ -34,6 +35,7 @@ import GlobalToast from './components/app/GlobalToast'
 // ── App pages (Lazy) ──────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('./pages/app/HomePage'))
 const ExplorePage = lazy(() => import('./pages/app/ExplorePage'))
+const TrendingPage = lazy(() => import('./pages/app/TrendingPage'))
 const ProfilePage = lazy(() => import('./pages/app/ProfilePage'))
 const NotificationsPage = lazy(() => import('./pages/app/NotificationsPage'))
 const AdminPage = lazy(() => import('./pages/app/AdminPage'))
@@ -132,6 +134,7 @@ export default function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/join" element={<JoinPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/college-onboarding" element={<CollegeOnboardingPage />} />
 
                 {/* ── Authenticated app (sidebar + bottom nav layout) ─────── */}
@@ -144,6 +147,7 @@ export default function App() {
                 >
                   <Route path="/home" element={<HomePage />} />
                   <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/trending" element={<TrendingPage />} />
                   <Route path="/profile/:userId" element={<ProfilePage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />

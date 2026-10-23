@@ -58,6 +58,17 @@ const PostSchema = new Schema(
       default: 0,
     },
 
+    likeCount: {
+      type: Number,
+      default: 0,
+    },
+
+    collegeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'College',
+      default: null,
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
@@ -93,6 +104,9 @@ const PostSchema = new Schema(
 PostSchema.index({ user: 1, createdAt: -1 });
 PostSchema.index({ likes: 1 });
 PostSchema.index({ createdAt: -1 });
+PostSchema.index({ tags: 1, createdAt: -1 });
+PostSchema.index({ createdAt: -1, likeCount: -1 });
+PostSchema.index({ collegeId: 1, createdAt: -1 });
 PostSchema.index({ hidden: 1, createdAt: -1 });
 
 PostSchema.virtual('comments', {

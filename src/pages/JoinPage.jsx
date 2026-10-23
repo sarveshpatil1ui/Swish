@@ -1050,16 +1050,25 @@ useEffect(() => {
             </button>
           </form>
 
-          {/* Sign in link */}
-          <p className="text-center text-slate-500 dark:text-gray-500 text-sm mt-6">
-            Already have an account?{' '}
+          {/* Sign in and Forgot password links */}
+          <div className="flex items-center justify-center gap-2.5 text-sm mt-6 text-slate-500 dark:text-gray-500">
+            <span>
+              Already have an account?{' '}
+              <Link
+                to="/login"
+                className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+              >
+                Sign in
+              </Link>
+            </span>
+            <span className="text-slate-300 dark:text-gray-700">·</span>
             <Link
-              to="/login"
-              className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+              to="/forgot-password"
+              className="text-slate-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium"
             >
-              Sign in
+              Forgot password?
             </Link>
-          </p>
+          </div>
         </motion.div>
 
         )} {/* end ternary — otpStep ? ... : registrationForm */}

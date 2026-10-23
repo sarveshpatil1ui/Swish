@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Compass, PlusCircle, Bell, User, Settings, LogOut, Zap, Shield, MessageSquare, Sun, Moon, GraduationCap } from 'lucide-react'
+import { Home, Compass, Flame, PlusCircle, Bell, User, Settings, LogOut, Zap, Shield, MessageSquare, Sun, Moon, GraduationCap } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +10,7 @@ import { resolveImageUrl } from '../../utils/posts'
 const baseNavItems = [
   { to: '/home',          icon: Home,     label: 'Home' },
   { to: '/explore',       icon: Compass,  label: 'Explore' },
+  { to: '/trending',      icon: Flame,    label: 'Trending' },
   { to: '/notifications', icon: Bell,     label: 'Notifications' },
   { to: '/settings',      icon: Settings, label: 'Settings' },
 ]
@@ -25,9 +26,9 @@ export default function Sidebar() {
   const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const navItems = [
-    ...baseNavItems.slice(0, 3),
+    ...baseNavItems.slice(0, 4),
     { to: `/profile/${user?.id || 'user-1'}`, icon: User, label: 'Profile' },
-    baseNavItems[3],
+    baseNavItems[4],
   ]
 
   const handleLogout = async () => {
