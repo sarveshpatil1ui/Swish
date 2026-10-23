@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { Conversation } from '../models/Conversation.js'
 import User from '../models/User.js'
+import { emitToUser, getIO } from '../services/socket.service.js'
 
 const router = Router()
 
@@ -55,10 +56,38 @@ router.get('/', async (req, res) => {
       .lean({ virtuals: true })
 
     const result = convs.map(c => formatConv(c, req.user._id))
-    res.json({ ok: true, conversations: result })
+    const totalUnread = result.reduce((sum, c) => sum + (c.unread || 0), 0)
+    res.json({ ok: true, conversations: result, unreadCount: totalUnread })
   } catch (err) {
     console.error('[GET /messages]', err)
     res.status(500).json({ ok: false, error: 'Failed to load conversations.' })
+  }
+})
+
+// ── GET /api/messages/unread-count — get total unread message count ───────────
+router.get('/unread-count', async (req, res) => {
+  try {
+    const myIdStr = req.user._id.toString()
+    const convs = await Conversation.find(
+      { participants: req.user._id },
+      { messages: { $slice: -30 } }
+    ).lean()
+
+    let count = 0
+    for (const conv of convs) {
+      for (const m of (conv.messages || [])) {
+        if (m && m.sender && m.sender.toString() !== myIdStr) {
+          const readBy = (m.readBy || []).map(r => (r ? r.toString() : ''))
+          if (!readBy.includes(myIdStr)) {
+            count++
+          }
+        }
+      }
+    }
+    res.json({ ok: true, count })
+  } catch (err) {
+    console.error('[GET /messages/unread-count]', err)
+    res.status(500).json({ ok: false, error: 'Failed to load unread count.' })
   }
 })
 
@@ -165,10 +194,40 @@ router.post('/', async (req, res) => {
   }
 })
 
+// ── PATCH /api/messages/:convId/read — mark all messages as read ────────────
+router.patch('/:convId/read', async (req, res) => {
+  try {
+    const { convId } = req.params
+    if (!convId || convId.length !== 24) {
+      return res.status(404).json({ ok: false, error: 'Invalid conversation ID.' })
+    }
+
+    const updateRes = await Conversation.updateOne(
+      { _id: convId, participants: req.user._id },
+      { $addToSet: { 'messages.$[elem].readBy': req.user._id } },
+      { arrayFilters: [{ 'elem.sender': { $ne: req.user._id }, 'elem.readBy': { $ne: req.user._id } }] }
+    )
+
+    if (updateRes.matchedCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
+
+    const io = getIO?.()
+    if (io && updateRes.modifiedCount > 0) {
+      io.to(`conv:${convId}`).emit('msg:read', { convId, readBy: req.user._id.toString() })
+    }
+
+    res.json({ ok: true, readBy: req.user._id.toString() })
+  } catch (err) {
+    console.error('[PATCH /messages/:convId/read]', err)
+    res.status(500).json({ ok: false, error: 'Failed to mark messages as read.' })
+  }
+})
+
 // ── POST /api/messages/:convId/send — send a message ─────────────────────────
 router.post('/:convId/send', async (req, res) => {
   try {
-    const { text } = req.body
+    const { text, storyReply, postShare } = req.body
     if (!text?.trim()) return res.status(400).json({ ok: false, error: 'Message text is required.' })
 
     const cleanText = text.trim()
@@ -181,9 +240,11 @@ router.post('/:convId/send', async (req, res) => {
       readBy: [req.user._id],
       createdAt: now,
       updatedAt: now,
+      ...(storyReply && { storyReply }),
+      ...(postShare && { postShare }),
     }
 
-    const updateRes = await Conversation.updateOne(
+    const conv = await Conversation.findOneAndUpdate(
       {
         _id: req.params.convId,
         participants: req.user._id,
@@ -195,22 +256,55 @@ router.post('/:convId/send', async (req, res) => {
           lastMessageAt: now,
           lastSender: req.user._id,
         },
-      }
+      },
+      { new: false, select: 'participants' }
     )
 
-    if (updateRes.matchedCount === 0) {
+    if (!conv) {
       return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
+
+    const payload = {
+      id:                 msgId.toString(),
+      convId:             req.params.convId,
+      senderId:           req.user._id.toString(),
+      senderName:         req.user.name,
+      senderUsername:     req.user.username || '',
+      senderAvatarColor:  req.user.avatarColor || '#6366f1',
+      senderProfilePhoto: req.user.profilePhoto || null,
+      senderInitials:     req.user.initials || '??',
+      text:               cleanText,
+      createdAt:          now.toISOString(),
+      readBy:             [req.user._id.toString()],
+      storyReply:         storyReply || null,
+      postShare:          postShare || null,
+    }
+
+    // Emit to conversation room and notify offline/out-of-room participants
+    const io = getIO?.()
+    if (io) {
+      io.to(`conv:${req.params.convId}`).emit('msg:new', payload)
+    }
+
+    for (const participantId of (conv.participants || [])) {
+      const pid = participantId.toString()
+      if (pid === req.user._id.toString()) continue
+      emitToUser(pid, 'msg:notification', {
+        convId:             req.params.convId,
+        senderId:           req.user._id.toString(),
+        senderName:         req.user.name,
+        senderUsername:     req.user.username || '',
+        senderAvatarColor:  req.user.avatarColor || '#6366f1',
+        senderProfilePhoto: req.user.profilePhoto || null,
+        senderInitials:     req.user.initials || '??',
+        text:               cleanText,
+        createdAt:          now.toISOString(),
+      })
     }
 
     return res.status(200).json({
       ok: true,
-      message: {
-        id: msgId.toString(),
-        senderId: req.user._id.toString(),
-        text: cleanText,
-        createdAt: now.toISOString(),
-        readBy: [req.user._id.toString()],
-      },
+      message: payload,
     })
   } catch (err) {
     console.error('[POST /messages/:convId/send]', err)

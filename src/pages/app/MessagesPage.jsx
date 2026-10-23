@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Info, Send, Smile,
@@ -336,8 +336,10 @@ function NewChatModal({ onClose, onStart }) {
 
 // ─── Main MessagesPage ─────────────────────────────────────────────────────────
 export default function MessagesPage() {
-  const { currentUser }                            = useSwish()
+  const { currentUser, setUnreadMsgCount, setActiveChatConvId } = useSwish()
   const { emit, on, off, isOnline, connected }     = useSocket()
+  const [searchParams]                             = useSearchParams()
+  const queryConvId                                = searchParams.get('convId')
 
   const [convs,          setConvs]          = useState([])
   const [messages,       setMessages]       = useState([])
@@ -366,14 +368,35 @@ export default function MessagesPage() {
   useEffect(() => { activeConvRef.current = activeConvId }, [activeConvId])
   useEffect(() => { convsRef.current = convs }, [convs])
 
+  // Clear activeChatConvId on unmount
+  useEffect(() => {
+    return () => {
+      setActiveChatConvId?.(null)
+    }
+  }, [setActiveChatConvId])
+
   // ── Load conversations via REST (on mount) ──────────────────────────────────
   const loadConvs = useCallback(async () => {
     const data = await api('/api/messages')
-    if (data.ok) setConvs(data.conversations)
+    if (data.ok && Array.isArray(data.conversations)) {
+      setConvs(data.conversations)
+      const totalUnread = data.conversations.reduce((s, c) => s + (c.unread || 0), 0)
+      setUnreadMsgCount?.(totalUnread)
+    }
     setLoadingConvs(false)
-  }, [])
+  }, [setUnreadMsgCount])
 
   useEffect(() => { loadConvs() }, [loadConvs])
+
+  // ── Auto-open conversation if convId query parameter is present ─────────────
+  useEffect(() => {
+    if (queryConvId && convs.length > 0 && !activeConvId) {
+      const match = convs.find(c => c.id === queryConvId)
+      if (match) {
+        openConv(match)
+      }
+    }
+  }, [queryConvId, convs, activeConvId])
 
   // ── Socket.io real-time events ──────────────────────────────────────────────
   // IMPORTANT: This effect must run ONCE. Do NOT add convs/loadConvs to deps —
@@ -498,12 +521,16 @@ export default function MessagesPage() {
 
     setActiveConvId(conv.id)
     setActiveConv(conv)
+    setActiveChatConvId?.(conv.id)
     setMobileShowChat(true)
     setShowInfo(false)
     setMessages([])
     setTypingUsers(prev => { const n = {...prev}; delete n[conv.id]; return n })
 
-    // Mark as read locally
+    // Mark as read locally and decrement global unread count
+    if (conv.unread > 0) {
+      setUnreadMsgCount?.(prev => Math.max(0, prev - conv.unread))
+    }
     setConvs(prev => prev.map(c => c.id === conv.id ? { ...c, unread: 0 } : c))
 
     // Join socket room + load messages via REST
@@ -733,7 +760,7 @@ export default function MessagesPage() {
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-gray-800 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { emit('conv:leave', activeConvId); setMobileShowChat(false); setActiveConvId(null); setActiveConv(null) }}
+                  onClick={() => { emit('conv:leave', activeConvId); setMobileShowChat(false); setActiveConvId(null); setActiveConv(null); setActiveChatConvId?.(null) }}
                   className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-400 transition-colors -ml-1"
                 >
                   <ChevronLeft size={22} />

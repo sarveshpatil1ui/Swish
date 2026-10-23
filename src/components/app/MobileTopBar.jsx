@@ -10,10 +10,11 @@ export default function MobileTopBar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { dark, toggle } = useTheme()
-  const { currentUser: user, logout, notifications = [] } = useSwish()
+  const { currentUser: user, logout, notifications = [], unreadMsgCount = 0 } = useSwish()
   const [accountOpen, setAccountOpen] = useState(false)
 
   const unreadCount = notifications.filter(n => !n.read).length
+  const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const isMessages = pathname.startsWith('/messages')
   const isNotifications = pathname.startsWith('/notifications')
@@ -77,14 +78,19 @@ export default function MobileTopBar() {
           {/* Messages */}
           <Link
             to="/messages"
-            aria-label="Messages"
-            className={`flex items-center justify-center w-8 h-8 rounded-lg active:scale-90 transition-all ${
+            aria-label={`Messages ${unreadMsgCount > 0 ? `(${unreadMsgCount} unread)` : ''}`}
+            className={`relative flex items-center justify-center w-8 h-8 rounded-lg active:scale-90 transition-all ${
               isMessages
                 ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
                 : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'
             }`}
           >
             <MessageSquare size={19} strokeWidth={1.8} />
+            {unreadMsgCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-gray-950 leading-none shadow-sm shadow-indigo-500/30">
+                {msgBadgeLabel}
+              </span>
+            )}
           </Link>
 
           {/* Notifications */}

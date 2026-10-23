@@ -15,13 +15,14 @@ const baseNavItems = [
 ]
 
 export default function Sidebar() {
-  const { currentUser: user, logout, notifications = [] } = useSwish()
+  const { currentUser: user, logout, notifications = [], unreadMsgCount = 0 } = useSwish()
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
 
   const unreadCount = notifications.filter(n => !n.read).length
   const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
+  const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const navItems = [
     ...baseNavItems.slice(0, 3),
@@ -100,8 +101,20 @@ export default function Sidebar() {
               }`
             }
           >
-            <MessageSquare size={20} className="flex-shrink-0" />
-            <span className="hidden lg:block text-sm">Messages</span>
+            {({ isActive }) => (
+              <>
+                <MessageSquare size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Messages</span>
+                {unreadMsgCount > 0 && (
+                  <span className="hidden lg:flex ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold items-center justify-center shadow-sm shadow-indigo-500/30">
+                    {msgBadgeLabel}
+                  </span>
+                )}
+                {unreadMsgCount > 0 && (
+                  <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-gray-950" />
+                )}
+              </>
+            )}
           </NavLink>
 
           {/* Admin link */}

@@ -40,9 +40,10 @@ const menuItems = [
 export default function CollegeAdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, logout } = useSwish()
+  const { currentUser, logout, unreadMsgCount = 0 } = useSwish()
   const { dark, toggle } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const handleLogout = async () => {
     await logout()
@@ -97,6 +98,19 @@ export default function CollegeAdminLayout() {
               )}
             </AnimatePresence>
           </button>
+
+          <Link
+            to="/college-admin/messages"
+            aria-label="Messages"
+            className="relative flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 active:scale-90 transition-all"
+          >
+            <MessageSquare size={18} />
+            {unreadMsgCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-gray-900 leading-none shadow-sm shadow-indigo-500/30">
+                {msgBadgeLabel}
+              </span>
+            )}
+          </Link>
 
           <Link
             to="/college-admin/profile"
@@ -158,7 +172,7 @@ export default function CollegeAdminLayout() {
                   navigate(item.path)
                   setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                   isActive
                     ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
                     : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
@@ -166,6 +180,14 @@ export default function CollegeAdminLayout() {
               >
                 <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
                 <span className="hidden lg:block text-sm">{item.label}</span>
+                {item.label === 'Messages' && unreadMsgCount > 0 && (
+                  <span className="hidden lg:flex ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold items-center justify-center shadow-sm shadow-indigo-500/30">
+                    {msgBadgeLabel}
+                  </span>
+                )}
+                {item.label === 'Messages' && unreadMsgCount > 0 && (
+                  <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-gray-950" />
+                )}
               </button>
             )
           })}

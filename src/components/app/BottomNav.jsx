@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Compass, PlusSquare, User } from 'lucide-react'
+import { Home, Compass, PlusSquare, User, MessageSquare } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CreatePostModal from './CreatePostModal'
@@ -7,13 +7,15 @@ import { useSwish } from '../../context/SwishContext'
 
 export default function BottomNav() {
   const [showCreate, setShowCreate] = useState(false)
-  const { currentUser } = useSwish()
+  const { currentUser, unreadMsgCount = 0 } = useSwish()
+  const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const tabs = [
-    { to: '/home',                                    icon: Home,    label: 'Home'    },
-    { to: '/explore',                                 icon: Compass, label: 'Explore' },
+    { to: '/home',                                    icon: Home,          label: 'Home' },
+    { to: '/explore',                                 icon: Compass,       label: 'Explore' },
     { create: true },
-    { to: `/profile/${currentUser?.id || 'user-1'}`, icon: User,    label: 'Profile' },
+    { to: '/messages',                                icon: MessageSquare, label: 'Messages', badge: unreadMsgCount },
+    { to: `/profile/${currentUser?.id || 'user-1'}`, icon: User,          label: 'Profile' },
   ]
 
   return (
@@ -75,6 +77,12 @@ export default function BottomNav() {
                           : 'text-gray-400 dark:text-gray-500'
                       }`}
                     />
+
+                    {tab.badge > 0 && (
+                      <span className="absolute top-1.5 right-1.5 z-20 min-w-[16px] h-4 px-1 bg-indigo-600 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-black leading-none shadow-sm shadow-indigo-500/30">
+                        {msgBadgeLabel}
+                      </span>
+                    )}
                   </>
                 )}
               </NavLink>

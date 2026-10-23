@@ -29,6 +29,7 @@ import ProtectedRoute from './pages/ProtectedRoute'
 
 // ── Authenticated app shell ───────────────────────────────────────────────────
 import AppLayout from './components/app/AppLayout'
+import GlobalToast from './components/app/GlobalToast'
 
 // ── App pages (Lazy) ──────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('./pages/app/HomePage'))
@@ -124,6 +125,7 @@ export default function App() {
       <SwishProvider>
         <SocketBridge>
           <BrowserRouter>
+            <GlobalToast />
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 {/* ── Public ─────────────────────────────────────────────── */}

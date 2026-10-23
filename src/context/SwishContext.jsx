@@ -29,6 +29,7 @@ import {
   apiGetColleges, apiAddCollege, apiToggleCollege,
   apiChangePassword,
   apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
+  apiGetUnreadMessagesCount,
   loadColleges, saveColleges,
   loadReports, saveReports,
   loadNotifications, saveNotifications,
@@ -135,6 +136,21 @@ export function SwishProvider({ children }) {
     saveNotifications([])
     return []
   })
+
+  // ── Unread Direct Messages ──────────────────────────────────────────────────
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0)
+  const [activeChatConvId, setActiveChatConvId] = useState(null)
+
+  const fetchUnreadMsgCount = useCallback(async () => {
+    try {
+      const res = await apiGetUnreadMessagesCount()
+      if (res?.ok && typeof res.count === 'number') {
+        setUnreadMsgCount(res.count)
+      }
+    } catch (err) {
+      console.warn('[SwishProvider] Failed to fetch unread messages count:', err)
+    }
+  }, [])
 
   // ── Rehydrate session on mount (replaces loadCurrentUser from localStorage) ─
   useEffect(() => {
@@ -467,6 +483,7 @@ export function SwishProvider({ children }) {
       fetchPosts()
       fetchStories()
       fetchNotifications()
+      fetchUnreadMsgCount()
     } else {
       fetchPostsSeq.current++
       fetchStoriesSeq.current++
@@ -481,6 +498,8 @@ export function SwishProvider({ children }) {
       setStories([])
       setNotifications([])
       saveNotifications([])
+      setUnreadMsgCount(0)
+      setActiveChatConvId(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, currentUser?.id])
@@ -912,6 +931,12 @@ const domainApproved = async (email) => {
         fetchNotifications,
         markNotificationRead,
         markAllNotificationsRead,
+        // Unread Direct Messages
+        unreadMsgCount,
+        setUnreadMsgCount,
+        fetchUnreadMsgCount,
+        activeChatConvId,
+        setActiveChatConvId,
         // Real-time handlers
         updatePostLikeRealtime,
         updatePostCommentRealtime,

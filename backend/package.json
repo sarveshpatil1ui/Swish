@@ -10,7 +10,8 @@
     "seed": "node src/seed.js",
     "test": "node --test test/**/*.test.js",
     "verify-gmail": "node scripts/verify-gmail.js",
-    "get-gmail-token": "node scripts/get-refresh-token.js"
+    "get-gmail-token": "node scripts/get-refresh-token.js",
+    "set-admin": "node scripts/set-admin-password.js"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

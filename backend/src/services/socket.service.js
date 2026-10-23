@@ -173,15 +173,19 @@ export function initSocket(app, { pubClient, subClient } = {}) {
         if (!conv) return ack?.({ ok: false, error: 'Conversation not found.' })
 
         const payload = {
-          id:         msgId.toString(),
+          id:                 msgId.toString(),
           convId,
-          senderId:   userId,
-          senderName: socket.user.name,
-          text:       cleanText,
-          createdAt:  now.toISOString(),
-          readBy:     [userId],
-          storyReply: storyReply || null,
-          postShare:  postShare || null,
+          senderId:           userId,
+          senderName:         socket.user.name,
+          senderUsername:     socket.user.username || '',
+          senderAvatarColor:  socket.user.avatarColor || '#6366f1',
+          senderProfilePhoto: socket.user.profilePhoto || null,
+          senderInitials:     socket.user.initials || '??',
+          text:               cleanText,
+          createdAt:          now.toISOString(),
+          readBy:             [userId],
+          storyReply:         storyReply || null,
+          postShare:          postShare || null,
         }
 
         // Emit to other participants in the conversation room (sender gets message via ack)
@@ -193,10 +197,14 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           if (pid === userId) continue
           emitToUser(pid, 'msg:notification', {
             convId,
-            senderId:   userId,
-            senderName: socket.user.name,
-            text:       cleanText,
-            createdAt:  now.toISOString(),
+            senderId:           userId,
+            senderName:         socket.user.name,
+            senderUsername:     socket.user.username || '',
+            senderAvatarColor:  socket.user.avatarColor || '#6366f1',
+            senderProfilePhoto: socket.user.profilePhoto || null,
+            senderInitials:     socket.user.initials || '??',
+            text:               cleanText,
+            createdAt:          now.toISOString(),
           })
         }
 

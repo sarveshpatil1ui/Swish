@@ -473,6 +473,17 @@ export async function apiMarkAllNotificationsRead() {
   return apiFetch('/api/notifications/read-all', { method: 'PATCH' })
 }
 
+// ── Messages Unread & Read API ────────────────────────────────────────────────
+/** On success: { ok: true, count: Number } */
+export async function apiGetUnreadMessagesCount() {
+  return apiFetch('/api/messages/unread-count')
+}
+
+/** On success: { ok: true, readBy: String } */
+export async function apiMarkConvRead(convId) {
+  return apiFetch(`/api/messages/${convId}/read`, { method: 'PATCH' })
+}
+
 // ── Reports API ───────────────────────────────────────────────────────────────
 export async function apiSubmitReport(data) {
   return apiFetch('/api/reports', { method: 'POST', body: data })
