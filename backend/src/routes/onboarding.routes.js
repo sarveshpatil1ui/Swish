@@ -21,6 +21,7 @@ import {
   isOtpResendOnCooldown,
 } from '../services/otp.service.js'
 import { createProofUploadSignature } from '../services/cloudinary.service.js'
+import { requireTurnstile } from '../middleware/turnstile.middleware.js'
 
 const onboardingOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -48,6 +49,7 @@ function handleValidationErrors(req, res) {
 // ── POST /api/onboarding/request-otp ─────────────────────────────────────────
 router.post(
   '/request-otp',
+  requireTurnstile,
   onboardingOtpLimiter,
   [
     body('officialEmail')

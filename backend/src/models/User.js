@@ -64,6 +64,10 @@ const UserSchema = new Schema(
     resetTokenExpiresAt: { type: Date,   default: null },
     passwordChangedAt:   { type: Date,   default: null },
 
+    // Account lockout & brute-force defense
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockUntil:           { type: Date,   default: null },
+
     college: { type: String, default: '' },
     collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', default: null },
     dept:    { type: String, default: '' },
@@ -107,6 +111,8 @@ UserSchema.set('toJSON', {
     delete ret.resetTokenHash
     delete ret.resetTokenExpiresAt
     delete ret.passwordChangedAt
+    delete ret.failedLoginAttempts
+    delete ret.lockUntil
     return ret
   },
 })

@@ -404,10 +404,14 @@ export async function apiCheckDomain(domain) {
 
 // ── Change Password ─────────────────────────────────────────────────────────
 export async function apiChangePassword(currentPassword, newPassword, confirmPassword) {
-  return apiFetch('/api/auth/change-password', {
+  const res = await apiFetch('/api/auth/change-password', {
     method: 'POST',
     body: { currentPassword, newPassword, confirmPassword: confirmPassword || newPassword },
   })
+  if (res.ok && res.token) {
+    setStoredToken(res.token)
+  }
+  return res
 }
 
 // ── Departments API ─────────────────────────────────────────────────────────

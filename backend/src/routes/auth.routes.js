@@ -17,6 +17,7 @@ import {
   otpExpiresAt,
   isOtpResendOnCooldown,
 } from '../services/otp.service.js'
+import { requireTurnstile } from '../middleware/turnstile.middleware.js'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -199,6 +200,7 @@ function handleValidationErrors(req, res) {
 
 router.post(
   '/register',
+  requireTurnstile,
   authLimiter,
   [
     body('name')
@@ -450,6 +452,7 @@ router.post(
 
 router.post(
   '/resend-otp',
+  requireTurnstile,
   resendOtpLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
@@ -540,13 +543,49 @@ router.post(
 
       const user = await User.findOne({ email: normalizedEmail })
 
+      // Check account lockout due to consecutive failed attempts (brute-force defense)
+      if (user && user.lockUntil) {
+        if (user.lockUntil > new Date()) {
+          const remainingMinutes = Math.ceil((user.lockUntil.getTime() - Date.now()) / (60 * 1000))
+          return res.status(423).json({
+            ok: false,
+            error: `Account is temporarily locked due to consecutive failed login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+          })
+        } else {
+          // Lock duration expired; reset lock
+          user.lockUntil = null
+          user.failedLoginAttempts = 0
+          await user.save()
+        }
+      }
+
       // Timing-safe: always run bcrypt even if user not found (to prevent timing attacks)
       const fakeHash = '$2b$10$invalidhashfortimingprotectiononly1234567890123456'
       const passwordToCheck = user ? user.passwordHash : fakeHash
       const isPasswordValid = await bcrypt.compare(password, passwordToCheck)
 
       if (!user || !isPasswordValid) {
+        if (user) {
+          user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1
+          if (user.failedLoginAttempts >= 5) {
+            user.lockUntil = new Date(Date.now() + 15 * 60 * 1000)
+            user.failedLoginAttempts = 0
+            await user.save()
+            return res.status(423).json({
+              ok: false,
+              error: 'Account temporarily locked due to 5 consecutive failed login attempts. Please try again in 15 minutes.',
+            })
+          }
+          await user.save()
+        }
         return res.status(401).json({ ok: false, error: 'Invalid email or password.' })
+      }
+
+      // Reset failed attempts & lock on successful login
+      if (user.failedLoginAttempts > 0 || user.lockUntil) {
+        user.failedLoginAttempts = 0
+        user.lockUntil = null
+        await user.save()
       }
 
       if (user.deactivated) {
@@ -665,11 +704,22 @@ router.post(
 
       const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
       user.passwordHash = passwordHash
+      user.passwordChangedAt = new Date()
       user.mustChangePassword = false
       user.isDemo = false
       await user.save()
 
-      return res.status(200).json({ ok: true, message: 'Password changed successfully.' })
+      // Refresh auth cookie and return fresh token so current user session stays valid
+      const token = setAuthCookie(res, user)
+
+      // Send confirmation email
+      try {
+        await sendPasswordChangedEmail(user.email, user.name)
+      } catch (mErr) {
+        console.error('[change-password sendPasswordChangedEmail failed]', mErr.message)
+      }
+
+      return res.status(200).json({ ok: true, token, message: 'Password changed successfully.' })
     } catch (err) {
       console.error('[POST /change-password]', err)
       res.status(500).json({ ok: false, error: 'Failed to change password.' })
@@ -680,6 +730,7 @@ router.post(
 // ── FORGOT PASSWORD (STEP 1: Request OTP) ────────────────────────────────────
 router.post(
   '/forgot-password',
+  requireTurnstile,
   forgotPasswordLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Please enter a valid email address.'),

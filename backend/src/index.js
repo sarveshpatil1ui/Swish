@@ -4,6 +4,9 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import compression from 'compression'
+import helmet from 'helmet'
+import mongoSanitize from 'express-mongo-sanitize'
+import rateLimit from 'express-rate-limit'
 
 import { validateEnvironment } from './config/env.js'
 import { connectDB } from './config/db.js'
@@ -35,6 +38,18 @@ const PORT = process.env.PORT || 3001
 // ── Trust proxy header for reverse proxies (Render, Vercel, Cloudflare, AWS) ──
 app.set('trust proxy', 1)
 
+// ── Disable x-powered-by header to prevent server technology fingerprinting ──
+app.disable('x-powered-by')
+
+// ── HTTP Security Headers via Helmet ─────────────────────────────────────────
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+  })
+)
+
 // ── Compression middleware: compress all response bodies (gzip / deflate) ────
 app.use(compression())
 
@@ -47,8 +62,23 @@ app.use(cors(corsOptions))
 
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: false, limit: '10mb' }))
+
+// ── NoSQL Injection Sanitization ─────────────────────────────────────────────
+// Replaces forbidden MongoDB operators ($, .) in req.body, req.query, req.params
+app.use(mongoSanitize({ replaceWith: '_' }))
+
 app.use(cookieParser())
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+
+// ── Global API Rate Limiter (Defense-in-depth against DoS and scraping) ───────
+const globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 400 : 3000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests from this IP. Please try again after 15 minutes.' },
+})
+app.use('/api', globalApiLimiter)
 
 app.get('/api/health', (_req, res) => {
   res.json({
