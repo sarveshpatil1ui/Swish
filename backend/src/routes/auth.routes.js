@@ -29,6 +29,15 @@ const authLimiter = rateLimit({
   message: { ok: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' },
 })
 
+// Dedicated strict limiter for login endpoint (10 attempts per 15-minute window in production)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isDev ? 1000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many login attempts from this IP. Please try again after 15 minutes.' },
+})
+
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: isDev ? 1000 : 8,
@@ -527,7 +536,8 @@ router.post(
 
 router.post(
   '/login',
-  authLimiter,
+  requireTurnstile,
+  loginLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),
     body('password').notEmpty().withMessage('Password is required.'),

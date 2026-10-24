@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
 import { apiVerifyOtp, apiResendOtp, redirectPathForRole } from '../utils/auth'
+import TurnstileWidget from '../components/common/TurnstileWidget'
 
 // ── Tiny animated activity chip for the left panel ───────────────────────────
 function ActivityChip({ delay, children }) {
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe]   = useState(false)
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
   const [successBanner, setSuccessBanner] = useState(
     location.state?.passwordResetSuccess
       ? 'Password updated successfully. Please sign in with your new password.'
@@ -55,7 +57,7 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    const result = await login(email, password)
+    const result = await login(email, password, turnstileToken)
     setLoading(false)
     if (result.ok) {
       navigate(result.redirectTo || redirectPathForRole(result.role), { replace: true })
@@ -521,6 +523,9 @@ export default function LoginPage() {
                 Remember me for 30 days
               </label>
             </div>
+
+            {/* Turnstile Captcha (Active only when VITE_CLOUDFLARE_TURNSTILE_SITE_KEY is provided) */}
+            <TurnstileWidget onVerify={setTurnstileToken} />
 
             {/* Submit */}
             <button

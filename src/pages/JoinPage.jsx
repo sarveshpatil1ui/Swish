@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../context/SwishContext'
 import { apiVerifyOtp, apiResendOtp, apiCheckCollegeDomain, apiGetDepartmentsByDomain, redirectPathForRole } from '../utils/auth'
+import TurnstileWidget from '../components/common/TurnstileWidget'
 
 // ── Password strength helpers ─────────────────────────────────────────────────
 const getStrength = (pass) => {
@@ -107,6 +108,7 @@ export default function JoinPage() {
 // idle | checking | approved | denied
   const [departments, setDepartments] = useState(DEPARTMENTS)
   const [loadingDepartments, setLoadingDepartments] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   // ── OTP verification step ─────────────────────────────────────────────────
   const [otpStep,        setOtpStep]        = useState(false)  // show OTP form?
@@ -246,6 +248,7 @@ useEffect(() => {
       role,
       dept:        form.dept,
       hp_field:    form.hp_field || '',
+      turnstileToken: turnstileToken || undefined,
       // student
       ...(role === 'student' && { year: form.year, studentId: form.studentId }),
       // faculty
@@ -1043,6 +1046,9 @@ useEffect(() => {
                 <p className="text-rose-500 dark:text-rose-400 text-xs mt-1 ml-6">{errors.agreed}</p>
               )}
             </div>
+
+            {/* Turnstile Captcha */}
+            <TurnstileWidget onVerify={setTurnstileToken} />
 
             {/* Submit */}
             <button

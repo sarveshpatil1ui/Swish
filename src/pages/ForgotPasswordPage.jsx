@@ -6,6 +6,7 @@ import {
   AlertCircle, CheckCircle, Shield, RefreshCw, KeyRound, Check
 } from 'lucide-react'
 import { apiForgotPassword, apiVerifyResetOtp, apiResetPassword } from '../utils/auth'
+import TurnstileWidget from '../components/common/TurnstileWidget'
 
 // ── Password strength helpers (matching JoinPage) ─────────────────────────────
 const getStrength = (pass) => {
@@ -36,6 +37,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   // Step 2: 6-box OTP
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
@@ -112,7 +114,7 @@ export default function ForgotPasswordPage() {
     }
 
     setEmailLoading(true)
-    const res = await apiForgotPassword(trimmed)
+    const res = await apiForgotPassword(trimmed, turnstileToken)
     setEmailLoading(false)
 
     if (res.ok) {
@@ -406,6 +408,8 @@ export default function ForgotPasswordPage() {
                       />
                     </div>
                   </div>
+
+                  <TurnstileWidget onVerify={setTurnstileToken} />
 
                   <button
                     id="forgot-submit-email"

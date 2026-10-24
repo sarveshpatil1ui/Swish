@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import TurnstileWidget from '../components/common/TurnstileWidget'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -72,6 +73,7 @@ export default function CollegeOnboardingPage() {
   const [otp, setOtp]                         = useState('')
   const [otpLoading, setOtpLoading]           = useState(false)
   const [otpError, setOtpError]               = useState('')
+  const [turnstileToken, setTurnstileToken]   = useState('')
   const [resendCooldown, setResendCooldown]   = useState(0)
   // Conflict detection state
 
@@ -197,6 +199,7 @@ export default function CollegeOnboardingPage() {
           officialEmail: emailVal,
           adminName: form.adminName.trim() || undefined,
           hp_field: form.hp_field || undefined,
+          turnstileToken: turnstileToken || undefined,
         }),
       })
       const data = await res.json()
@@ -904,6 +907,10 @@ export default function CollegeOnboardingPage() {
                               </div>
                             )}
                           </div>
+
+                          {!isEmailVerified && (
+                            <TurnstileWidget onVerify={setTurnstileToken} />
+                          )}
 
                           {/* Email validation & status indicators */}
                           {errors.officialEmail && (

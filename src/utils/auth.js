@@ -65,12 +65,16 @@ export async function apiVerifyOtp(email, otp) {
   return data
 }
 
-export async function apiResendOtp(email) {
-  return apiFetch('/api/auth/resend-otp', { method: 'POST', body: { email } })
+export async function apiResendOtp(email, turnstileToken = null) {
+  const body = { email }
+  if (turnstileToken) body.turnstileToken = turnstileToken
+  return apiFetch('/api/auth/resend-otp', { method: 'POST', body })
 }
 
-export async function apiForgotPassword(email) {
-  return apiFetch('/api/auth/forgot-password', { method: 'POST', body: { email } })
+export async function apiForgotPassword(email, turnstileToken = null) {
+  const body = { email }
+  if (turnstileToken) body.turnstileToken = turnstileToken
+  return apiFetch('/api/auth/forgot-password', { method: 'POST', body })
 }
 
 export async function apiVerifyResetOtp(email, otp) {
@@ -81,8 +85,10 @@ export async function apiResetPassword(email, resetToken, newPassword) {
   return apiFetch('/api/auth/reset-password', { method: 'POST', body: { email, resetToken, newPassword } })
 }
 
-export async function apiLogin(email, password) {
-  const data = await apiFetch('/api/auth/login', { method: 'POST', body: { email, password } })
+export async function apiLogin(email, password, turnstileToken = null) {
+  const body = { email, password }
+  if (turnstileToken) body.turnstileToken = turnstileToken
+  const data = await apiFetch('/api/auth/login', { method: 'POST', body })
   if (data.ok && data.token) {
     setStoredToken(data.token)
   }

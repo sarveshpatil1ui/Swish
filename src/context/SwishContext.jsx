@@ -613,8 +613,8 @@ export function SwishProvider({ children }) {
   }
 
   // ── login ─────────────────────────────────────────────────────────────────
-  const login = async (email, password) => {
-    const result = await apiLogin(email, password)
+  const login = async (email, password, turnstileToken = null) => {
+    const result = await apiLogin(email, password, turnstileToken)
 
     if (!result.ok) {
       // If account is unverified, surface the verification flow to the caller
