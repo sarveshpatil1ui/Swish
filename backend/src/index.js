@@ -32,6 +32,9 @@ import moderationRoutes from './routes/moderation.routes.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// ── Trust proxy header for reverse proxies (Render, Vercel, Cloudflare, AWS) ──
+app.set('trust proxy', 1)
+
 // ── Compression middleware: compress all response bodies (gzip / deflate) ────
 app.use(compression())
 

@@ -196,6 +196,7 @@ export default function CollegeOnboardingPage() {
         body: JSON.stringify({
           officialEmail: emailVal,
           adminName: form.adminName.trim() || undefined,
+          hp_field: form.hp_field || undefined,
         }),
       })
       const data = await res.json()
@@ -833,6 +834,20 @@ export default function CollegeOnboardingPage() {
                       </div>
 
                       <div className="grid sm:grid-cols-2 gap-4">
+                        {/* Honeypot field for bot protection */}
+                        <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                          <label htmlFor="onboarding-hp-field">Leave this empty</label>
+                          <input
+                            id="onboarding-hp-field"
+                            type="text"
+                            name="hp_field"
+                            value={form.hp_field || ''}
+                            onChange={setField('hp_field')}
+                            tabIndex={-1}
+                            autoComplete="off"
+                          />
+                        </div>
+
                         {/* Official Email + Send OTP action */}
                         <div className="sm:col-span-2">
                           <label htmlFor="official-email" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">

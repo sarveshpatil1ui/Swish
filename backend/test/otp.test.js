@@ -140,4 +140,18 @@ describe('OTP Service & Security Verification', () => {
     assert.equal(userOtpAttempts, 5, 'Should increment to max attempts')
     assert.ok(userOtpAttempts >= maxAttempts, 'Account must be locked out from further attempts')
   })
+
+  test('14. checkEmailSendLimit enforces cooldown between requests', async () => {
+    const { checkEmailSendLimit } = await import('../src/routes/auth.routes.js')
+    const testEmail = 'spamcheck@campus.edu'
+
+    const first = checkEmailSendLimit(testEmail, 'test-action')
+    assert.equal(first.allowed, true, 'First request should be allowed')
+
+    const immediate = checkEmailSendLimit(testEmail, 'test-action')
+    assert.equal(immediate.allowed, false, 'Immediate subsequent request must be rejected on cooldown')
+    assert.equal(immediate.cooldown, true, 'Reason must be cooldown')
+    assert.ok(immediate.retryAfter > 0, 'Must specify retryAfter')
+  })
 })
+

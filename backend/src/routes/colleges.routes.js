@@ -8,6 +8,8 @@
 //   GET    /api/colleges/check-domain     Check if a domain is registered & active
 //
 // ─────────────────────────────────────────────────────────────────────────────
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 import { Router } from 'express'
 import { body, query, validationResult } from 'express-validator'
 
@@ -18,6 +20,7 @@ import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
 import { requireAuth, requireRole, invalidateCollegeCache } from '../middleware/auth.middleware.js'
 import { getOrSet, del, cacheKey } from '../services/cache.service.js'
+import { sendCollegeAdminCredentialsEmail } from '../services/email.service.js'
 
 const router = Router()
 
@@ -182,7 +185,7 @@ router.get(
 )
 
 // ── POST /api/colleges ───────────────────────────────────────────────────────
-// Admin only — add a new college
+// Admin only — add a new college (always requires and provisions a College Admin)
 router.post(
   '/',
   requireAuth,
@@ -194,39 +197,137 @@ router.post(
       .trim().notEmpty().withMessage('Email domain is required.')
       .isLength({ min: 3 }).withMessage('Domain too short.'),
     body('location').optional().trim(),
+    body('adminName').trim().notEmpty().withMessage('College admin full name is required.'),
+    body('adminEmail')
+      .trim().notEmpty().withMessage('Official college admin email is required.')
+      .isEmail().withMessage('Valid official college admin email is required.'),
+    body('adminDesignation').optional().trim(),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
     if (validationError) return
 
     try {
-      const { name, code, domain, location } = req.body
-      const normalizedDomain = domain.trim().toLowerCase()
+      const { name, code, domain, location, adminName, adminEmail, adminDesignation } = req.body
+      const normalizedDomain = domain.trim().toLowerCase().replace(/^@/, '')
+      const normalizedAdminEmail = adminEmail.trim().toLowerCase()
+      const trimmedAdminName = adminName.trim()
 
-      // Check for duplicate domain
-      const existing = await College.findOne({ domain: normalizedDomain })
-      if (existing) {
-        return res.status(409).json({
+      // Domain check for admin email
+      const emailDomain = normalizedAdminEmail.split('@')[1]
+      if (!emailDomain || emailDomain !== normalizedDomain) {
+        return res.status(400).json({
           ok: false,
-          error: `A college with domain "${normalizedDomain}" already exists.`,
+          error: `College admin email (@${emailDomain || ''}) must match college domain (@${normalizedDomain}).`,
         })
       }
 
-      const college = await College.create({
-        name:     name.trim(),
-        code:     code.trim().toUpperCase(),
-        domain:   normalizedDomain,
-        location: (location || '').trim(),
-        active:   true,
+      // Check for duplicate domain, code, or name
+      const existing = await College.findOne({
+        $or: [
+          { domain: normalizedDomain },
+          { code: code.trim().toUpperCase() },
+          { name: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        ],
       })
+      if (existing) {
+        return res.status(409).json({
+          ok: false,
+          error: `A college with this name, code, or domain ("${normalizedDomain}") already exists.`,
+        })
+      }
 
-      // Invalidate the colleges list cache so the next GET reflects the new entry
-      await del(COLLEGES_LIST_KEY)
+      // Check if admin user already exists
+      const existingUser = await User.findOne({
+        $or: [
+          { email: normalizedAdminEmail },
+          { username: normalizedAdminEmail },
+        ],
+      })
+      if (existingUser) {
+        return res.status(409).json({
+          ok: false,
+          error: `A user account with email or username "${normalizedAdminEmail}" already exists.`,
+        })
+      }
 
-      return res.status(201).json({ ok: true, college: college.toJSON() })
+      let college = null
+      let collegeAdmin = null
+
+      try {
+        college = await College.create({
+          name:     name.trim(),
+          code:     code.trim().toUpperCase(),
+          domain:   normalizedDomain,
+          location: (location || '').trim(),
+          active:   true,
+        })
+
+        // Invalidate the colleges list cache so the next GET reflects the new entry
+        await del(COLLEGES_LIST_KEY)
+
+        // Generate temporary password
+        const temporaryPassword = `Swish@${crypto.randomBytes(6).toString('hex')}`
+        const temporaryPasswordHash = await bcrypt.hash(temporaryPassword, 12)
+
+        const adminInitials = trimmedAdminName
+          .split(/\s+/)
+          .map(w => w[0] || '')
+          .join('')
+          .toUpperCase()
+          .slice(0, 2) || 'CA'
+
+        collegeAdmin = await User.create({
+          name: trimmedAdminName,
+          username: normalizedAdminEmail,
+          initials: adminInitials,
+          avatarColor: '#6366f1',
+          email: normalizedAdminEmail,
+          passwordHash: temporaryPasswordHash,
+          role: 'college_admin',
+          isEmailVerified: true,
+          college: college.name,
+          collegeId: college._id,
+          mustChangePassword: true,
+          designation: adminDesignation ? adminDesignation.trim() : '',
+          deactivated: false,
+          suspended: false,
+        })
+
+        // Send credentials email
+        try {
+          await sendCollegeAdminCredentialsEmail(
+            normalizedAdminEmail,
+            trimmedAdminName,
+            college.name,
+            normalizedAdminEmail,
+            temporaryPassword
+          )
+        } catch (emailErr) {
+          console.error('[POST /colleges] Failed to send admin credentials email:', emailErr.message)
+        }
+
+        return res.status(201).json({
+          ok: true,
+          college: college.toJSON(),
+          collegeAdmin: {
+            id: collegeAdmin._id.toString(),
+            name: collegeAdmin.name,
+            email: collegeAdmin.email,
+          },
+        })
+      } catch (innerErr) {
+        // Rollback: if college was created but admin failed, delete orphan college
+        if (college && college._id && !collegeAdmin) {
+          console.error('[POST /colleges] Rollback: deleting orphan college after admin creation failure:', college._id)
+          await College.findByIdAndDelete(college._id).catch(() => {})
+          await del(COLLEGES_LIST_KEY).catch(() => {})
+        }
+        throw innerErr
+      }
     } catch (err) {
       console.error('[POST /colleges]', err)
-      res.status(500).json({ ok: false, error: 'Failed to add college.' })
+      res.status(500).json({ ok: false, error: err.message || 'Failed to add college.' })
     }
   }
 )

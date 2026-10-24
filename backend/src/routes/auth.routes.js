@@ -80,28 +80,49 @@ const resetPasswordLimiter = rateLimit({
   message: { ok: false, error: 'Too many password reset attempts. Please try again in 15 minutes.' },
 })
 
-// In-memory per-email request tracker for forgot-password
-const _forgotPasswordEmailRequests = new Map()
-function checkEmailSendLimit(email) {
+// In-memory per-email request tracker for OTP generation across auth actions
+const _emailSendTracker = new Map()
+
+export function checkEmailSendLimit(email, action = 'general') {
+  const normalized = (email || '').trim().toLowerCase()
+  const key = `${normalized}:${action}`
   const now = Date.now()
   const windowMs = 15 * 60 * 1000
   const maxPerWindow = 4
   const cooldownMs = OTP_RESEND_COOLDOWN_S * 1000
 
-  const history = (_forgotPasswordEmailRequests.get(email) || []).filter(ts => now - ts < windowMs)
+  // Periodic memory cleanup if tracker grows large
+  if (_emailSendTracker.size > 2000) {
+    for (const [k, hist] of _emailSendTracker.entries()) {
+      if (hist.every(ts => now - ts > windowMs)) {
+        _emailSendTracker.delete(k)
+      }
+    }
+  }
+
+  const history = (_emailSendTracker.get(key) || []).filter(ts => now - ts < windowMs)
   const lastTs = history[history.length - 1]
 
   if (lastTs && now - lastTs < cooldownMs) {
     const retryAfter = Math.ceil((cooldownMs - (now - lastTs)) / 1000)
-    return { allowed: false, cooldown: true, retryAfter, error: `Please wait ${retryAfter} seconds before requesting another code.` }
+    return {
+      allowed: false,
+      cooldown: true,
+      retryAfter,
+      error: `Please wait ${retryAfter} seconds before requesting another verification code.`,
+    }
   }
 
   if (history.length >= maxPerWindow) {
-    return { allowed: false, cooldown: false, error: 'Too many password reset requests for this email. Please try again in 15 minutes.' }
+    return {
+      allowed: false,
+      cooldown: false,
+      error: 'Too many verification requests for this email address. Please try again in 15 minutes.',
+    }
   }
 
   history.push(now)
-  _forgotPasswordEmailRequests.set(email, history)
+  _emailSendTracker.set(key, history)
   return { allowed: true }
 }
 
@@ -202,13 +223,46 @@ router.post(
         name, email, password, role, dept,
         year, studentId,       // student-only
         designation, employeeId, // faculty-only
+        hp_field,               // Honeypot field for bot detection
       } = req.body
 
+      // ── Honeypot bot protection: automated crawlers fill hidden fields ────
+      if (hp_field) {
+        console.warn(`[Bot Detected] Honeypot field triggered in /register: ${email}`)
+        return res.status(200).json({
+          ok: true,
+          pendingVerification: true,
+          email: (email || '').trim().toLowerCase(),
+          message: 'Verification code sent. Please check your inbox.',
+        })
+      }
+
       const normalizedEmail = email.trim().toLowerCase()
+
+      // ── Enforce per-email send rate limiting and cooldown ─────────────────
+      const sendLimit = checkEmailSendLimit(normalizedEmail, 'register')
+      if (!sendLimit.allowed) {
+        return res.status(429).json({
+          ok: false,
+          error: sendLimit.error,
+          ...(sendLimit.retryAfter ? { retryAfter: sendLimit.retryAfter } : {}),
+        })
+      }
 
       const existing = await User.findOne({ email: normalizedEmail })
       if (existing) {
         if (!existing.isEmailVerified && !existing.isDemo) {
+          // Enforce per-user resend cooldown
+          if (isOtpResendOnCooldown(existing)) {
+            return res.status(429).json({
+              ok: false,
+              error: `Please wait ${OTP_RESEND_COOLDOWN_S} seconds before requesting another code.`,
+              retryAfter: OTP_RESEND_COOLDOWN_S,
+              pendingVerification: true,
+              email: normalizedEmail,
+            })
+          }
+
           const otp    = generateOtp()
           const hashed = await hashOtp(otp)
           existing.otpHash      = hashed
@@ -420,7 +474,16 @@ router.post(
         return res.status(400).json({ ok: false, error: 'This account is already verified.' })
       }
 
-      // Per-user cooldown: prevent spamming resend within the cooldown window
+      // Per-user cooldown and email send limit
+      const sendLimit = checkEmailSendLimit(normalizedEmail, 'resend')
+      if (!sendLimit.allowed) {
+        return res.status(429).json({
+          ok: false,
+          error: sendLimit.error,
+          ...(sendLimit.retryAfter ? { retryAfter: sendLimit.retryAfter } : {}),
+        })
+      }
+
       if (isOtpResendOnCooldown(user)) {
         return res.status(429).json({
           ok: false,
@@ -508,24 +571,27 @@ router.post(
       }
 
       if (!user.isEmailVerified) {
-        const otp    = generateOtp()
-        const hashed = await hashOtp(otp)
-        user.otpHash      = hashed
-        user.otpExpiresAt = otpExpiresAt()
-        user.otpAttempts  = 0
-        await user.save()
+        // Enforce cooldown so repeated login attempts don't blast emails repeatedly
+        if (!isOtpResendOnCooldown(user)) {
+          const otp    = generateOtp()
+          const hashed = await hashOtp(otp)
+          user.otpHash      = hashed
+          user.otpExpiresAt = otpExpiresAt()
+          user.otpAttempts  = 0
+          await user.save()
 
-        try {
-          await sendOtpEmail(normalizedEmail, user.name, otp)
-        } catch (mErr) {
-          console.error('[login sendOtpEmail failed]', mErr.message)
+          try {
+            await sendOtpEmail(normalizedEmail, user.name, otp)
+          } catch (mErr) {
+            console.error('[login sendOtpEmail failed]', mErr.message)
+          }
         }
 
         return res.status(403).json({
           ok: false,
           pendingVerification: true,
           email: normalizedEmail,
-          error: 'Please verify your email before logging in. A new code has been sent.',
+          error: 'Please verify your email before logging in. A verification code has been sent.',
         })
       }
 

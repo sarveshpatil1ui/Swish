@@ -245,6 +245,7 @@ useEffect(() => {
       password:    form.password,
       role,
       dept:        form.dept,
+      hp_field:    form.hp_field || '',
       // student
       ...(role === 'student' && { year: form.year, studentId: form.studentId }),
       // faculty
@@ -704,6 +705,20 @@ useEffect(() => {
 
           {/* ── Form ── */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate aria-label="Registration form">
+
+            {/* Honeypot field for bot protection */}
+            <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+              <label htmlFor="join-hp-field">Leave this empty</label>
+              <input
+                id="join-hp-field"
+                type="text"
+                name="hp_field"
+                value={form.hp_field || ''}
+                onChange={set('hp_field')}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
 
             {/* Full Name */}
             <div>

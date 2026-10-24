@@ -18,6 +18,7 @@ import {
   hashOtp,
   verifyOtp,
   otpExpiresAt,
+  isOtpResendOnCooldown,
 } from '../services/otp.service.js'
 import { createProofUploadSignature } from '../services/cloudinary.service.js'
 
@@ -61,13 +62,32 @@ router.post(
     if (validationError) return
 
     try {
-      const { officialEmail, adminName } = req.body
+      const { officialEmail, adminName, hp_field } = req.body
+
+      // ── Honeypot bot protection ───────────────────────────────────────────
+      if (hp_field) {
+        console.warn(`[Bot Detected] Honeypot triggered on onboarding request-otp: ${officialEmail}`)
+        return res.status(200).json({
+          ok: true,
+          message: `Verification code sent to ${(officialEmail || '').trim().toLowerCase()}.`,
+        })
+      }
+
       const normalizedEmail = officialEmail.trim().toLowerCase()
+
+      let otpRecord = await CollegeOnboardingOtp.findOne({ email: normalizedEmail })
+
+      // ── Cooldown check: prevent rapid spamming of OTP requests ────────────
+      if (otpRecord && isOtpResendOnCooldown(otpRecord)) {
+        return res.status(429).json({
+          ok: false,
+          error: 'Please wait 60 seconds before requesting another verification code.',
+          retryAfter: 60,
+        })
+      }
 
       const otp = generateOtp()
       const hashed = await hashOtp(otp)
-
-      let otpRecord = await CollegeOnboardingOtp.findOne({ email: normalizedEmail })
 
       if (otpRecord) {
         otpRecord.otpHash = hashed

@@ -597,125 +597,155 @@ router.post(
         .toLowerCase()
 
       const existingUser = await User.findOne({
-        email: loginId,
+        $or: [
+          { email: loginId },
+          { username: loginId },
+        ],
       })
 
       if (existingUser) {
         return res.status(409).json({
           ok: false,
           error:
-            'A user account already exists with this official email.',
+            'A user account already exists with this official email or username.',
         })
       }
 
-      // ------------------------------------------------------------
-      // 3. Create College
-      // ------------------------------------------------------------
-
-      const college = await College.create({
-        name: request.collegeName,
-        code: request.collegeCode,
-        domain: request.emailDomain,
-        location: request.location || '',
-        active: true,
-      })
-
-      // Invalidate public colleges list cache
-      await del(COLLEGES_LIST_KEY)
-
-      // ------------------------------------------------------------
-      // 4. Generate temporary password
-      // ------------------------------------------------------------
-
-      const temporaryPassword =
-        `Swish@${crypto.randomBytes(6).toString('hex')}`
-
-      const temporaryPasswordHash = await bcrypt.hash(
-        temporaryPassword,
-        12
-      )
-
-      // ------------------------------------------------------------
-      // 5. Create College Admin
-      // ------------------------------------------------------------
-
-      const collegeAdmin = await User.create({
-        name: request.adminName,
-
-        // Official college email is the login ID
-        username: loginId,
-
-        initials: request.adminName
+      const adminInitials =
+        (request.adminName || '')
           .trim()
           .split(/\s+/)
           .map((word) => word[0] || '')
           .join('')
           .toUpperCase()
-          .slice(0, 2),
+          .slice(0, 2) || 'CA'
 
-        avatarColor: '#6366f1',
+      let college = null
+      let collegeAdmin = null
 
-        email: loginId,
+      try {
+        // ------------------------------------------------------------
+        // 3. Create College
+        // ------------------------------------------------------------
 
-        passwordHash: temporaryPasswordHash,
+        college = await College.create({
+          name: request.collegeName,
+          code: request.collegeCode,
+          domain: request.emailDomain,
+          location: request.location || '',
+          active: true,
+        })
 
-        role: 'college_admin',
+        // Invalidate public colleges list cache
+        await del(COLLEGES_LIST_KEY)
 
-        isEmailVerified: true,
+        // ------------------------------------------------------------
+        // 4. Generate temporary password
+        // ------------------------------------------------------------
 
-        college: college.name,
+        const temporaryPassword =
+          `Swish@${crypto.randomBytes(6).toString('hex')}`
 
-        collegeId: college._id,
+        const temporaryPasswordHash = await bcrypt.hash(
+          temporaryPassword,
+          12
+        )
 
-        mustChangePassword: true,
+        // ------------------------------------------------------------
+        // 5. Create College Admin
+        // ------------------------------------------------------------
 
-        designation: request.designation || '',
+        collegeAdmin = await User.create({
+          name: request.adminName.trim() || 'Campus Administrator',
 
-        deactivated: false,
+          // Official college email is the login ID
+          username: loginId,
 
-        suspended: false,
-      })
+          initials: adminInitials,
 
-      // ------------------------------------------------------------
-      // 6. Update onboarding request
-      // ------------------------------------------------------------
+          avatarColor: '#6366f1',
 
-      request.status = 'APPROVED'
-      request.approvedAt = new Date()
-      request.approvedCollegeId = college._id
-      request.approvedAdminId = collegeAdmin._id
+          email: loginId,
 
-      await request.save()
+          passwordHash: temporaryPasswordHash,
 
-      // ------------------------------------------------------------
-      // 7. Send College Admin credentials email
-      // ------------------------------------------------------------
+          role: 'college_admin',
 
-      await sendCollegeAdminCredentialsEmail(
-        loginId,
-        request.adminName,
-        request.collegeName,
-        loginId,
-        temporaryPassword
-      )
+          isEmailVerified: true,
 
-      return res.status(200).json({
-        ok: true,
-        message:
-          'College request approved successfully. College Admin credentials have been sent by email.',
+          college: college.name,
 
-        college: {
-          id: college._id,
-          name: college.name,
-          code: college.code,
-        },
+          collegeId: college._id,
 
-        collegeAdmin: {
-          id: collegeAdmin._id,
-          name: collegeAdmin.name,
-          email: collegeAdmin.email,
-        },
-      })
+          mustChangePassword: true,
+
+          designation: request.designation || '',
+
+          deactivated: false,
+
+          suspended: false,
+        })
+
+        // ------------------------------------------------------------
+        // 6. Update onboarding request
+        // ------------------------------------------------------------
+
+        request.status = 'APPROVED'
+        request.approvedAt = new Date()
+        request.approvedCollegeId = college._id
+        request.approvedAdminId = collegeAdmin._id
+
+        await request.save()
+
+        // ------------------------------------------------------------
+        // 7. Send College Admin credentials email (non-fatal)
+        // ------------------------------------------------------------
+
+        try {
+          await sendCollegeAdminCredentialsEmail(
+            loginId,
+            request.adminName,
+            request.collegeName,
+            loginId,
+            temporaryPassword
+          )
+        } catch (emailErr) {
+          console.error(
+            '[approve] College & Admin created, but credentials email failed:',
+            emailErr.message
+          )
+        }
+
+        return res.status(200).json({
+          ok: true,
+          message:
+            'College request approved successfully. College Admin credentials have been sent by email.',
+
+          college: {
+            id: college._id,
+            name: college.name,
+            code: college.code,
+          },
+
+          collegeAdmin: {
+            id: collegeAdmin._id,
+            name: collegeAdmin.name,
+            email: collegeAdmin.email,
+          },
+        })
+      } catch (creationErr) {
+        // ROLLBACK: If admin creation or request save failed, do NOT leave orphan college!
+        if (college && college._id && !collegeAdmin) {
+          console.error(
+            '[approve] Rollback: deleting orphan college after failure:',
+            college._id,
+            creationErr.message
+          )
+          await College.findByIdAndDelete(college._id).catch(() => {})
+          await del(COLLEGES_LIST_KEY).catch(() => {})
+        }
+        throw creationErr
+      }
     } catch (err) {
       console.error(
         '[POST /api/admin/pending-requests/:id/approve]',
