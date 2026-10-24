@@ -54,16 +54,26 @@ export function serializeTrendingPost(p, viewerId) {
   const likeCount = typeof p.likeCount === 'number' ? p.likeCount : rawLikes.length
 
   const authorId = author._id ? author._id.toString() : (author.id || '')
+  const computedInitials = author.initials || (
+    author.name
+      ? author.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
+      : 'U'
+  )
   return {
     id: p._id ? p._id.toString() : p.id,
     _id: p._id ? p._id.toString() : p.id,
     userId: authorId,
+    userName: author.name || 'User',
+    userUsername: author.username || 'user',
+    userInitials: computedInitials,
+    userAvatarColor: author.avatarColor || '#6366f1',
+    userProfilePhoto: author.profilePhoto || null,
     user: {
       id: authorId,
       _id: authorId,
       name: author.name || 'User',
       username: author.username || 'user',
-      initials: author.initials || 'U',
+      initials: computedInitials,
       avatarColor: author.avatarColor || '#6366f1',
       profilePhoto: author.profilePhoto || null,
       dept: author.dept || '',
@@ -85,11 +95,12 @@ export function serializeTrendingPost(p, viewerId) {
 }
 
 // ── GET /api/trending/posts ──────────────────────────────────────────────────
-// tab=trending | foryou | college
+// tab=trending | foryou | college | hashtags
 router.get(
   '/posts',
   [
-    query('tab').optional().isIn(['trending', 'foryou', 'college']).withMessage('Invalid tab parameter.'),
+    query('tab').optional().isIn(['trending', 'foryou', 'college', 'hashtags']).withMessage('Invalid tab parameter.'),
+    query('tag').optional().trim(),
     query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50.'),
   ],
   async (req, res) => {
@@ -98,6 +109,7 @@ router.get(
 
     try {
       const tab = req.query.tab || 'trending'
+      const rawTag = req.query.tag ? req.query.tag.trim().replace(/^#+/, '') : null
       const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
       const cursor = req.query.cursor
 
@@ -114,13 +126,19 @@ router.get(
       const now = new Date()
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      // Base query criteria: last 7 days, non-deleted
+      // Base query criteria: non-deleted
       const matchCriteria = {
         isDeleted: false,
-        createdAt: { $gte: sevenDaysAgo },
       }
 
-      // Fetch user context for For You / College tabs
+      // Check if any posts were created in the last 7 days. If so, restrict to recent 7 days.
+      // If none (e.g. seed data or sparse activity), fall back to all-time posts so the feed is never empty.
+      const hasRecentPosts = await Post.exists({ isDeleted: false, createdAt: { $gte: sevenDaysAgo } })
+      if (hasRecentPosts) {
+        matchCriteria.createdAt = { $gte: sevenDaysAgo }
+      }
+
+      // Fetch user context for For You / College / Hashtags tabs
       let followingIds = []
       let viewerLikedTags = []
       if (tab === 'foryou') {
@@ -128,14 +146,13 @@ router.get(
         followingIds = follows.map(f => f.following)
 
         // Find tags the user has liked recently
-        const likedPosts = await Post.find({
-          likes: req.user._id,
-          createdAt: { $gte: sevenDaysAgo },
-        }).select('tags').limit(30).lean()
+        const likedQuery = { likes: req.user._id }
+        if (hasRecentPosts) likedQuery.createdAt = { $gte: sevenDaysAgo }
+        const likedPosts = await Post.find(likedQuery).select('tags').limit(30).lean()
 
         const tagSet = new Set()
         likedPosts.forEach(lp => {
-          if (Array.isArray(lp.tags)) lp.tags.forEach(t => tagSet.add(t.toLowerCase()))
+          if (Array.isArray(lp.tags)) lp.tags.forEach(t => tagSet.add(t.toLowerCase().replace(/^#+/, '')))
         })
         viewerLikedTags = Array.from(tagSet)
 
@@ -143,9 +160,38 @@ router.get(
         matchCriteria.user = { $ne: req.user._id }
       } else if (tab === 'college') {
         if (!req.user.collegeId) {
-          return res.json({ ok: true, posts: [], nextCursor: null, hasMore: false })
+          return res.json({ ok: true, posts: [], nextCursor: null, hasMore: false, tab })
         }
         matchCriteria.collegeId = req.user.collegeId
+      } else if (tab === 'hashtags') {
+        if (rawTag) {
+          const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          matchCriteria.tags = {
+            $in: [
+              rawTag.toLowerCase(),
+              rawTag,
+              `#${rawTag.toLowerCase()}`,
+              `#${rawTag}`,
+              new RegExp(`^#?${escaped}$`, 'i'),
+            ],
+          }
+        } else {
+          matchCriteria['tags.0'] = { $exists: true }
+        }
+      }
+
+      // If a specific tag was supplied regardless of tab, apply it
+      if (rawTag && tab !== 'hashtags') {
+        const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        matchCriteria.tags = {
+          $in: [
+            rawTag.toLowerCase(),
+            rawTag,
+            `#${rawTag.toLowerCase()}`,
+            `#${rawTag}`,
+            new RegExp(`^#?${escaped}$`, 'i'),
+          ],
+        }
       }
 
       // Aggregation pipeline with ranking formula:
@@ -356,7 +402,8 @@ router.get(
 
       const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
-      const results = await Post.aggregate([
+      // First try posts in the last 7 days; if none, fall back to all-time tagged posts
+      let results = await Post.aggregate([
         {
           $match: {
             isDeleted: false,
@@ -366,8 +413,19 @@ router.get(
         },
         { $unwind: '$tags' },
         {
+          $project: {
+            cleanTag: {
+              $trim: {
+                input: { $toLower: '$tags' },
+                chars: '# ',
+              },
+            },
+          },
+        },
+        { $match: { cleanTag: { $ne: '' } } },
+        {
           $group: {
-            _id: { $toLower: '$tags' },
+            _id: '$cleanTag',
             count: { $sum: 1 },
           },
         },
@@ -381,6 +439,44 @@ router.get(
           },
         },
       ])
+
+      if (results.length === 0) {
+        results = await Post.aggregate([
+          {
+            $match: {
+              isDeleted: false,
+              'tags.0': { $exists: true },
+            },
+          },
+          { $unwind: '$tags' },
+          {
+            $project: {
+              cleanTag: {
+                $trim: {
+                  input: { $toLower: '$tags' },
+                  chars: '# ',
+                },
+              },
+            },
+          },
+          { $match: { cleanTag: { $ne: '' } } },
+          {
+            $group: {
+              _id: '$cleanTag',
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { count: -1 } },
+          { $limit: 30 },
+          {
+            $project: {
+              tag: '$_id',
+              count: 1,
+              _id: 0,
+            },
+          },
+        ])
+      }
 
       // Store in memory cache for 60 seconds
       _hashtagCache = {
@@ -413,7 +509,8 @@ router.get(
     if (validationError) return
 
     try {
-      const tag = req.params.tag.toLowerCase().replace(/^#+/, '')
+      const rawTag = req.params.tag.trim().replace(/^#+/, '')
+      const tag = rawTag.toLowerCase()
       const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
       const cursor = req.query.cursor
 
@@ -427,8 +524,17 @@ router.get(
         }
       }
 
+      const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const posts = await Post.find({
-        tags: tag,
+        tags: {
+          $in: [
+            tag,
+            rawTag,
+            `#${tag}`,
+            `#${rawTag}`,
+            new RegExp(`^#?${escaped}$`, 'i'),
+          ],
+        },
         isDeleted: false,
       })
         .sort({ createdAt: -1 })

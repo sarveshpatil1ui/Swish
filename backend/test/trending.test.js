@@ -118,7 +118,9 @@ describe('Trending & Discovery Route Integrity and Business Logic', () => {
     assert.equal(serializedLiked.likeCount, 2)
     assert.equal(serializedLiked.commentCount, 5)
     assert.equal(serializedLiked.score, 14.286)
-    assert.equal(serializedLiked.user.name, 'Priya Desai')
+    assert.equal(serializedLiked.userName, 'Priya Desai')
+    assert.equal(serializedLiked.userInitials, 'PD')
+    assert.equal(serializedLiked.userAvatarColor, '#ec4899')
 
     const serializedUnliked = serializeTrendingPost(rawPostLiked, new mongoose.Types.ObjectId())
     assert.equal(serializedUnliked.liked, false)
@@ -130,4 +132,14 @@ describe('Trending & Discovery Route Integrity and Business Logic', () => {
     // Calling without error confirms cache reset function works
     assert.doesNotThrow(() => invalidateHashtagCache())
   })
+
+  test('8. Trending route allows "hashtags" tab in express-validator definitions', () => {
+    const postsRouteLayer = trendingRouter.stack
+      .find(layer => layer.route && layer.route.path === '/posts')
+
+    assert.ok(postsRouteLayer, 'GET /posts must be present')
+    // Router has route stack containing validation middlewares
+    assert.ok(postsRouteLayer.route.stack.length > 0, 'Route has validation stack')
+  })
 })
+

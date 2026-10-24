@@ -529,9 +529,10 @@ export async function apiPinNotice(id) {
 
 // ── Trending & Discovery API ────────────────────────────────────────────────
 /** On success: { ok: true, posts: Array, nextCursor: string|null, hasMore: boolean } */
-export async function apiGetTrendingPosts({ tab = 'trending', cursor, limit = 20 } = {}) {
+export async function apiGetTrendingPosts({ tab = 'trending', tag, cursor, limit = 20 } = {}) {
   const params = new URLSearchParams()
   if (tab) params.append('tab', tab)
+  if (tag) params.append('tag', (tag || '').trim().replace(/^#+/, ''))
   if (cursor) params.append('cursor', cursor)
   if (limit) params.append('limit', limit)
   const q = params.toString()
@@ -545,7 +546,7 @@ export async function apiGetTrendingHashtags(limit = 12) {
 
 /** On success: { ok: true, tag: string, posts: Array, nextCursor: string|null, hasMore: boolean } */
 export async function apiGetHashtagPosts(tag, { cursor, limit = 20 } = {}) {
-  const cleanTag = encodeURIComponent((tag || '').replace(/^#+/, ''))
+  const cleanTag = encodeURIComponent((tag || '').trim().replace(/^#+/, ''))
   const params = new URLSearchParams()
   if (cursor) params.append('cursor', cursor)
   if (limit) params.append('limit', limit)

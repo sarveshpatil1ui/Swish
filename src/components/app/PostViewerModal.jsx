@@ -321,23 +321,25 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
           <div className="lg:w-[380px] flex flex-col border-l-0 lg:border-l border-slate-100 dark:border-gray-800">
             {/* Author header */}
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800">
-              <Link to={`/profile/${post.userId}`} onClick={onClose} className="flex items-center gap-3 group min-w-0">
-                {resolveImageUrl(post.userProfilePhoto) ? (
+              <Link to={`/profile/${post.userId || post.user?.id || post.user?._id}`} onClick={onClose} className="flex items-center gap-3 group min-w-0">
+                {resolveImageUrl(post.userProfilePhoto || post.user?.profilePhoto) ? (
                   <img
-                    src={resolveImageUrl(post.userProfilePhoto)}
+                    src={resolveImageUrl(post.userProfilePhoto || post.user?.profilePhoto)}
                     alt=""
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                    style={{ backgroundColor: post.userAvatarColor, fontSize: '12px' }}
+                    style={{ backgroundColor: post.userAvatarColor || post.user?.avatarColor || '#6366f1', fontSize: '12px' }}
                   >
-                    {post.userInitials}
+                    {post.userInitials || post.user?.initials || (post.userName || post.user?.name || 'U')[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">{post.userName}</p>
+                  <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                    {post.userName || post.user?.name || 'User'}
+                  </p>
                   <p className="text-slate-400 dark:text-gray-500 text-xs">{post.createdAt}</p>
                   {post.music && (
                     <button
@@ -406,13 +408,34 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
               </div>
             </div>
 
-            {/* Caption */}
-            {post.caption && post.imageUrl && (
+            {/* Caption & Tags */}
+            {(post.caption || (post.tags && post.tags.length > 0)) && (
               <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-800">
-                <p className="text-slate-800 dark:text-gray-200 text-sm leading-relaxed">
-                  <span className="font-semibold text-slate-900 dark:text-white mr-1.5">{post.userName.toLowerCase().replace(/\s+/g, '.')}</span>
-                  {post.caption}
-                </p>
+                {post.caption && (
+                  <p className="text-slate-800 dark:text-gray-200 text-sm leading-relaxed">
+                    <span className="font-semibold text-slate-900 dark:text-white mr-1.5">
+                      {(post.userName || post.user?.name || 'user').toLowerCase().replace(/\s+/g, '.')}
+                    </span>
+                    {post.caption}
+                  </p>
+                )}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {post.tags.map(tag => {
+                      const clean = String(tag).replace(/^#+/, '')
+                      return (
+                        <Link
+                          key={tag}
+                          to={`/trending?tab=hashtags&tag=${encodeURIComponent(clean)}`}
+                          onClick={onClose}
+                          className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-colors"
+                        >
+                          #{clean}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

@@ -22,6 +22,7 @@ import User from '../src/models/User.js'
 import { Conversation } from '../src/models/Conversation.js'
 import messagesRoutes from '../src/routes/messages.routes.js'
 import { initSocket, emitToUser } from '../src/services/socket.service.js'
+import { connectDB } from '../src/config/db.js'
 
 describe('Chat Performance & Real-Time Regression Suite', () => {
   let userA, userB, userC
@@ -35,9 +36,7 @@ describe('Chat Performance & Real-Time Regression Suite', () => {
     if (!process.env.MONGO_URI) {
       throw new Error('MONGO_URI is required for regression tests.')
     }
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI)
-    }
+    await connectDB()
 
     // Create 3 test users (User A & B are chat partners; User C is an unauthorized third party)
     userA = await User.create({

@@ -395,15 +395,20 @@ function PostCard({ post }) {
 
           {/* Tags overlay on image (bottom-left) */}
           {hasImage && imgLoaded && post.tags && post.tags.length > 0 && (
-            <div className="absolute bottom-3 left-3 flex gap-1.5 flex-wrap">
-              {post.tags.slice(0, 2).map(tag => (
-                <span
-                  key={tag}
-                  className="bg-black/35 backdrop-blur-sm text-white text-[11px] px-2.5 py-1 rounded-full font-medium"
-                >
-                  {tag}
-                </span>
-              ))}
+            <div className="absolute bottom-3 left-3 flex gap-1.5 flex-wrap z-10">
+              {post.tags.slice(0, 2).map(tag => {
+                const clean = String(tag).replace(/^#+/, '')
+                return (
+                  <Link
+                    key={tag}
+                    to={`/trending?tab=hashtags&tag=${encodeURIComponent(clean)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-black/45 hover:bg-black/70 backdrop-blur-sm text-white text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors"
+                  >
+                    #{clean}
+                  </Link>
+                )
+              })}
             </div>
           )}
 
@@ -549,14 +554,19 @@ function PostCard({ post }) {
           {/* Remaining hashtags (those not on the image) */}
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2.5">
-              {post.tags.map(tag => (
-                <span
-                  key={tag}
-                  className="text-indigo-500 dark:text-indigo-400 text-xs font-medium hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer transition-colors"
-                >
-                  {tag}
-                </span>
-              ))}
+              {post.tags.map(tag => {
+                const clean = String(tag).replace(/^#+/, '')
+                return (
+                  <Link
+                    key={tag}
+                    to={`/trending?tab=hashtags&tag=${encodeURIComponent(clean)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-indigo-500 dark:text-indigo-400 text-xs font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline transition-colors"
+                  >
+                    #{clean}
+                  </Link>
+                )
+              })}
             </div>
           )}
 

@@ -340,24 +340,26 @@ async function seed() {
     { postIndex: 7, user: faculty._id, text: 'Open-source contributions look great on a resume. Well done!' },
   ]
 
-  // Upsert posts (match by user + content so re-running seed is safe)
+  // Upsert posts (match by user + caption so re-running seed is safe)
   const createdPosts = []
   for (const postData of DEMO_POSTS) {
     const rawLikes = postData.likes || []
+    const caption = postData.caption || postData.content || ''
+    const { content, ...restPostData } = postData
     const postPayload = {
-      ...postData,
-      caption: postData.content,
+      ...restPostData,
+      caption,
       collegeId: demoCollege._id,
       likeCount: rawLikes.length,
       tags: postData.tags || [],
     }
     const post = await Post.findOneAndUpdate(
-      { user: postData.user, content: postData.content },
+      { user: postData.user, caption },
       { $set: postPayload },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
     createdPosts.push(post)
-    console.log(`  ✅  Post by ${post.user} — "${post.content.slice(0, 50)}..."`)
+    console.log(`  ✅  Post by ${post.user} — "${(post.caption || '').slice(0, 50)}..."`)
   }
 
   // Recompute post counts per user

@@ -27,6 +27,7 @@ import { io as Client } from 'socket.io-client'
 import User from '../src/models/User.js'
 import { Conversation } from '../src/models/Conversation.js'
 import Notification from '../src/models/Notification.js'
+import { connectDB } from '../src/config/db.js'
 import messagesRoutes from '../src/routes/messages.routes.js'
 import notificationsRoutes from '../src/routes/notifications.routes.js'
 import { initSocket, getIO } from '../src/services/socket.service.js'
@@ -43,10 +44,7 @@ async function runBenchmark() {
 
   // Connect to DB
   console.log('1. Connecting to MongoDB...')
-  await mongoose.connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  })
+  await connectDB()
   console.log('   ✔ MongoDB connected.')
 
   const testSuffix = Date.now()

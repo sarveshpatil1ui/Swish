@@ -1,13 +1,13 @@
-// backend/src/scripts/backfill_colleges.js
 import 'dotenv/config'
 import mongoose from 'mongoose'
+import { connectDB } from '../config/db.js'
 import User from '../models/User.js'
 import College from '../models/College.js'
 
 async function runBackfill() {
   try {
     console.log('Connecting to MongoDB...')
-    await mongoose.connect(process.env.MONGO_URI)
+    await connectDB()
     console.log('Connected.')
 
     const colleges = await College.find({})

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Sparkles, Hash, GraduationCap,
   Heart, MessageCircle, UserPlus, Check,
-  Loader2, RefreshCw, X, TrendingUp, Users, AlertCircle, Compass
+  Loader2, RefreshCw, X, TrendingUp, Users, AlertCircle, Compass, Search
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -134,7 +134,7 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
 }
 
 // ── Instagram-Style Post Grid Tile ───────────────────────────────────────────
-function PostTile({ post, onClick }) {
+function PostTile({ post, onClick, onSelectTag }) {
   const [imgError, setImgError] = useState(false)
   const imageUrl = resolveImageUrl(post.imageUrl)
   const hasImage = Boolean(imageUrl && !imgError)
@@ -182,14 +182,19 @@ function PostTile({ post, onClick }) {
             {post.caption || post.content}
           </p>
 
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-1 z-30">
             {(post.tags || []).slice(0, 2).map((tag) => (
-              <span
+              <button
                 key={tag}
-                className="text-[10px] font-medium bg-black/25 backdrop-blur-md px-2 py-0.5 rounded-full"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectTag?.(tag)
+                }}
+                className="text-[10px] font-medium bg-black/30 hover:bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full transition-colors pointer-events-auto"
               >
-                #{tag}
-              </span>
+                #{tag.replace(/^#+/, '')}
+              </button>
             ))}
           </div>
         </div>
@@ -222,6 +227,24 @@ function PostTile({ post, onClick }) {
           <p className="mt-3 text-[11px] sm:text-xs text-center text-white/80 line-clamp-2 px-2 hidden sm:block">
             {post.caption}
           </p>
+        )}
+
+        {post.tags && post.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap justify-center gap-1 max-w-[90%]">
+            {post.tags.slice(0, 3).map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectTag?.(tag)
+                }}
+                className="text-[10px] bg-white/20 hover:bg-white/30 backdrop-blur-md px-2 py-0.5 rounded-full text-white/95 transition-colors pointer-events-auto"
+              >
+                #{tag.replace(/^#+/, '')}
+              </button>
+            ))}
+          </div>
         )}
 
         <div className="mt-2 flex items-center gap-1.5 text-[11px] text-white/70">
@@ -259,6 +282,7 @@ export default function TrendingPage() {
 
   const [posts, setPosts] = useState([])
   const [hashtags, setHashtags] = useState([])
+  const [tagSearch, setTagSearch] = useState('')
   const [suggestedAccounts, setSuggestedAccounts] = useState([])
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [loadingHashtags, setLoadingHashtags] = useState(false)
@@ -274,7 +298,7 @@ export default function TrendingPage() {
   const fetchHashtags = useCallback(async () => {
     setLoadingHashtags(true)
     try {
-      const res = await apiGetTrendingHashtags(12)
+      const res = await apiGetTrendingHashtags(30)
       if (res.ok && Array.isArray(res.hashtags)) {
         setHashtags(res.hashtags)
       }
@@ -349,8 +373,10 @@ export default function TrendingPage() {
 
   // Select hashtag chip
   const handleSelectTag = (tag) => {
+    const clean = tag.replace(/^#+/, '')
     const next = new URLSearchParams(searchParams)
-    next.set('tag', tag.replace(/^#+/, ''))
+    next.set('tab', 'hashtags')
+    next.set('tag', clean)
     setSearchParams(next)
   }
 
@@ -358,8 +384,18 @@ export default function TrendingPage() {
   const handleClearTag = () => {
     const next = new URLSearchParams(searchParams)
     next.delete('tag')
+    if (activeTab !== 'hashtags') {
+      next.set('tab', 'trending')
+    }
     setSearchParams(next)
   }
+
+  // Filtered hashtags based on search input
+  const filteredHashtags = useMemo(() => {
+    if (!tagSearch.trim()) return hashtags
+    const q = tagSearch.trim().toLowerCase().replace(/^#+/, '')
+    return hashtags.filter((h) => h.tag.toLowerCase().includes(q))
+  }, [hashtags, tagSearch])
 
   // Load more pagination handler
   const handleLoadMore = () => {
@@ -380,6 +416,8 @@ export default function TrendingPage() {
     { id: 'hashtags', label: 'Hashtags', icon: Hash },
     { id: 'college', label: 'My College', icon: GraduationCap },
   ]
+
+  const isHashtagsActive = activeTab === 'hashtags' || Boolean(activeTag)
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-5 sm:py-7 space-y-6">
@@ -415,7 +453,7 @@ export default function TrendingPage() {
       <div className="flex p-1 gap-1 bg-slate-100 dark:bg-gray-900/90 rounded-2xl border border-slate-200/60 dark:border-gray-800/80 overflow-x-auto scrollbar-none">
         {tabs.map((tab) => {
           const Icon = tab.icon
-          const isActive = !activeTag && activeTab === tab.id
+          const isActive = tab.id === 'hashtags' ? isHashtagsActive : (!activeTag && activeTab === tab.id)
           return (
             <button
               key={tab.id}
@@ -442,53 +480,108 @@ export default function TrendingPage() {
             exit={{ opacity: 0, y: -6 }}
             className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 rounded-2xl"
           >
-            <div className="flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
-              <Hash size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <span className="text-xs sm:text-sm font-semibold">
-                Showing posts tagged <span className="font-black text-indigo-600 dark:text-indigo-400">#{activeTag}</span>
-              </span>
+            <div className="flex items-center gap-2.5 text-indigo-950 dark:text-indigo-200">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                #
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-300">
+                    Showing posts tagged <span className="font-black text-indigo-600 dark:text-indigo-400">#{activeTag}</span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-gray-400">
+                  Campus posts & conversations filtered by hashtag
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={handleClearTag}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-300 dark:hover:bg-indigo-800 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 transition-colors shadow-sm"
             >
               <X size={13} />
-              <span>Clear filter</span>
+              <span>All #{activeTab === 'hashtags' ? 'hashtags' : 'trending'}</span>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Trending Hashtags Pill Bar ── */}
-      {hashtags.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-300">
-              <Hash size={14} className="text-indigo-500" />
-              <span>Popular Tags</span>
+      {/* ── Dedicated Hashtags Explorer (when in Hashtags tab) ── */}
+      {isHashtagsActive ? (
+        <div className="p-4 sm:p-5 bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-3xl space-y-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white">
+                <Hash size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Explore Campus Hashtags</span>
+              </div>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+                Select a hashtag below or search to find targeted discussions
+              </p>
+            </div>
+
+            {/* Hashtag search input */}
+            <div className="relative min-w-[220px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && tagSearch.trim()) {
+                    handleSelectTag(tagSearch.trim())
+                  }
+                }}
+                placeholder="Search hashtags..."
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-gray-800 text-xs text-slate-800 dark:text-gray-200 rounded-xl border border-transparent focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-400"
+              />
+              {tagSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTagSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-            {hashtags.map((h) => {
+
+          {/* Hashtag Chips Grid */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleClearTag}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                !activeTag
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                  : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Sparkles size={13} />
+              <span>All Tagged Posts</span>
+            </button>
+
+            {filteredHashtags.map((h) => {
               const isSelected = activeTag.toLowerCase() === h.tag.toLowerCase()
               return (
                 <button
                   key={h.tag}
                   type="button"
                   onClick={() => handleSelectTag(h.tag)}
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                     isSelected
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
                       : 'bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
                   }`}
                 >
-                  <span>#{h.tag}</span>
+                  <span className="font-bold">#{h.tag}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    className={`text-[10px] px-1.5 py-0.2 rounded-md ${
                       isSelected
                         ? 'bg-white/20 text-white'
-                        : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
+                        : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 font-medium'
                     }`}
                   >
                     {h.count}
@@ -496,8 +589,73 @@ export default function TrendingPage() {
                 </button>
               )
             })}
+
+            {/* Custom search quick-select button if typed query not in list */}
+            {tagSearch.trim() && !filteredHashtags.some(h => h.tag.toLowerCase() === tagSearch.trim().toLowerCase().replace(/^#+/, '')) && (
+              <button
+                type="button"
+                onClick={() => handleSelectTag(tagSearch.trim())}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-dashed border-indigo-400 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all"
+              >
+                <Search size={12} />
+                <span>Explore #{tagSearch.trim().replace(/^#+/, '')}</span>
+              </button>
+            )}
+
+            {filteredHashtags.length === 0 && !tagSearch && (
+              <span className="text-xs text-slate-400 dark:text-gray-500 py-1">
+                No hashtags indexed yet. Create a post with #tag to start trending!
+              </span>
+            )}
           </div>
         </div>
+      ) : (
+        /* ── Popular Tags Quick Strip on Non-Hashtag Tabs ── */
+        hashtags.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-300">
+                <Hash size={14} className="text-indigo-500" />
+                <span>Popular Tags</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTabChange('hashtags')}
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Explore all hashtags
+              </button>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+              {hashtags.slice(0, 12).map((h) => {
+                const isSelected = activeTag.toLowerCase() === h.tag.toLowerCase()
+                return (
+                  <button
+                    key={h.tag}
+                    type="button"
+                    onClick={() => handleSelectTag(h.tag)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
+                        : 'bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
+                    }`}
+                  >
+                    <span>#{h.tag}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {h.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
       )}
 
       {/* ── Suggested Accounts Strip (Only on main trending tab without tag filter) ── */}
@@ -563,6 +721,8 @@ export default function TrendingPage() {
               ? `No posts found with #${activeTag}`
               : activeTab === 'college'
               ? 'No posts from your college yet'
+              : activeTab === 'hashtags'
+              ? 'No posts with hashtags yet'
               : activeTab === 'foryou'
               ? 'Your personalized feed is being curated'
               : 'No trending posts right now'}
@@ -572,6 +732,8 @@ export default function TrendingPage() {
               ? 'Be the first to create a post and include this hashtag!'
               : activeTab === 'college'
               ? 'Posts created by students or faculty in your college will appear here.'
+              : activeTab === 'hashtags'
+              ? 'Posts that include hashtags like #webdev, #design, or #campus will appear here.'
               : 'Check back soon as new campus stories and discussions get posted!'}
           </p>
           {activeTag && (
@@ -580,7 +742,7 @@ export default function TrendingPage() {
               onClick={handleClearTag}
               className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
             >
-              <span>Back to all trending</span>
+              <span>Back to all {activeTab === 'hashtags' ? 'hashtags' : 'trending'}</span>
             </button>
           )}
         </div>
@@ -592,6 +754,7 @@ export default function TrendingPage() {
                 key={post.id || post._id}
                 post={post}
                 onClick={setSelectedPost}
+                onSelectTag={handleSelectTag}
               />
             ))}
           </div>

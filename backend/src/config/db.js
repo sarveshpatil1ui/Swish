@@ -1,4 +1,5 @@
 // backend/src/config/db.js
+import dns from 'node:dns'
 import mongoose from 'mongoose'
 
 let isConnected = false
@@ -19,28 +20,40 @@ export async function connectDB() {
     isConnected = true
     console.log('✅  MongoDB connected:', mongoose.connection.host)
   } catch (err) {
-    if (
-      err.message.includes('querySrv') &&
-      process.env.MONGO_URI &&
-      process.env.MONGO_URI.includes('cluster0.l5jvtoe.mongodb.net')
-    ) {
-      console.warn('⚠️  SRV DNS lookup failed on local network. Falling back to direct replica set hosts...')
-      const directUri = process.env.MONGO_URI
-        .replace('mongodb+srv://', 'mongodb://')
-        .replace(
-          'cluster0.l5jvtoe.mongodb.net',
-          'ac-knggboa-shard-00-00.l5jvtoe.mongodb.net:27017,ac-knggboa-shard-00-01.l5jvtoe.mongodb.net:27017,ac-knggboa-shard-00-02.l5jvtoe.mongodb.net:27017'
-        )
-      const separator = directUri.includes('?') ? '&' : '?'
-      const fallbackUri = `${directUri}${separator}ssl=true&authSource=admin&replicaSet=atlas-wfn117-shard-0`
-
+    if (err.message.includes('querySrv')) {
+      console.warn('⚠️  SRV DNS lookup failed on local network DNS. Retrying with public DNS resolvers (8.8.8.8, 1.1.1.1)...')
       try {
-        await mongoose.connect(fallbackUri, options)
+        dns.setServers(['8.8.8.8', '1.1.1.1'])
+        await mongoose.connect(process.env.MONGO_URI, options)
         isConnected = true
-        console.log('✅  MongoDB connected (via replica set fallback):', mongoose.connection.host)
+        console.log('✅  MongoDB connected (via public DNS fallback):', mongoose.connection.host)
         return
-      } catch (fallbackErr) {
-        console.error('❌  Fallback connection also failed:', fallbackErr.message)
+      } catch (dnsErr) {
+        console.warn('⚠️  Public DNS retry failed:', dnsErr.message)
+      }
+
+      if (
+        process.env.MONGO_URI &&
+        process.env.MONGO_URI.includes('cluster0.l5jvtoe.mongodb.net')
+      ) {
+        console.warn('⚠️  Falling back to direct replica set hosts...')
+        const directUri = process.env.MONGO_URI
+          .replace('mongodb+srv://', 'mongodb://')
+          .replace(
+            'cluster0.l5jvtoe.mongodb.net',
+            'ac-knggboa-shard-00-00.l5jvtoe.mongodb.net:27017,ac-knggboa-shard-00-01.l5jvtoe.mongodb.net:27017,ac-knggboa-shard-00-02.l5jvtoe.mongodb.net:27017'
+          )
+        const separator = directUri.includes('?') ? '&' : '?'
+        const fallbackUri = `${directUri}${separator}ssl=true&authSource=admin&replicaSet=atlas-wfn117-shard-0`
+
+        try {
+          await mongoose.connect(fallbackUri, options)
+          isConnected = true
+          console.log('✅  MongoDB connected (via replica set fallback):', mongoose.connection.host)
+          return
+        } catch (fallbackErr) {
+          console.error('❌  Fallback connection also failed:', fallbackErr.message)
+        }
       }
     }
     console.error('❌  MongoDB connection error:', err.message)
