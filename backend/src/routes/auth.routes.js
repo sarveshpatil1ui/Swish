@@ -18,9 +18,11 @@ import {
   isOtpResendOnCooldown,
 } from '../services/otp.service.js'
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: isDev ? 1000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' },
@@ -28,7 +30,7 @@ const authLimiter = rateLimit({
 
 const otpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 8,
+  max: isDev ? 1000 : 8,
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: 'Too many verification attempts. Please wait 10 minutes.' },
@@ -37,7 +39,7 @@ const otpLimiter = rateLimit({
 // Stricter limiter specifically for resend-otp (3 requests per 10-minute window)
 const resendOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 3,
+  max: isDev ? 1000 : 3,
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: 'Too many resend requests. Please wait 10 minutes before requesting another code.' },
@@ -472,90 +474,6 @@ router.post(
       const { email, password } = req.body
       const normalizedEmail = email.trim().toLowerCase()
 
-      // ── Demo user bypass for development/testing ONLY (strictly blocked in production) ──
-      if (process.env.NODE_ENV !== 'production') {
-        const adminExpectedPass = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : null
-        const DEMO_USERS = {
-          ...(adminExpectedPass ? {
-            'admin@swish.com': { password: adminExpectedPass, role: 'admin', college: '', name: 'Admin User', initials: 'AU', avatarColor: '#ef4444' }
-          } : {}),
-          'rahul@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Rahul Sharma',       initials: 'RS', avatarColor: '#6366f1', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024001' },
-          'student@campus.edu':    { password: 'student123',     role: 'student',       college: 'KJSCE Mumbai', name: 'Demo Student',        initials: 'DS', avatarColor: '#6366f1', dept: 'Computer Science',      year: '2nd Year', studentId: 'CS2024099' },
-          'priya@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Priya Desai',         initials: 'PD', avatarColor: '#ec4899', dept: 'Computer Science',      year: '3rd Year', studentId: 'CS2024042' },
-          'arjun@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Arjun Mehta',         initials: 'AM', avatarColor: '#f59e0b', dept: 'Electronics',             year: '4th Year', studentId: 'EC2023015' },
-          'sneha@campus.edu':      { password: 'swish123',       role: 'student',       college: 'KJSCE Mumbai', name: 'Sneha Iyer',          initials: 'SI', avatarColor: '#14b8a6', dept: 'Information Technology', year: '3rd Year', studentId: 'IT2024037' },
-          'faculty@campus.edu':    { password: 'faculty123',     role: 'faculty',       college: 'KJSCE Mumbai', name: 'Demo Faculty',         initials: 'DF', avatarColor: '#10b981', dept: 'Computer Science',      designation: 'Assistant Professor', employeeId: 'EMP2024001' },
-          'collegeadmin@campus.edu': { password: 'college123',   role: 'college_admin', college: 'KJSCE Mumbai', name: 'Demo College Admin', initials: 'DA', avatarColor: '#f59e0b', dept: 'Administration', designation: 'College Administrator' },
-        }
-
-        const demoUser = DEMO_USERS[normalizedEmail]
-        const isDemoPasswordMatch = Boolean(demoUser && password === demoUser.password)
-      if (isDemoPasswordMatch) {
-        // First try to find existing database user
-        const existingDbUser = await User.findOne({ email: normalizedEmail })
-        if (existingDbUser) {
-          // Fast-track demo accounts if still marked isDemo, otherwise verify stored password hash
-          const isPasswordValid = existingDbUser.isDemo || (await bcrypt.compare(password, existingDbUser.passwordHash))
-          if (isPasswordValid) {
-            const token = setAuthCookie(res, existingDbUser)
-            return res.status(200).json({
-              ok: true,
-              token,
-              user: existingDbUser.toJSON(),
-              redirectTo: redirectPathForRole(existingDbUser.role),
-            })
-          }
-          // If password does not match, user changed their password or entered wrong password.
-          // Do NOT overwrite user's password in DB!
-        } else {
-          // Only create initial demo user if the account does NOT exist in DB yet
-          const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
-          let collegeId = null
-          let collegeName = demoUser.college
-          if (demoUser.role === 'college_admin') {
-            const college = await College.findOne({ domain: 'campus.edu' })
-            if (college) {
-              collegeId = college._id
-              collegeName = college.name
-            }
-          }
-
-          const userData = {
-            name: demoUser.name,
-            username: normalizedEmail.split('@')[0],
-            initials: demoUser.initials,
-            avatarColor: demoUser.avatarColor,
-            email: normalizedEmail,
-            passwordHash,
-            role: demoUser.role,
-            college: collegeName,
-            collegeId: collegeId,
-            isEmailVerified: true,
-            isDemo: true,
-            mustChangePassword: false,
-            ...(demoUser.dept && { dept: demoUser.dept }),
-            ...(demoUser.year && { year: demoUser.year }),
-            ...(demoUser.studentId && { studentId: demoUser.studentId }),
-            ...(demoUser.designation && { designation: demoUser.designation }),
-            ...(demoUser.employeeId && { employeeId: demoUser.employeeId }),
-          }
-
-          const result = await User.findOneAndUpdate(
-            { email: normalizedEmail },
-            { $set: userData },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          )
-
-          const token = setAuthCookie(res, result)
-          return res.status(200).json({
-            ok: true,
-            token,
-            user: result.toJSON(),
-            redirectTo: redirectPathForRole(demoUser.role),
-          })
-        }
-      }
-      }
 
       const user = await User.findOne({ email: normalizedEmail })
 

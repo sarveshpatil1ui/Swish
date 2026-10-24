@@ -12,15 +12,15 @@ const sidebarLinks = [
 
 const feedPosts = [
   {
-    initials: 'AK', name: 'Ananya Kapoor', dept: 'Design · Final Year', color: '#6366f1',
+    initials: 'DC', name: 'Design Society', dept: 'Creative Lab · Community', color: '#6366f1',
     tag: '#DesignFest', emoji: '🎨',
-    caption: 'Showcased our UI project at DesignFest today! The feedback was incredible 🙌',
+    caption: 'Showcasing campus UI projects this week! The community feedback is inspiring 🙌',
     likes: 94, comments: 17, bgLight: 'from-indigo-50 to-violet-50', bgDark: 'dark:from-indigo-950/50 dark:to-violet-950/50',
   },
   {
-    initials: 'RV', name: 'Rohan Verma', dept: 'Mechanical · 2nd Year', color: '#0ea5e9',
+    initials: 'RC', name: 'Robotics Guild', dept: 'Hardware Lab · Community', color: '#0ea5e9',
     tag: '#Robotics', emoji: '🤖',
-    caption: 'Robotics club session — built something wild today. More soon!',
+    caption: 'Robotics lab build session — autonomous navigation testing complete! More updates soon.',
     likes: 71, comments: 9, bgLight: 'from-sky-50 to-cyan-50', bgDark: 'dark:from-sky-950/50 dark:to-cyan-950/50',
   },
 ]
@@ -33,9 +33,9 @@ const trending = [
 ]
 
 const suggested = [
-  { initials: 'SJ', name: 'Sneha Joshi', role: 'CSE · 3rd Year', color: '#f59e0b' },
-  { initials: 'MB', name: 'Mihir Bose', role: 'MBA · 1st Year', color: '#10b981' },
-  { initials: 'NK', name: 'Neha Kulkarni', role: 'Arts · 2nd Year', color: '#8b5cf6' },
+  { initials: 'CS', name: 'CS Student Society', role: 'Technical Chapter', color: '#f59e0b' },
+  { initials: 'MC', name: 'Music Collective', role: 'Campus Guild', color: '#10b981' },
+  { initials: 'EC', name: 'E-Cell Incubator', role: 'Innovation Hub', color: '#8b5cf6' },
 ]
 
 function FeedPost({ post, delay, inView }) {
@@ -187,9 +187,9 @@ export default function ProductPreview() {
 
           {/* Floating cards */}
           {[
-            { side: 'left', delay: 0.7, icon: '❤️', text: 'Priya liked your post', sub: '2 minutes ago', pos: '-left-5 top-[25%]' },
+            { side: 'left', delay: 0.7, icon: '❤️', text: 'Peer liked your project showcase', sub: '2 minutes ago', pos: '-left-5 top-[25%]' },
             { side: 'right', delay: 0.9, icon: '🔥', text: 'Campus Hackathon trending', sub: '128 posts this week', pos: '-right-5 top-[42%]' },
-            { side: 'right', delay: 1.1, icon: '👤', text: 'Aarav started following you', sub: 'Just now', pos: '-right-5 bottom-[18%]' },
+            { side: 'right', delay: 1.1, icon: '👤', text: 'New connection in your branch', sub: 'Just now', pos: '-right-5 bottom-[18%]' },
           ].map(({ delay, icon, text, sub, pos, side }) => (
             <motion.div
               key={text}

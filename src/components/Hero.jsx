@@ -16,10 +16,10 @@ function MockFeedCard() {
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-gray-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">RS</div>
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">CC</div>
           <div>
-            <p className="text-slate-900 dark:text-white text-xs font-semibold leading-tight">Rahul Sharma</p>
-            <p className="text-slate-400 dark:text-gray-500 text-[11px]">IT · 3rd Year</p>
+            <p className="text-slate-900 dark:text-white text-xs font-semibold leading-tight">Campus Creator</p>
+            <p className="text-slate-400 dark:text-gray-500 text-[11px]">Engineering · Active Student</p>
           </div>
         </div>
         <button className="px-2.5 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
@@ -63,14 +63,14 @@ function MockProfileCard() {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold">PS</div>
+        <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold">VS</div>
         <div>
-          <p className="text-slate-900 dark:text-white text-sm font-semibold">Priya Singhal</p>
-          <p className="text-slate-400 dark:text-gray-500 text-[11px]">Computer Science · 2nd Year</p>
+          <p className="text-slate-900 dark:text-white text-sm font-semibold">Verified Student</p>
+          <p className="text-slate-400 dark:text-gray-500 text-[11px]">Computer Science · Community</p>
         </div>
       </div>
       <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-gray-800 bg-slate-50 dark:bg-gray-800/60 rounded-xl p-3 mb-3">
-        {[['47', 'Posts'], ['312', 'Followers'], ['98', 'Following']].map(([val, label]) => (
+        {[['--', 'Posts'], ['--', 'Followers'], ['--', 'Following']].map(([val, label]) => (
           <div key={label} className="text-center px-1">
             <p className="text-slate-900 dark:text-white font-bold text-sm">{val}</p>
             <p className="text-slate-400 dark:text-gray-500 text-[10px]">{label}</p>
@@ -78,7 +78,7 @@ function MockProfileCard() {
         ))}
       </div>
       <button className="w-full py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
-        Follow
+        Connect
       </button>
     </div>
   )
@@ -200,7 +200,7 @@ export default function Hero() {
                 className="absolute -right-4 lg:-right-10 top-[18%] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2"
               >
                 <span className="text-sm">❤️</span>
-                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">Priya liked your post</p>
+                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">Peer reacted to your post</p>
               </motion.div>
 
               <motion.div
@@ -209,7 +209,7 @@ export default function Hero() {
                 className="absolute -left-4 lg:-left-10 bottom-[22%] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2"
               >
                 <span className="text-sm">👤</span>
-                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">Aarav started following you</p>
+                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">New connection in your branch</p>
               </motion.div>
             </motion.div>
           </div>

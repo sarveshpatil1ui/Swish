@@ -467,9 +467,9 @@ useEffect(() => {
             </p>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-violet-400/80 flex items-center justify-center text-white font-bold" style={{ fontSize: '9px' }}>
-                PP
+                VS
               </div>
-              <p className="text-white/40 text-xs">Priya Patel · CSE 2nd Year · KJSCE Mumbai</p>
+              <p className="text-white/40 text-xs">Verified Student · Campus Member</p>
             </div>
           </motion.div>
         </div>
@@ -715,7 +715,7 @@ useEffect(() => {
                 <input
                   id="join-firstname"
                   type="text"
-                  placeholder="Rahul Sharma"
+                  placeholder="Your Full Name"
                   value={form.fullName}
                   onChange={set('fullName')}
                   className={`${INPUT_BASE} ${borderFor(errors.fullName)} pl-10 pr-4`}

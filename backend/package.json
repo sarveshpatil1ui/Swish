@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "seed": "node src/seed.js",
     "test": "node --test test/**/*.test.js",
+    "clean-demo": "node src/scripts/cleanup_hardcoded_data.js",
     "verify-gmail": "node scripts/verify-gmail.js",
     "get-gmail-token": "node scripts/get-refresh-token.js",
     "set-admin": "node scripts/set-admin-password.js"

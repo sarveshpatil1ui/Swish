@@ -191,10 +191,10 @@ export default function LoginPage() {
             <div className="mt-10 space-y-3 max-w-[300px]">
               <ActivityChip delay={0.3}>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-full bg-violet-400/80 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">PP</div>
+                  <div className="w-10 h-10 rounded-full bg-violet-400/80 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">SC</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-semibold leading-tight truncate">Campus Fest 2026 🎉</p>
-                    <p className="text-white/50 text-xs mt-0.5">Priya Patel · CSE 2nd Year</p>
+                    <p className="text-white/50 text-xs mt-0.5">Student Council · Campus Events</p>
                   </div>
                   <span className="flex items-center gap-1 text-white/60 text-xs flex-shrink-0">
                     <Heart size={12} className="fill-rose-400 text-rose-400" /> 214
@@ -208,8 +208,8 @@ export default function LoginPage() {
                     <Users size={14} className="text-emerald-300" />
                   </div>
                   <div>
-                    <p className="text-white text-sm font-medium leading-tight">Aarav started following you</p>
-                    <p className="text-white/40 text-xs mt-0.5">Just now · IT Club</p>
+                    <p className="text-white text-sm font-medium leading-tight">Peer started following you</p>
+                    <p className="text-white/40 text-xs mt-0.5">Just now · Technical Club</p>
                   </div>
                 </div>
               </ActivityChip>
@@ -221,7 +221,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="text-white text-sm font-medium leading-tight">Hackathon 2026 — 1st Place 🏆</p>
-                    <p className="text-white/40 text-xs mt-0.5">Rahul Sharma · 2h ago</p>
+                    <p className="text-white/40 text-xs mt-0.5">Campus Innovation Team · 2h ago</p>
                   </div>
                 </div>
               </ActivityChip>

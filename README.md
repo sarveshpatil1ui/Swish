@@ -653,21 +653,24 @@ npm run dev
 
 ---
 
-## 🔑 Ready-to-Use Demo Accounts
+## 🔑 Local Testing & Authentication
 
-Running `npm run seed` immediately provisions accounts across all 4 roles. **No email setup or OTP verification required for testing:**
+All mock and hardcoded profiles have been removed. The system strictly authenticates against the live MongoDB database:
 
-| Role | Name | Email | Password | What to Explore |
-|---|---|---|---|---|
-| 👨‍🎓 **Student** | Rahul Sharma | `rahul@campus.edu` | `swish123` | Social feed, create media posts, likes, comment drawer, direct chat |
-| 👩‍🎓 **Student** | Priya Desai | `priya@campus.edu` | `swish123` | Follow peers, explore feed, test real-time chat with Rahul |
-| 👨‍🎓 **Student** | Arjun Mehta | `arjun@campus.edu` | `swish123` | Create stories, view campus notices, profile customization |
-| 👩‍🎓 **Student** | Sneha Iyer | `sneha@campus.edu` | `swish123` | Tech posts, social interactions, profile stats |
-| 👨‍🏫 **Faculty** | Demo Faculty | `faculty@campus.edu` | `faculty123` | Campus feed + Academic Faculty Portal (`/faculty`) |
-| 🏛️ **College Admin** | Demo College Admin | `collegeadmin@campus.edu` | `college123` | College dashboard (`/college-admin`), campus notices, department setup |
-| 👑 **Super Admin** | Platform Admin | `admin@swish.com` | `admin123` | Platform KPIs (`/admin`), college onboarding approvals, global moderation |
+### 1. Platform Administrator
+- **Email:** `admin@swish.com`
+- **Password:** `SwishAdmin@2026` (configurable via `ADMIN_PASSWORD` in `backend/.env`)
+- **Dashboard:** `/admin` — Access platform metrics, college onboarding approvals, and moderation.
 
-> 💡 **Multi-Tab Tip:** Open two different browser profiles (or an Incognito window) to test live messaging and presence between **Rahul** and **Priya**!
+### 2. Testing Student & Faculty Accounts Locally
+You can register authentic student and faculty accounts instantly using any active college domain (e.g. `@campus.edu`, `@kccemsr.edu.in`, `@dmce.ac.in`):
+1. Navigate to `/join` on the frontend (`http://localhost:5173/join`).
+2. Enter your name, student/faculty details, and an institutional email (e.g. `teststudent@campus.edu`).
+3. Set your custom password.
+4. When prompted for the verification OTP code, enter **`123456`** (the development master OTP defined by `MASTER_OTP` in `backend/.env`).
+5. Your real account is created directly in MongoDB and ready to post, like, comment, and chat!
+
+> 💡 **Multi-User Real-time Testing Tip:** Open two different browser profiles (or normal + Incognito) to register two users and test real-time direct messages, typing indicators, stories, and notifications!
 
 ---
 
