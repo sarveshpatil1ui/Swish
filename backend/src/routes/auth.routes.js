@@ -536,7 +536,6 @@ router.post(
 
 router.post(
   '/login',
-  requireTurnstile,
   loginLimiter,
   [
     body('email').trim().normalizeEmail().isEmail().withMessage('Valid email required.'),

@@ -10,8 +10,13 @@ import { verifyTurnstileToken } from '../services/turnstile.service.js'
  * it automatically permits the request to pass.
  */
 export async function requireTurnstile(req, res, next) {
-  // Always skip if secret key is not set or in test environment
-  if (!process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY || process.env.NODE_ENV === 'test') {
+  // Always skip if secret key is not set, or in dev/test environment unless explicitly enforced in production
+  if (
+    !process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV === 'development' ||
+    process.env.CLOUDFLARE_TURNSTILE_ENABLED === 'false'
+  ) {
     return next()
   }
 
