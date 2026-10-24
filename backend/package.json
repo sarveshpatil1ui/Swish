@@ -12,7 +12,8 @@
     "clean-demo": "node src/scripts/cleanup_hardcoded_data.js",
     "verify-gmail": "node scripts/verify-gmail.js",
     "get-gmail-token": "node scripts/get-refresh-token.js",
-    "set-admin": "node scripts/set-admin-password.js"
+    "set-admin": "node scripts/set-admin-password.js",
+    "test:security": "node scripts/security-check.js"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
