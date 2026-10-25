@@ -31,6 +31,7 @@ import reportsRoutes from './routes/reports.routes.js'
 import analyticsRoutes from './routes/analytics.routes.js'
 import trendingRoutes from './routes/trending.routes.js'
 import moderationRoutes from './routes/moderation.routes.js'
+import activityLogsRoutes from './routes/activity-logs.routes.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -106,6 +107,7 @@ app.use('/api/reports', reportsRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/trending', trendingRoutes)
 app.use('/api/moderation', moderationRoutes)
+app.use('/api/activity-logs', activityLogsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })

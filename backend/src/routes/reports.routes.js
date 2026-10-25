@@ -5,6 +5,7 @@ import Report from '../models/Report.js'
 import User from '../models/User.js'
 import Post from '../models/Post.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
+import { logActivity } from '../services/activity-log.service.js'
 
 const router = Router()
 
@@ -189,6 +190,22 @@ router.patch(
       }
 
       await report.save()
+
+      // Log the action
+      const actionType = status === 'resolved' ? 'report_resolved' : status === 'dismissed' ? 'report_dismissed' : 'report_reviewed'
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType,
+        resourceType: 'report',
+        resourceId: report._id,
+        resourceName: `${report.type} report #${report._id.toString().slice(-6)}`,
+        details: resolutionNotes || `Status changed to ${status}`,
+        ipAddress: req.ip,
+      })
 
       res.json({ ok: true, report })
     } catch (err) {

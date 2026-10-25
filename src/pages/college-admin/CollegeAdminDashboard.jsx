@@ -6,7 +6,7 @@ import {
   AlertCircle, RefreshCw
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiGetUserStats, apiGetNotices } from '../../utils/auth'
+import { apiGetUserStats, apiGetNotices, apiGetActivityLogs } from '../../utils/auth'
 
 function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
   return (
@@ -49,6 +49,7 @@ export default function CollegeAdminDashboard() {
   const { currentUser } = useSwish()
   const [stats, setStats] = useState(null)
   const [recentNotices, setRecentNotices] = useState([])
+  const [activityLogs, setActivityLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -61,9 +62,10 @@ export default function CollegeAdminDashboard() {
       setLoading(true)
       setError(null)
 
-      const [statsRes, noticesRes] = await Promise.all([
+      const [statsRes, noticesRes, logsRes] = await Promise.all([
         apiGetUserStats(),
         apiGetNotices(),
+        apiGetActivityLogs({ limit: 10 }),
       ])
 
       if (!statsRes.ok) {
@@ -83,6 +85,10 @@ export default function CollegeAdminDashboard() {
 
       if (noticesRes.ok && Array.isArray(noticesRes.notices)) {
         setRecentNotices(noticesRes.notices.slice(0, 5))
+      }
+
+      if (logsRes.ok && Array.isArray(logsRes.logs)) {
+        setActivityLogs(logsRes.logs)
       }
     } catch (err) {
       console.error('[Dashboard] Error fetching data:', err)
@@ -314,6 +320,71 @@ export default function CollegeAdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Activity Log */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Activity</h2>
+          <span className="text-xs text-slate-400 dark:text-gray-500">Last 10 actions</span>
+        </div>
+        {activityLogs.length === 0 ? (
+          <div className="text-center py-8">
+            <Activity size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
+            <p className="text-slate-500 dark:text-gray-500 text-sm">No recent activity</p>
+            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Admin actions will appear here.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activityLogs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              >
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center flex-shrink-0">
+                  <Activity size={18} className="text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-slate-900 dark:text-white font-medium text-sm">{log.adminName}</p>
+                  <p className="text-slate-500 dark:text-gray-500 text-xs mt-1">{getActionDescription(log.actionType, log.resourceName)}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-slate-400 dark:text-gray-500">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
+}
+
+function getActionDescription(actionType, resourceName) {
+  const descriptions = {
+    user_blocked: `Blocked user: ${resourceName}`,
+    user_unblocked: `Unblocked user: ${resourceName}`,
+    user_suspended: `Suspended user: ${resourceName}`,
+    user_reactivated: `Reactivated user: ${resourceName}`,
+    report_reviewed: `Reviewed report: ${resourceName}`,
+    report_resolved: `Resolved report: ${resourceName}`,
+    report_dismissed: `Dismissed report: ${resourceName}`,
+    post_hidden: `Hidden post: ${resourceName}`,
+    post_restored: `Restored post: ${resourceName}`,
+    comment_hidden: `Hidden comment: ${resourceName}`,
+    comment_restored: `Restored comment: ${resourceName}`,
+    notice_created: `Created notice: ${resourceName}`,
+    notice_edited: `Edited notice: ${resourceName}`,
+    notice_pinned: `Pinned notice: ${resourceName}`,
+    notice_unpinned: `Unpinned notice: ${resourceName}`,
+    notice_deleted: `Deleted notice: ${resourceName}`,
+    notice_published: `Published notice: ${resourceName}`,
+    department_created: `Created department: ${resourceName}`,
+    department_edited: `Edited department: ${resourceName}`,
+    department_deactivated: `Deactivated department: ${resourceName}`,
+    department_activated: `Activated department: ${resourceName}`,
+    department_deleted: `Deleted department: ${resourceName}`,
+  }
+  return descriptions[actionType] || `${actionType}: ${resourceName}`
 }

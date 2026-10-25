@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs'
 import {sendCollegeAdminCredentialsEmail,sendCollegeRegistrationRejectedEmail,} from '../services/email.service.js'
 import { getSignedProofUrl } from '../services/cloudinary.service.js'
 import { del, cacheKey } from '../services/cache.service.js'
+import { logActivity } from '../services/activity-log.service.js'
 const router = express.Router()
 
 const COLLEGES_LIST_KEY = cacheKey('colleges', 'list')
@@ -903,6 +904,21 @@ router.patch(
 
       u.deactivated = !u.deactivated
       await u.save()
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: u.collegeId,
+        college: u.college,
+        actionType: u.deactivated ? 'user_blocked' : 'user_unblocked',
+        resourceType: 'user',
+        resourceId: u._id,
+        resourceName: u.name,
+        details: u.deactivated ? 'Deactivated user account' : 'Reactivated user account',
+        ipAddress: req.ip,
+      })
 
       return res.status(200).json({
         ok: true,

@@ -12,6 +12,7 @@ import College from '../models/College.js'
 import User from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import { createNotification } from '../services/notification.service.js'
+import { logActivity } from '../services/activity-log.service.js'
 
 const router = Router()
 
@@ -220,6 +221,22 @@ router.post(
       if (notice.published) {
         await notifyNoticeAudience(notice, req.user._id)
       }
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'notice_created',
+        resourceType: 'notice',
+        resourceId: notice._id,
+        resourceName: title,
+        details: `Created notice: ${title}`,
+        ipAddress: req.ip,
+      })
+
       return res.status(201).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[POST /notices]', err)
@@ -312,6 +329,22 @@ router.put(
       if (!wasPublished && notice.published) {
         await notifyNoticeAudience(notice, req.user._id)
       }
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'notice_edited',
+        resourceType: 'notice',
+        resourceId: notice._id,
+        resourceName: notice.title,
+        details: `Updated notice: ${notice.title}`,
+        ipAddress: req.ip,
+      })
+
       return res.status(200).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[PUT /notices/:id]', err)
@@ -332,6 +365,21 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requir
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
     }
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: 'notice_deleted',
+      resourceType: 'notice',
+      resourceId: notice._id,
+      resourceName: notice.title,
+      details: 'Deleted notice',
+      ipAddress: req.ip,
+    })
 
     return res.status(200).json({ ok: true, message: 'Notice deleted successfully.' })
   } catch (err) {
@@ -359,6 +407,21 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin'),
     }
     await notice.save()
 
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: 'notice_published',
+      resourceType: 'notice',
+      resourceId: notice._id,
+      resourceName: notice.title,
+      details: notice.published ? 'Published notice' : 'Unpublished notice',
+      ipAddress: req.ip,
+    })
+
     return res.status(200).json({ ok: true, notice: notice.toJSON() })
   } catch (err) {
     console.error('[PATCH /notices/:id/publish]', err)
@@ -381,6 +444,21 @@ router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin'), req
 
     notice.pinned = !notice.pinned
     await notice.save()
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: notice.pinned ? 'notice_pinned' : 'notice_unpinned',
+      resourceType: 'notice',
+      resourceId: notice._id,
+      resourceName: notice.title,
+      details: notice.pinned ? 'Pinned notice' : 'Unpinned notice',
+      ipAddress: req.ip,
+    })
 
     return res.status(200).json({ ok: true, notice: notice.toJSON() })
   } catch (err) {

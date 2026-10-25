@@ -18,6 +18,7 @@ import StoryView from '../models/StoryView.js'
 import { Conversation } from '../models/Conversation.js'
 import { emitToUser } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
+import { logActivity } from '../services/activity-log.service.js'
 
 const router = Router()
 
@@ -565,6 +566,21 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'colleg
 
     targetUser.suspended = !targetUser.suspended
     await targetUser.save()
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: targetUser.suspended ? 'user_suspended' : 'user_reactivated',
+      resourceType: 'user',
+      resourceId: targetUser._id,
+      resourceName: targetUser.name,
+      details: targetUser.suspended ? 'Suspended user account' : 'Reactivated user account',
+      ipAddress: req.ip,
+    })
 
     res.json({ ok: true, user: targetUser.toJSON() })
   } catch (err) {

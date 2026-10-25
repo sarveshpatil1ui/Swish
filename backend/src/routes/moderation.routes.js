@@ -5,6 +5,7 @@ import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
 import College from '../models/College.js'
+import { logActivity } from '../services/activity-log.service.js'
 
 const router = Router()
 
@@ -123,6 +124,21 @@ router.patch(
 
       await post.save()
 
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'post_hidden',
+        resourceType: 'post',
+        resourceId: post._id,
+        resourceName: post.caption?.slice(0, 50) || 'Post',
+        details: req.body.reason || 'Post hidden by admin',
+        ipAddress: req.ip,
+      })
+
       res.json({ ok: true, post: post.toJSON() })
     } catch (err) {
       console.error('[PATCH /api/moderation/posts/:id/hide]', err)
@@ -159,6 +175,21 @@ router.patch(
       post.hiddenReason = ''
 
       await post.save()
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'post_restored',
+        resourceType: 'post',
+        resourceId: post._id,
+        resourceName: post.caption?.slice(0, 50) || 'Post',
+        details: 'Post restored by admin',
+        ipAddress: req.ip,
+      })
 
       res.json({ ok: true, post: post.toJSON() })
     } catch (err) {
@@ -203,6 +234,21 @@ router.patch(
 
       await comment.save()
 
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'comment_hidden',
+        resourceType: 'comment',
+        resourceId: comment._id,
+        resourceName: comment.text?.slice(0, 50) || 'Comment',
+        details: req.body.reason || 'Comment hidden by admin',
+        ipAddress: req.ip,
+      })
+
       res.json({ ok: true, comment: comment.toJSON() })
     } catch (err) {
       console.error('[PATCH /api/moderation/comments/:id/hide]', err)
@@ -239,6 +285,21 @@ router.patch(
       comment.hiddenReason = ''
 
       await comment.save()
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: req.user.collegeId,
+        college: req.user.college,
+        actionType: 'comment_restored',
+        resourceType: 'comment',
+        resourceId: comment._id,
+        resourceName: comment.text?.slice(0, 50) || 'Comment',
+        details: 'Comment restored by admin',
+        ipAddress: req.ip,
+      })
 
       res.json({ ok: true, comment: comment.toJSON() })
     } catch (err) {

@@ -594,6 +594,23 @@ export async function apiRestoreComment(id) {
   return apiFetch(`/api/moderation/comments/${id}/restore`, { method: 'PATCH' })
 }
 
+// ── Activity Logs API ──────────────────────────────────────────────────────────
+export async function apiGetActivityLogs({ actionType, resourceType, limit, skip, startDate, endDate }) {
+  const params = new URLSearchParams()
+  if (actionType) params.append('actionType', actionType)
+  if (resourceType) params.append('resourceType', resourceType)
+  if (limit) params.append('limit', limit)
+  if (skip) params.append('skip', skip)
+  if (startDate) params.append('startDate', startDate)
+  if (endDate) params.append('endDate', endDate)
+  const query = params.toString()
+  return apiFetch(`/api/activity-logs${query ? `?${query}` : ''}`)
+}
+
+export async function apiGetActivityLogStats() {
+  return apiFetch('/api/activity-logs/stats')
+}
+
 export function getAvatarUrl(url) {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://')) return url
