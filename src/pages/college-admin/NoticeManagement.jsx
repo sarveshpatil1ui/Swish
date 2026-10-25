@@ -228,7 +228,7 @@ export default function NoticeManagement() {
 
       {/* Add/Edit Form */}
       {(showAddForm || editingNotice) && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 md:p-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
             {editingNotice ? 'Edit Notice' : 'Create New Notice'}
           </h2>
@@ -239,7 +239,8 @@ export default function NoticeManagement() {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
+                placeholder="Enter notice title"
               />
               {errors.title && <p className="text-rose-500 text-xs mt-1">{errors.title}</p>}
             </div>
@@ -249,7 +250,8 @@ export default function NoticeManagement() {
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={4}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all resize-none"
+                placeholder="Enter notice content"
               />
               {errors.content && <p className="text-rose-500 text-xs mt-1">{errors.content}</p>}
             </div>
@@ -259,7 +261,7 @@ export default function NoticeManagement() {
                 <select
                   value={formData.targetAudience}
                   onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
                 >
                   <option value="all">All</option>
                   <option value="students">Students</option>
@@ -272,7 +274,7 @@ export default function NoticeManagement() {
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -293,7 +295,7 @@ export default function NoticeManagement() {
                     })
                   }}
                   disabled={formData.targetAudience !== 'department'}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 disabled:opacity-50"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Select Department</option>
                   {departments.map(dept => (
@@ -302,27 +304,27 @@ export default function NoticeManagement() {
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 id="published"
                 checked={formData.published}
                 onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-                className="rounded border-slate-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                className="w-5 h-5 rounded border-slate-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
               />
-              <label htmlFor="published" className="text-sm text-slate-700 dark:text-gray-300">Publish immediately</label>
+              <label htmlFor="published" className="text-sm text-slate-700 dark:text-gray-300 cursor-pointer select-none">Publish immediately</label>
             </div>
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end sm:justify-end">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="w-full sm:w-auto px-6 py-3 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20"
               >
                 {editingNotice ? 'Update Notice' : 'Create Notice'}
               </button>
@@ -342,11 +344,11 @@ export default function NoticeManagement() {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredNotices.map((notice) => (
-              <div key={notice.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-slate-900 dark:text-white font-semibold">{notice.title}</h3>
+              <div key={notice.id} className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="text-slate-900 dark:text-white font-semibold text-base">{notice.title}</h3>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getPriorityColor(notice.priority)}`}>
                         {notice.priority}
                       </span>
@@ -355,9 +357,14 @@ export default function NoticeManagement() {
                       }`}>
                         {notice.published ? 'Published' : 'Draft'}
                       </span>
+                      {notice.pinned && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400">
+                          Pinned
+                        </span>
+                      )}
                     </div>
                     <p className="text-slate-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{notice.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-gray-500">
+                    <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs text-slate-500 dark:text-gray-500">
                       <span className="flex items-center gap-1">
                         <User size={12} /> {notice.targetAudience}
                       </span>
@@ -371,7 +378,7 @@ export default function NoticeManagement() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 md:gap-1 mt-3 md:mt-0">
                     <button
                       onClick={() => handlePin(notice.id)}
                       className={`p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${notice.pinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-gray-400'}`}

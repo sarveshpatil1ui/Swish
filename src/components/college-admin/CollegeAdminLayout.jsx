@@ -17,24 +17,57 @@ import {
   AlertTriangle,
   MessageSquare,
   BarChart3,
-  Shield
+  Shield,
+  Activity,
+  ChevronDown
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/college-admin' },
-  { icon: BarChart3, label: 'Analytics', path: '/college-admin/analytics' },
-  { icon: Users, label: 'Students', path: '/college-admin/students' },
-  { icon: GraduationCap, label: 'Faculty', path: '/college-admin/faculty' },
-  { icon: Building2, label: 'Departments', path: '/college-admin/departments' },
-  { icon: Megaphone, label: 'Notices', path: '/college-admin/notices' },
-  { icon: AlertTriangle, label: 'Reports', path: '/college-admin/reports' },
-  { icon: Shield, label: 'Moderation', path: '/college-admin/moderation' },
-  { icon: MessageSquare, label: 'Messages', path: '/college-admin/messages' },
-  { icon: Settings, label: 'College Profile', path: '/college-admin/college-profile' },
-  { icon: User, label: 'My Profile', path: '/college-admin/profile' },
+const menuSections = [
+  {
+    title: 'Overview',
+    items: [
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/college-admin' },
+      { icon: BarChart3, label: 'Analytics', path: '/college-admin/analytics' },
+    ]
+  },
+  {
+    title: 'People',
+    items: [
+      { icon: Users, label: 'Students', path: '/college-admin/students' },
+      { icon: GraduationCap, label: 'Faculty', path: '/college-admin/faculty' },
+    ]
+  },
+  {
+    title: 'College',
+    items: [
+      { icon: Building2, label: 'Departments', path: '/college-admin/departments' },
+      { icon: Megaphone, label: 'Notices', path: '/college-admin/notices' },
+    ]
+  },
+  {
+    title: 'Management',
+    items: [
+      { icon: AlertTriangle, label: 'Reports', path: '/college-admin/reports' },
+      { icon: Shield, label: 'Moderation', path: '/college-admin/moderation' },
+      { icon: Activity, label: 'Activity Log', path: '/college-admin/activity-log' },
+    ]
+  },
+  {
+    title: 'Communication',
+    items: [
+      { icon: MessageSquare, label: 'Messages', path: '/college-admin/messages' },
+    ]
+  },
+  {
+    title: 'Settings',
+    items: [
+      { icon: Settings, label: 'College Profile', path: '/college-admin/college-profile' },
+      { icon: User, label: 'My Profile', path: '/college-admin/profile' },
+    ]
+  },
 ]
 
 export default function CollegeAdminLayout() {
@@ -160,37 +193,46 @@ export default function CollegeAdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 lg:px-4 py-4 space-y-0.5 overflow-y-auto">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
+        <nav className="flex-1 px-2 lg:px-4 py-4 space-y-4 overflow-y-auto">
+          {menuSections.map((section) => (
+            <div key={section.title}>
+              <h3 className="hidden lg:block text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
+                {section.title}
+              </h3>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.path
 
-            return (
-              <button
-                key={item.path}
-                onClick={() => {
-                  navigate(item.path)
-                  setSidebarOpen(false)
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                    : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                <span className="hidden lg:block text-sm">{item.label}</span>
-                {item.label === 'Messages' && unreadMsgCount > 0 && (
-                  <span className="hidden lg:flex ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold items-center justify-center shadow-sm shadow-indigo-500/30">
-                    {msgBadgeLabel}
-                  </span>
-                )}
-                {item.label === 'Messages' && unreadMsgCount > 0 && (
-                  <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-gray-950" />
-                )}
-              </button>
-            )
-          })}
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        navigate(item.path)
+                        setSidebarOpen(false)
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                        isActive
+                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                          : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                      <span className="hidden lg:block text-sm">{item.label}</span>
+                      {item.label === 'Messages' && unreadMsgCount > 0 && (
+                        <span className="hidden lg:flex ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold items-center justify-center shadow-sm shadow-indigo-500/30">
+                          {msgBadgeLabel}
+                        </span>
+                      )}
+                      {item.label === 'Messages' && unreadMsgCount > 0 && (
+                        <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-gray-950" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom Section */}

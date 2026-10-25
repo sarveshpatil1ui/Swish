@@ -109,76 +109,138 @@ export default function StudentManagement() {
             <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">No students are currently registered for this college.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Student</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Year</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ backgroundColor: student.avatarColor || '#6366f1' }}
-                        >
-                          {student.initials}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{student.name}</p>
-                          <p className="text-slate-500 dark:text-gray-500 text-xs truncate flex items-center gap-1">
-                            <Mail size={12} /> {student.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-900 dark:text-white text-sm">{student.dept || '-'}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-900 dark:text-white text-sm">{student.year || '-'}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        student.suspended
-                          ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
-                          : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                      }`}>
-                        {student.suspended ? (
-                          <>
-                            <ShieldAlert size={12} /> Suspended
-                          </>
-                        ) : (
-                          <>
-                            <Shield size={12} /> Active
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggleStatus(student.id)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                          student.suspended
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
-                            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
-                        }`}
-                      >
-                        {student.suspended ? 'Activate' : 'Suspend'}
-                      </button>
-                    </td>
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Student</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Year</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                            style={{ backgroundColor: student.avatarColor || '#6366f1' }}
+                          >
+                            {student.initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{student.name}</p>
+                            <p className="text-slate-500 dark:text-gray-500 text-xs truncate flex items-center gap-1">
+                              <Mail size={12} /> {student.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-900 dark:text-white text-sm">{student.dept || '-'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-900 dark:text-white text-sm">{student.year || '-'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          student.suspended
+                            ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
+                            : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                        }`}>
+                          {student.suspended ? (
+                            <>
+                              <ShieldAlert size={12} /> Suspended
+                            </>
+                          ) : (
+                            <>
+                              <Shield size={12} /> Active
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggleStatus(student.id)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                            student.suspended
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
+                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
+                          }`}
+                        >
+                          {student.suspended ? 'Activate' : 'Suspend'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredStudents.map((student) => (
+                <div key={student.id} className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                      style={{ backgroundColor: student.avatarColor || '#6366f1' }}
+                    >
+                      {student.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-900 dark:text-white font-semibold text-sm">{student.name}</p>
+                      <p className="text-slate-500 dark:text-gray-500 text-xs flex items-center gap-1 mt-1">
+                        <Mail size={12} /> {student.email}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-gray-500">Department</p>
+                      <p className="text-slate-900 dark:text-white font-medium">{student.dept || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-gray-500">Year</p>
+                      <p className="text-slate-900 dark:text-white font-medium">{student.year || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      student.suspended
+                        ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
+                        : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                    }`}>
+                      {student.suspended ? (
+                        <>
+                          <ShieldAlert size={12} /> Suspended
+                        </>
+                      ) : (
+                        <>
+                          <Shield size={12} /> Active
+                        </>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => handleToggleStatus(student.id)}
+                      className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all min-w-[100px] ${
+                        student.suspended
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
+                      }`}
+                    >
+                      {student.suspended ? 'Activate' : 'Suspend'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

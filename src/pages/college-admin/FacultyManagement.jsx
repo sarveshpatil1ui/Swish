@@ -109,78 +109,142 @@ export default function FacultyManagement() {
             <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">No faculty members are currently registered for this college.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Designation</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredFaculty.map((fac) => (
-                  <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ backgroundColor: fac.avatarColor || '#10b981' }}
-                        >
-                          {fac.initials}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{fac.name}</p>
-                          <p className="text-slate-500 dark:text-gray-500 text-xs truncate flex items-center gap-1">
-                            <Mail size={12} /> {fac.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-900 dark:text-white text-sm">{fac.dept || '-'}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-900 dark:text-white text-sm flex items-center gap-1">
-                        <Briefcase size={14} /> {fac.designation || '-'}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        fac.suspended
-                          ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
-                          : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                      }`}>
-                        {fac.suspended ? (
-                          <>
-                            <ShieldAlert size={12} /> Suspended
-                          </>
-                        ) : (
-                          <>
-                            <Shield size={12} /> Active
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggleStatus(fac.id)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                          fac.suspended
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
-                            : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
-                        }`}
-                      >
-                        {fac.suspended ? 'Activate' : 'Suspend'}
-                      </button>
-                    </td>
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Designation</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredFaculty.map((fac) => (
+                    <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                            style={{ backgroundColor: fac.avatarColor || '#10b981' }}
+                          >
+                            {fac.initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{fac.name}</p>
+                            <p className="text-slate-500 dark:text-gray-500 text-xs truncate flex items-center gap-1">
+                              <Mail size={12} /> {fac.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-900 dark:text-white text-sm">{fac.dept || '-'}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-900 dark:text-white text-sm flex items-center gap-1">
+                          <Briefcase size={14} /> {fac.designation || '-'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          fac.suspended
+                            ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
+                            : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                        }`}>
+                          {fac.suspended ? (
+                            <>
+                              <ShieldAlert size={12} /> Suspended
+                            </>
+                          ) : (
+                            <>
+                              <Shield size={12} /> Active
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggleStatus(fac.id)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                            fac.suspended
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
+                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
+                          }`}
+                        >
+                          {fac.suspended ? 'Activate' : 'Suspend'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredFaculty.map((fac) => (
+                <div key={fac.id} className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                      style={{ backgroundColor: fac.avatarColor || '#10b981' }}
+                    >
+                      {fac.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-900 dark:text-white font-semibold text-sm">{fac.name}</p>
+                      <p className="text-slate-500 dark:text-gray-500 text-xs flex items-center gap-1 mt-1">
+                        <Mail size={12} /> {fac.email}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-gray-500">Department</p>
+                      <p className="text-slate-900 dark:text-white font-medium">{fac.dept || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-gray-500">Designation</p>
+                      <p className="text-slate-900 dark:text-white font-medium flex items-center gap-1">
+                        <Briefcase size={12} /> {fac.designation || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      fac.suspended
+                        ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
+                        : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                    }`}>
+                      {fac.suspended ? (
+                        <>
+                          <ShieldAlert size={12} /> Suspended
+                        </>
+                      ) : (
+                        <>
+                          <Shield size={12} /> Active
+                        </>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => handleToggleStatus(fac.id)}
+                      className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all min-w-[100px] ${
+                        fac.suspended
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60'
+                      }`}
+                    >
+                      {fac.suspended ? 'Activate' : 'Suspend'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
