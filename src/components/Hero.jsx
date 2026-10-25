@@ -16,9 +16,9 @@ function MockFeedCard() {
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-gray-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">CC</div>
+          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">RV</div>
           <div>
-            <p className="text-slate-900 dark:text-white text-xs font-semibold leading-tight">Campus Creator</p>
+            <p className="text-slate-900 dark:text-white text-xs font-semibold leading-tight">Rohan Verma</p>
             <p className="text-slate-400 dark:text-gray-500 text-[11px]">Engineering · Active Student</p>
           </div>
         </div>
@@ -63,14 +63,14 @@ function MockProfileCard() {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm p-4">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold">VS</div>
+        <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold">RS</div>
         <div>
-          <p className="text-slate-900 dark:text-white text-sm font-semibold">Verified Student</p>
+          <p className="text-slate-900 dark:text-white text-sm font-semibold">Rahul Sharma</p>
           <p className="text-slate-400 dark:text-gray-500 text-[11px]">Computer Science · Community</p>
         </div>
       </div>
       <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-gray-800 bg-slate-50 dark:bg-gray-800/60 rounded-xl p-3 mb-3">
-        {[['--', 'Posts'], ['--', 'Followers'], ['--', 'Following']].map(([val, label]) => (
+        {[['42', 'Posts'], ['1.2k', 'Followers'], ['342', 'Following']].map(([val, label]) => (
           <div key={label} className="text-center px-1">
             <p className="text-slate-900 dark:text-white font-bold text-sm">{val}</p>
             <p className="text-slate-400 dark:text-gray-500 text-[10px]">{label}</p>

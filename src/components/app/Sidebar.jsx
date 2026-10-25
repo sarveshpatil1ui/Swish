@@ -1,19 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Compass, Flame, PlusCircle, Bell, User, Settings, LogOut, Zap, Shield, MessageSquare, Sun, Moon, GraduationCap } from 'lucide-react'
+import {
+  Home, Compass, Flame, PlusSquare, Bell, User, Settings,
+  LogOut, Zap, Shield, MessageSquare, Sun, Moon, GraduationCap
+} from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import CreatePostModal from './CreatePostModal'
 import { resolveImageUrl } from '../../utils/posts'
-
-const baseNavItems = [
-  { to: '/home',          icon: Home,     label: 'Home' },
-  { to: '/explore',       icon: Compass,  label: 'Explore' },
-  { to: '/trending',      icon: Flame,    label: 'Trending' },
-  { to: '/notifications', icon: Bell,     label: 'Notifications' },
-  { to: '/settings',      icon: Settings, label: 'Settings' },
-]
 
 export default function Sidebar() {
   const { currentUser: user, logout, notifications = [], unreadMsgCount = 0 } = useSwish()
@@ -24,12 +19,6 @@ export default function Sidebar() {
   const unreadCount = notifications.filter(n => !n.read).length
   const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
   const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
-
-  const navItems = [
-    ...baseNavItems.slice(0, 4),
-    { to: `/profile/${user?.id || 'user-1'}`, icon: User, label: 'Profile' },
-    baseNavItems[4],
-  ]
 
   const handleLogout = async () => {
     await logout()
@@ -49,53 +38,84 @@ export default function Sidebar() {
           </span>
         </NavLink>
 
-        {/* Main nav */}
+        {/* Main nav (Instagram Style Hierarchy) */}
         <nav className="flex-1 space-y-0.5" aria-label="App navigation">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              title={label}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                    : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                  <span className="hidden lg:block text-sm">{label}</span>
-                  {label === 'Notifications' && unreadCount > 0 && (
-                    <span className="hidden lg:flex ml-auto w-5 h-5 bg-rose-500 rounded-full text-white text-[10px] font-bold items-center justify-center">
-                      {badgeLabel}
-                    </span>
-                  )}
-                  {label === 'Notifications' && unreadCount > 0 && (
-                    <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {/* 1. Home */}
+          <NavLink
+            to="/home"
+            title="Home"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Home size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Home</span>
+              </>
+            )}
+          </NavLink>
 
-          {/* Create button */}
+          {/* 2. Explore */}
+          <NavLink
+            to="/explore"
+            title="Explore"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Compass size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Explore</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 3. Trending */}
+          <NavLink
+            to="/trending"
+            title="Trending"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Flame size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Trending</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 4. Create Button (Center Stage) */}
           <button
             onClick={() => setShowCreate(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all duration-150"
+            title="Create"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all duration-150 group"
           >
-            <PlusCircle size={20} className="flex-shrink-0" />
+            <PlusSquare size={20} className="flex-shrink-0 stroke-2 group-hover:scale-105 transition-transform" />
             <span className="hidden lg:block text-sm font-medium">Create</span>
           </button>
 
-          {/* Messages link */}
+          {/* 5. Messages */}
           <NavLink
             to="/messages"
             title="Messages"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 relative ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
                   ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
                   : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
@@ -118,10 +138,59 @@ export default function Sidebar() {
             )}
           </NavLink>
 
+          {/* 6. Notifications */}
+          <NavLink
+            to="/notifications"
+            title="Notifications"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Bell size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="hidden lg:flex ml-auto w-5 h-5 bg-rose-500 rounded-full text-white text-[10px] font-bold items-center justify-center">
+                    {badgeLabel}
+                  </span>
+                )}
+                {unreadCount > 0 && (
+                  <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
+                )}
+              </>
+            )}
+          </NavLink>
+
+          {/* 7. Profile */}
+          <NavLink
+            to={`/profile/${user?.id || 'user-1'}`}
+            title="Profile"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <User size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Profile</span>
+              </>
+            )}
+          </NavLink>
+
           {/* Admin link */}
           {(user?.role === 'admin' || user?.role === 'main_admin') && (
             <NavLink
               to="/admin"
+              title="Admin"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
@@ -139,6 +208,7 @@ export default function Sidebar() {
           {user?.role === 'faculty' && (
             <NavLink
               to="/faculty"
+              title="Faculty"
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
@@ -151,10 +221,9 @@ export default function Sidebar() {
               <span className="hidden lg:block text-sm">Faculty</span>
             </NavLink>
           )}
-
         </nav>
 
-        {/* Bottom actions */}
+        {/* Bottom actions (Utility Area) */}
         <div className="space-y-0.5 border-t border-slate-100 dark:border-gray-800 pt-4">
           {user && (
             <NavLink to={`/profile/${user?.id || 'user-1'}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
@@ -176,6 +245,27 @@ export default function Sidebar() {
             </NavLink>
           )}
 
+          {/* Settings link */}
+          <NavLink
+            to="/settings"
+            title="Settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Settings size={18} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className="hidden lg:block text-sm">Settings</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* Theme mode toggle */}
           <button
             onClick={toggle}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -187,7 +277,7 @@ export default function Sidebar() {
                   <Sun size={18} />
                 </motion.span>
               ) : (
-                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
                   <Moon size={18} />
                 </motion.span>
               )}
@@ -195,6 +285,7 @@ export default function Sidebar() {
             <span className="hidden lg:block text-sm">{dark ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
 
+          {/* Logout */}
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
