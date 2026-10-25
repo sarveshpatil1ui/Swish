@@ -71,6 +71,7 @@ const UserSchema = new Schema(
     college: { type: String, default: '' },
     collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', default: null },
     dept:    { type: String, default: '' },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', default: null },
     bio:     { type: String, default: '', maxlength: 500 },
 
     year:      { type: String, default: null },

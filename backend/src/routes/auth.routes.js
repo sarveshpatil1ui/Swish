@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit'
 
 import User from '../models/User.js'
 import College from '../models/College.js'
+import Department from '../models/Department.js'
 import { requireAuth, isCollegeActive } from '../middleware/auth.middleware.js'
 import { sendOtpEmail, sendPasswordResetOtpEmail, sendPasswordChangedEmail } from '../services/email.service.js'
 import {
@@ -323,6 +324,19 @@ router.post(
         collegeName = 'Swish Admin'
       }
 
+      // ── Department lookup — validate and store departmentId ───────────────────
+      let departmentId = null
+      if (collegeId && dept) {
+        const department = await Department.findOne({
+          collegeId,
+          name: dept,
+          active: true
+        })
+        if (department) {
+          departmentId = department._id
+        }
+      }
+
       // ── Build username (name → lowercase dot-separated) ─────────────────────
       let baseUsername = name.trim().toLowerCase().replace(/\s+/g, '.')
       // Ensure unique username
@@ -346,6 +360,7 @@ router.post(
         passwordHash,
         role,
         dept,
+        departmentId,
         college:      collegeName,
         collegeId:    collegeId,
         isEmailVerified: false,

@@ -147,18 +147,23 @@ router.get('/college', requireAuth, async (req, res) => {
       // Pinned notices always come first
       if (a.pinned && !b.pinned) return -1
       if (!a.pinned && b.pinned) return 1
-      
+
       const pDiff = (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2)
       if (pDiff !== 0) return pDiff
       return new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)
     })
 
+    // Add expiration status to each notice
+    const noticesWithStatus = notices.map(n => ({
+      ...n,
+      id: n._id.toString(),
+      isExpiringSoon: n.expiresAt && (new Date(n.expiresAt) - now) < (7 * 24 * 60 * 60 * 1000), // Expiring within 7 days
+      daysUntilExpiry: n.expiresAt ? Math.ceil((new Date(n.expiresAt) - now) / (24 * 60 * 60 * 1000)) : null,
+    }))
+
     return res.status(200).json({
       ok: true,
-      notices: notices.map(n => ({
-        ...n,
-        id: n._id.toString(),
-      }))
+      notices: noticesWithStatus
     })
   } catch (err) {
     console.error('[GET /api/notices/college]', err)
@@ -178,6 +183,7 @@ router.post(
     body('content').trim().notEmpty().withMessage('Notice content is required.'),
     body('targetAudience').optional().isIn(['all', 'students', 'faculty', 'department']),
     body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
+    body('expiresAt').optional().isISO8601().withMessage('Invalid expiration date format.'),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -185,6 +191,14 @@ router.post(
 
     try {
       const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
+
+      // Validate expiresAt is in the future if provided
+      if (expiresAt) {
+        const expiryDate = new Date(expiresAt)
+        if (expiryDate <= new Date()) {
+          return res.status(400).json({ ok: false, error: 'Expiration date must be in the future.' })
+        }
+      }
 
       // Never trust client-supplied collegeId: strictly use authenticated admin's collegeId
       const targetCollegeId = (req.user.role === 'admin' || req.user.role === 'main_admin')
@@ -431,15 +445,30 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin'),
 
 // ── PATCH /api/notices/:id/pin ────────────────────────────────────────────────────
 // Pin/unpin a notice (for official announcements)
+// Limit: Maximum 5 pinned notices per college
 router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
   try {
-    const filter = req.user.role === 'admin' 
+    const filter = req.user.role === 'admin'
       ? { _id: req.params.id }
       : { _id: req.params.id, collegeId: req.collegeId }
-    
+
     const notice = await Notice.findOne(filter)
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
+
+    // If pinning, check if we've reached the limit (max 5 pinned notices per college)
+    if (!notice.pinned) {
+      const pinnedCount = await Notice.countDocuments({
+        collegeId: notice.collegeId,
+        pinned: true
+      })
+      if (pinnedCount >= 5) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Maximum limit reached: You can only pin up to 5 notices. Unpin an existing notice first.'
+        })
+      }
     }
 
     notice.pinned = !notice.pinned

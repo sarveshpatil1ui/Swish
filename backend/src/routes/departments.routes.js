@@ -171,13 +171,26 @@ router.get(
       const departmentsWithCounts = await Promise.all(
         departments.map(async (dept) => {
           const studentCount = await User.countDocuments({
-            dept: dept.name,
+            $or: [
+              { dept: dept.name },
+              { departmentId: dept._id }
+            ],
             collegeId: dept.collegeId,
             role: 'student',
             deactivated: false,
           })
 
-          return { ...dept, studentCount }
+          const facultyCount = await User.countDocuments({
+            $or: [
+              { dept: dept.name },
+              { departmentId: dept._id }
+            ],
+            collegeId: dept.collegeId,
+            role: 'faculty',
+            deactivated: false,
+          })
+
+          return { ...dept, studentCount, facultyCount }
         })
       )
 
