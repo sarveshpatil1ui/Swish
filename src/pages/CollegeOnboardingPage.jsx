@@ -106,13 +106,13 @@ export default function CollegeOnboardingPage() {
 
   useEffect(() => () => clearInterval(cooldownRef.current), [])
 
-  // Input Handler — invalidates verification if official email changes
+  // Input Handler — invalidates verification if official email or domain changes
   const setField = (field) => (e) => {
     const val = e.target.value
     setForm(prev => ({ ...prev, [field]: val }))
     setErrors(prev => ({ ...prev, [field]: '' }))
 
-    if (field === 'officialEmail') {
+    if (field === 'officialEmail' || field === 'emailDomain') {
       if (isEmailVerified || otpSent) {
         setIsEmailVerified(false)
         setVerifiedEmail('')
@@ -155,11 +155,17 @@ export default function CollegeOnboardingPage() {
     const maxSize = 5 * 1024 * 1024 // 5MB
 
     if (!validTypes.includes(file.type)) {
-      setErrors(prev => ({ ...prev, proofFile: 'Please upload a PDF, PNG, JPG, or WEBP document.' }))
+      setErrors(prev => ({
+        ...prev,
+        proofFile: 'Unsupported file format. Please upload a PDF, PNG, JPG, or WEBP document.',
+      }))
       return
     }
     if (file.size > maxSize) {
-      setErrors(prev => ({ ...prev, proofFile: 'File size must be under 5MB.' }))
+      setErrors(prev => ({
+        ...prev,
+        proofFile: `File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed limit of 5MB.`,
+      }))
       return
     }
 
@@ -175,18 +181,40 @@ export default function CollegeOnboardingPage() {
   const handleSendOtp = async () => {
     setOtpError('')
     const emailVal = form.officialEmail.trim().toLowerCase()
+    const rawDomain = form.emailDomain.trim().toLowerCase().replace(/^@/, '')
+
+    if (!rawDomain) {
+      const domainErr = 'Please enter your official college email domain in Section 1 (e.g. somaiya.edu) first.'
+      setErrors(prev => ({ ...prev, emailDomain: domainErr }))
+      setOtpError(domainErr)
+      return
+    }
 
     if (!emailVal) {
-      setErrors(prev => ({ ...prev, officialEmail: 'Please enter your official campus email first.' }))
+      const emailErr = 'Please enter your official institutional email address.'
+      setErrors(prev => ({ ...prev, officialEmail: emailErr }))
+      setOtpError(emailErr)
       return
     }
     if (!emailVal.includes('@') || !emailVal.includes('.')) {
-      setErrors(prev => ({ ...prev, officialEmail: 'Please enter a valid official email address.' }))
+      const emailErr = `Please enter a valid official email address (e.g. user@${rawDomain}).`
+      setErrors(prev => ({ ...prev, officialEmail: emailErr }))
+      setOtpError(emailErr)
+      return
+    }
+
+    const emailDomainPart = emailVal.split('@')[1] || ''
+    if (emailDomainPart !== rawDomain) {
+      const mismatchMsg = `Official email domain (@${emailDomainPart || 'unknown'}) must match the college domain entered above (@${rawDomain}). Please use an official email ending with @${rawDomain}.`
+      setErrors(prev => ({ ...prev, officialEmail: mismatchMsg }))
+      setOtpError(mismatchMsg)
       return
     }
 
     if (form.confirmEmail && form.confirmEmail.trim().toLowerCase() !== emailVal) {
-      setErrors(prev => ({ ...prev, confirmEmail: 'Email addresses do not match.' }))
+      const matchErr = 'Confirmation email does not match the official email entered above.'
+      setErrors(prev => ({ ...prev, confirmEmail: matchErr }))
+      setOtpError(matchErr)
       return
     }
 
@@ -197,6 +225,9 @@ export default function CollegeOnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           officialEmail: emailVal,
+          emailDomain: rawDomain,
+          collegeName: form.collegeName.trim() || undefined,
+          collegeCode: form.collegeCode.trim() || undefined,
           adminName: form.adminName.trim() || undefined,
           hp_field: form.hp_field || undefined,
           turnstileToken: turnstileToken || undefined,
@@ -204,13 +235,17 @@ export default function CollegeOnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
-        setOtpError(data.error || 'Failed to send verification code. Please try again.')
+        const errorMsg = data.error || 'Failed to send verification code. Please check your details and try again.'
+        setOtpError(errorMsg)
+        setErrors(prev => ({ ...prev, officialEmail: errorMsg }))
         return
       }
       setOtpSent(true)
       startResendCooldown(60)
     } catch {
-      setOtpError('Could not reach the server. Please check your connection and try again.')
+      const netErr = 'Could not reach the Swish server. Please check your internet connection and try again.'
+      setOtpError(netErr)
+      setErrors(prev => ({ ...prev, officialEmail: netErr }))
     } finally {
       setOtpLoading(false)
     }
@@ -223,7 +258,7 @@ export default function CollegeOnboardingPage() {
     const trimmedOtp = otp.trim()
 
     if (trimmedOtp.length !== 6 || !/^\d{6}$/.test(trimmedOtp)) {
-      setOtpError('Please enter a valid 6-digit verification code.')
+      setOtpError('Please enter the complete 6-digit numeric verification code.')
       return
     }
 
@@ -239,7 +274,7 @@ export default function CollegeOnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.ok) {
-        setOtpError(data.error || 'Verification failed. Please try again.')
+        setOtpError(data.error || 'Verification failed. Please check the code and try again.')
         return
       }
       // Store the server-issued short-lived token; never trust emailVerified flag alone
@@ -248,7 +283,7 @@ export default function CollegeOnboardingPage() {
       setVerificationToken(data.verificationToken)
       setOtpError('')
     } catch {
-      setOtpError('Could not reach the server. Please check your connection and try again.')
+      setOtpError('Could not connect to the verification server. Please check your connection and try again.')
     } finally {
       setOtpLoading(false)
     }
@@ -256,219 +291,213 @@ export default function CollegeOnboardingPage() {
 
   // Handle Form Submit
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  setSubmitError('')
-  const errs = {}
+    e.preventDefault()
+    setSubmitError('')
+    const errs = {}
 
-  // ── Existing form validation ─────────────────────────────────────────────
-  if (!form.collegeName.trim()) {
-    errs.collegeName = 'College name is required.'
-  }
-
-  if (!form.collegeCode.trim()) {
-    errs.collegeCode = 'Short code is required.'
-  }
-
-  if (!form.emailDomain.trim()) {
-    errs.emailDomain = 'Email domain is required.'
-  } else if (form.emailDomain.includes('@')) {
-    errs.emailDomain =
-      'Enter domain only (e.g. kjsce.edu, not name@kjsce.edu).'
-  }
-
-  if (!form.location.trim()) {
-    errs.location = 'Location (City, State) is required.'
-  }
-
-  if (!form.campusType) {
-    errs.campusType = 'Please select an institution type.'
-  }
-
-  if (!form.adminName.trim()) {
-    errs.adminName = 'Your full name is required.'
-  }
-
-  if (!form.designation) {
-    errs.designation = 'Please select your role/designation.'
-  }
-
-  if (!form.phone.trim()) {
-    errs.phone = 'Contact phone number is required.'
-  }
-
-  if (!form.officialEmail.trim()) {
-    errs.officialEmail = 'Official campus email is required.'
-  } else if (!form.officialEmail.includes('@')) {
-    errs.officialEmail =
-      'Please enter a valid official email address.'
-  }
-
-  if (
-    form.confirmEmail.trim().toLowerCase() !==
-    form.officialEmail.trim().toLowerCase()
-  ) {
-    errs.confirmEmail = 'Email addresses do not match.'
-  }
-
-  // ── Mandatory OTP verification ───────────────────────────────────────────
-  if (
-    !isEmailVerified ||
-    !verificationToken ||
-    form.officialEmail.trim().toLowerCase() !== verifiedEmail
-  ) {
-    errs.officialEmail =
-      'You must verify your official email with OTP before submitting.'
-
-    setSubmitError(
-      'Please verify your official email address using OTP before submitting.'
-    )
-
-    setErrors(errs)
-    return
-  }
-
-  // ── Proof document validation ────────────────────────────────────────────
-  if (!proofFile) {
-    errs.proofFile =
-      'Please upload a verification document / ID proof.'
-  }
-
-  if (!form.agreed) {
-    errs.agreed =
-      'You must confirm authorization to request onboarding.'
-  }
-
-  if (Object.keys(errs).length > 0) {
-    setErrors(errs)
-    return
-  }
-
-  setIsSubmitting(true)
-
-  try {
-    // ── 1. Determine Cloudinary resource type ──────────────────────────────
-    const resourceType =
-      proofFile.type === 'application/pdf'
-        ? 'raw'
-        : 'image'
-
-    // ── 2. Request secure upload signature from backend ────────────────────
-    const signatureRes = await fetch(
-      `${API_BASE}/api/onboarding/proof-upload-signature`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resourceType,
-        }),
-      }
-    )
-
-    const signatureData = await signatureRes.json()
-
-    if (!signatureRes.ok || !signatureData.ok) {
-      throw new Error(
-        signatureData.error ||
-          'Could not prepare secure proof upload.'
-      )
+    // ── Field validation with precise reasons ──
+    if (!form.collegeName.trim()) {
+      errs.collegeName = 'Full college / university name is required.'
     }
 
-    const upload = signatureData.upload
+    if (!form.collegeCode.trim()) {
+      errs.collegeCode = 'College short code / abbreviation is required (e.g. KJSCE, IITB).'
+    }
 
-    // ── 3. Upload proof directly to Cloudinary ─────────────────────────────
-    const cloudinaryForm = new FormData()
+    const cleanDomain = form.emailDomain.trim().toLowerCase().replace(/^@/, '')
+    if (!cleanDomain) {
+      errs.emailDomain = 'Institutional email domain is required (e.g. somaiya.edu).'
+    } else if (cleanDomain.includes('@') || cleanDomain.includes(' ')) {
+      errs.emailDomain = 'Enter valid domain only without "@" or spaces (e.g. somaiya.edu).'
+    }
 
-    cloudinaryForm.append('file', proofFile)
-    cloudinaryForm.append('api_key', upload.apiKey)
-    cloudinaryForm.append('timestamp', String(upload.timestamp))
-    cloudinaryForm.append('signature', upload.signature)
-    cloudinaryForm.append('folder', upload.folder)
-    cloudinaryForm.append('public_id', upload.publicId)
-    cloudinaryForm.append('type', upload.type)
+    if (!form.location.trim()) {
+      errs.location = 'Campus location (City, State) is required.'
+    }
 
-    const cloudinaryUrl =
-      `https://api.cloudinary.com/v1_1/${upload.cloudName}/` +
-      `${resourceType}/upload`
+    if (!form.campusType) {
+      errs.campusType = 'Please select your institution type from the list.'
+    }
 
-    const cloudinaryRes = await fetch(
-      cloudinaryUrl,
-      {
-        method: 'POST',
-        body: cloudinaryForm,
+    if (!form.adminName.trim()) {
+      errs.adminName = 'Applicant full name is required for verification.'
+    }
+
+    if (!form.designation) {
+      errs.designation = 'Please select your role / designation at this institution.'
+    }
+
+    if (!form.phone.trim()) {
+      errs.phone = 'Official contact phone number is required.'
+    }
+
+    const cleanEmail = form.officialEmail.trim().toLowerCase()
+    if (!cleanEmail) {
+      errs.officialEmail = 'Official institutional email address is required.'
+    } else if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      errs.officialEmail = 'Please provide a valid official email address.'
+    } else {
+      const emailDomainPart = cleanEmail.split('@')[1] || ''
+      if (cleanDomain && emailDomainPart !== cleanDomain) {
+        errs.officialEmail = `Official email domain (@${emailDomainPart}) must match the college domain (@${cleanDomain}).`
       }
-    )
+    }
 
-    const cloudinaryData = await cloudinaryRes.json()
+    if (!form.confirmEmail.trim()) {
+      errs.confirmEmail = 'Please re-enter your official email to confirm.'
+    } else if (form.confirmEmail.trim().toLowerCase() !== cleanEmail) {
+      errs.confirmEmail = 'Confirmation email does not match the official email entered above.'
+    }
 
+    // ── Mandatory OTP verification ───────────────────────────────────────────
     if (
-      !cloudinaryRes.ok ||
-      !cloudinaryData.public_id
+      !isEmailVerified ||
+      !verificationToken ||
+      cleanEmail !== verifiedEmail
     ) {
-      throw new Error(
-        cloudinaryData.error?.message ||
-          'Proof upload failed. Please try again.'
+      errs.officialEmail =
+        'You must verify your official email with OTP before submitting.'
+      setSubmitError(
+        'Email verification incomplete. Please enter the OTP code sent to your official email.'
       )
+      setErrors(errs)
+      return
     }
 
-    // ── 4. Submit onboarding request to backend ────────────────────────────
-    const submitRes = await fetch(
-      `${API_BASE}/api/onboarding/submit`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          collegeName: form.collegeName.trim(),
-          collegeCode: form.collegeCode.trim(),
-          emailDomain: form.emailDomain.trim(),
-          location: form.location.trim(),
-          campusType: form.campusType,
-          campusSize: form.campusSize,
-          adminName: form.adminName.trim(),
-          designation: form.designation,
-          phone: form.phone.trim(),
-          officialEmail:
-            form.officialEmail.trim().toLowerCase(),
+    // ── Proof document validation ────────────────────────────────────────────
+    if (!proofFile) {
+      errs.proofFile =
+        'Please upload an authorization proof or institutional ID document.'
+    }
 
-          verificationToken,
+    if (!form.agreed) {
+      errs.agreed =
+        'Please check the declaration box to certify your authorization to onboard this campus.'
+    }
 
-          proofPublicId: cloudinaryData.public_id,
-          proofResourceType: resourceType,
-        }),
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      setSubmitError('Please correct the highlighted fields above before submitting.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // 1. Determine Cloudinary resource type
+      const resourceType =
+        proofFile.type === 'application/pdf'
+          ? 'raw'
+          : 'image'
+
+      // 2. Request secure upload signature from backend
+      const signatureRes = await fetch(
+        `${API_BASE}/api/onboarding/proof-upload-signature`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceType,
+          }),
+        }
+      )
+
+      const signatureData = await signatureRes.json()
+
+      if (!signatureRes.ok || !signatureData.ok) {
+        throw new Error(
+          signatureData.error ||
+            'Could not prepare secure document upload. Please try again.'
+        )
       }
-    )
 
-    const submitData = await submitRes.json()
+      const upload = signatureData.upload
 
-    if (!submitRes.ok || !submitData.ok) {
-      throw new Error(
-        submitData.error ||
-          'Failed to submit onboarding request.'
+      // 3. Upload proof directly to Cloudinary
+      const cloudinaryForm = new FormData()
+      cloudinaryForm.append('file', proofFile)
+      cloudinaryForm.append('api_key', upload.apiKey)
+      cloudinaryForm.append('timestamp', String(upload.timestamp))
+      cloudinaryForm.append('signature', upload.signature)
+      cloudinaryForm.append('folder', upload.folder)
+      cloudinaryForm.append('public_id', upload.publicId)
+      cloudinaryForm.append('type', upload.type)
+
+      const cloudinaryUrl =
+        `https://api.cloudinary.com/v1_1/${upload.cloudName}/` +
+        `${resourceType}/upload`
+
+      const cloudinaryRes = await fetch(
+        cloudinaryUrl,
+        {
+          method: 'POST',
+          body: cloudinaryForm,
+        }
+      )
+
+      const cloudinaryData = await cloudinaryRes.json()
+
+      if (!cloudinaryRes.ok || !cloudinaryData.public_id) {
+        throw new Error(
+          cloudinaryData.error?.message ||
+            'Proof document upload failed. Please verify the file and try again.'
+        )
+      }
+
+      // 4. Submit onboarding request to backend
+      const submitRes = await fetch(
+        `${API_BASE}/api/onboarding/submit`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            collegeName: form.collegeName.trim(),
+            collegeCode: form.collegeCode.trim(),
+            emailDomain: cleanDomain,
+            location: form.location.trim(),
+            campusType: form.campusType,
+            campusSize: form.campusSize,
+            adminName: form.adminName.trim(),
+            designation: form.designation,
+            phone: form.phone.trim(),
+            officialEmail: cleanEmail,
+            verificationToken,
+            proofPublicId: cloudinaryData.public_id,
+            proofResourceType: resourceType,
+          }),
+        }
+      )
+
+      const submitData = await submitRes.json()
+
+      if (!submitRes.ok || !submitData.ok) {
+        throw new Error(
+          submitData.error ||
+            'Failed to submit onboarding request. Please review your details and try again.'
+        )
+      }
+
+      // 5. Show success screen
+      setIsSubmitting(false)
+      setIsSubmitted(true)
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+    } catch (err) {
+      console.error('[College Onboarding Submit]', err)
+      setIsSubmitting(false)
+      setSubmitError(
+        err.message ||
+          'Something went wrong while submitting your application. Please check your details and try again.'
       )
     }
-
-    // ── 5. Show existing success screen only after DB save ────────────────
-    setIsSubmitting(false)
-    setIsSubmitted(true)
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
-  } catch (err) {
-    console.error('[College Onboarding Submit]', err)
-
-    setIsSubmitting(false)
-
-    setSubmitError(
-      err.message ||
-        'Something went wrong while submitting your application. Please try again.'
-    )
   }
-}
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300 text-slate-900 dark:text-white flex flex-col justify-between">
@@ -913,6 +942,12 @@ export default function CollegeOnboardingPage() {
                           )}
 
                           {/* Email validation & status indicators */}
+                          {!isEmailVerified && !errors.officialEmail && !otpSent && form.emailDomain.trim() && (
+                            <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-1.5 flex items-center gap-1">
+                              <span>Official address must end with</span>
+                              <strong className="text-indigo-600 dark:text-indigo-400">@{form.emailDomain.trim().toLowerCase().replace(/^@/, '')}</strong>
+                            </p>
+                          )}
                           {errors.officialEmail && (
                             <p className="text-rose-500 text-xs mt-1.5">{errors.officialEmail}</p>
                           )}

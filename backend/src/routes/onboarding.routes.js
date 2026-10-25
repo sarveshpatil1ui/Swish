@@ -12,6 +12,7 @@ import rateLimit from 'express-rate-limit'
 import CollegeOnboardingOtp from '../models/CollegeOnboardingOtp.js'
 import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
 import College from '../models/College.js'
+import User from '../models/User.js'
 import { sendOtpEmail } from '../services/email.service.js'
 import {
   generateOtp,
@@ -64,7 +65,7 @@ router.post(
     if (validationError) return
 
     try {
-      const { officialEmail, adminName, hp_field } = req.body
+      const { officialEmail, emailDomain, collegeName, collegeCode, adminName, hp_field } = req.body
 
       // ── Honeypot bot protection ───────────────────────────────────────────
       if (hp_field) {
@@ -76,6 +77,105 @@ router.post(
       }
 
       const normalizedEmail = officialEmail.trim().toLowerCase()
+      const emailDomainPart = normalizedEmail.split('@')[1] || ''
+
+      // ── 1. Strict Domain Match: Official email must belong to entered emailDomain ──
+      if (emailDomain && typeof emailDomain === 'string') {
+        const cleanDomain = emailDomain.trim().toLowerCase().replace(/^@/, '')
+        if (cleanDomain && emailDomainPart !== cleanDomain) {
+          return res.status(422).json({
+            ok: false,
+            error: 'Official email domain (@' + (emailDomainPart || 'unknown') + ') does not match the college domain entered (@' + cleanDomain + '). Please use an official email ending with @' + cleanDomain + '.',
+          })
+        }
+      }
+
+      // ── 2. Duplicate Checks: Domain already registered in College ───────────
+      const existingCollegeByDomain = await College.findOne({ domain: emailDomainPart })
+      if (existingCollegeByDomain) {
+        return res.status(409).json({
+          ok: false,
+          error: 'The institution domain "@' + emailDomainPart + '" is already registered on Swish for "' + existingCollegeByDomain.name + '". Another registration request cannot be created.',
+        })
+      }
+
+      // ── 3. Duplicate Checks: Domain already PENDING review ───────────────────
+      const pendingDomainRequest = await CollegeOnboardingRequest.findOne({
+        status: 'PENDING',
+        emailDomain: emailDomainPart,
+      })
+      if (pendingDomainRequest) {
+        return res.status(409).json({
+          ok: false,
+          error: 'An onboarding request for domain "@' + emailDomainPart + '" (' + pendingDomainRequest.collegeName + ') has already been submitted and is currently pending review by Swish Admin.',
+        })
+      }
+
+      // ── 4. Duplicate Checks: Official Email already PENDING review ──────────
+      const pendingEmailRequest = await CollegeOnboardingRequest.findOne({
+        status: 'PENDING',
+        officialEmail: normalizedEmail,
+      })
+      if (pendingEmailRequest) {
+        return res.status(409).json({
+          ok: false,
+          error: 'An onboarding request from official email "' + normalizedEmail + '" has already been submitted and is currently pending review by Swish Admin.',
+        })
+      }
+
+      // ── 5. Duplicate Checks: User account already exists with this email ────
+      const existingUser = await User.findOne({ email: normalizedEmail })
+      if (existingUser) {
+        return res.status(409).json({
+          ok: false,
+          error: 'An account with email "' + normalizedEmail + '" already exists on Swish. Please log in or use your official institutional email.',
+        })
+      }
+
+      // ── 6. Duplicate Checks: College Name if provided ──────────────────────
+      if (collegeName && typeof collegeName === 'string' && collegeName.trim()) {
+        const escapedName = collegeName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        const nameRegex = new RegExp('^' + escapedName + '$', 'i')
+        const existingCollegeByName = await College.findOne({ name: nameRegex })
+        if (existingCollegeByName) {
+          return res.status(409).json({
+            ok: false,
+            error: 'A college named "' + collegeName.trim() + '" is already registered on Swish.',
+          })
+        }
+        const pendingCollegeByName = await CollegeOnboardingRequest.findOne({
+          status: 'PENDING',
+          collegeName: nameRegex,
+        })
+        if (pendingCollegeByName) {
+          return res.status(409).json({
+            ok: false,
+            error: 'An onboarding request for "' + collegeName.trim() + '" has already been submitted and is pending review by Swish Admin.',
+          })
+        }
+      }
+
+      // ── 7. Duplicate Checks: College Code if provided ──────────────────────
+      if (collegeCode && typeof collegeCode === 'string' && collegeCode.trim()) {
+        const cleanCode = collegeCode.trim().toUpperCase()
+        const existingCollegeByCode = await College.findOne({ code: cleanCode })
+        if (existingCollegeByCode) {
+          return res.status(409).json({
+            ok: false,
+            error: 'College code "' + cleanCode + '" is already registered for "' + existingCollegeByCode.name + '".',
+          })
+        }
+        const pendingCollegeByCode = await CollegeOnboardingRequest.findOne({
+          status: 'PENDING',
+          collegeCode: cleanCode,
+        })
+        if (pendingCollegeByCode) {
+          return res.status(409).json({
+            ok: false,
+            error: 'An onboarding request with college code "' + cleanCode + '" has already been submitted and is pending review.',
+          })
+        }
+      }
 
       let otpRecord = await CollegeOnboardingOtp.findOne({ email: normalizedEmail })
 
@@ -277,6 +377,15 @@ router.post(
       const normalizedCode = collegeCode.trim().toUpperCase()
       const trimmedName = collegeName.trim()
 
+      // ── 0. Strict Domain Match: Official email must belong to entered emailDomain ──
+      const submitEmailDomainPart = normalizedEmail.split('@')[1] || ''
+      if (submitEmailDomainPart !== normalizedDomain) {
+        return res.status(422).json({
+          ok: false,
+          error: 'Official email domain (@' + (submitEmailDomainPart || 'unknown') + ') does not match the college domain entered (@' + normalizedDomain + '). Please use an official email ending with @' + normalizedDomain + '.',
+        })
+      }
+
       // 1. Verify OTP Verification Token State
       const otpRecord = await CollegeOnboardingOtp.findOne({ email: normalizedEmail })
       if (!otpRecord || !otpRecord.isVerified || !otpRecord.verificationTokenHash) {
@@ -320,11 +429,19 @@ router.post(
         })
       }
 
-      const existingCollegeDomain = await College.findOne({ domain: normalizedDomain, active: true })
+      const existingCollegeDomain = await College.findOne({ domain: normalizedDomain })
       if (existingCollegeDomain) {
         return res.status(409).json({
           ok: false,
-          error: `A college with email domain "@${normalizedDomain}" is already registered.`,
+          error: 'A college with email domain "@' + normalizedDomain + '" is already registered on Swish ("' + existingCollegeDomain.name + '"). Another registration cannot be created.',
+        })
+      }
+
+      const existingUserCheck = await User.findOne({ email: normalizedEmail })
+      if (existingUserCheck) {
+        return res.status(409).json({
+          ok: false,
+          error: 'A user account with email "' + normalizedEmail + '" already exists on Swish. Please log in or use your official institutional email.',
         })
       }
 
@@ -399,4 +516,3 @@ router.post(
 )
 
 export default router
-
