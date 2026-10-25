@@ -39,6 +39,7 @@ const NoticeSchema = new Schema(
 
 NoticeSchema.index({ collegeId: 1, published: 1, createdAt: -1 })
 NoticeSchema.index({ collegeId: 1, expiresAt: 1 })
+NoticeSchema.index({ collegeId: 1, published: 1, pinned: -1, createdAt: -1 })
 
 // ── toJSON — expose id instead of _id ────────────────────────────────────────
 NoticeSchema.set('toJSON', {

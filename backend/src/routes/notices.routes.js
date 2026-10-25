@@ -58,15 +58,20 @@ async function requireCollegeAccess(req, res, next) {
     // Super admin can access all
     return next()
   }
-  if (req.user.role === 'college_admin') {
-    // College admin can only access their own college
-    if (!req.user.collegeId) {
-      return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+  if (req.user.role === 'college_admin' || req.user.role === 'faculty') {
+    // College admin or faculty can access notices for their own college
+    let targetCollegeId = req.user.collegeId
+    if (!targetCollegeId && req.user.college) {
+      const col = await College.findOne({ name: req.user.college })
+      if (col) targetCollegeId = col._id
     }
-    req.collegeId = req.user.collegeId
+    if (!targetCollegeId) {
+      return res.status(403).json({ ok: false, error: 'Access denied: User has no associated college.' })
+    }
+    req.collegeId = targetCollegeId
     let collegeName = req.user.college
-    if (!collegeName || collegeName === req.user.collegeId.toString()) {
-      const col = await College.findById(req.user.collegeId)
+    if (!collegeName || collegeName === targetCollegeId.toString()) {
+      const col = await College.findById(targetCollegeId)
       if (col) collegeName = col.name
     }
     req.collegeName = collegeName || ''
@@ -77,11 +82,11 @@ async function requireCollegeAccess(req, res, next) {
 
 // ── GET /api/notices ─────────────────────────────────────────────────────────
 // Get all notices for college admin (drafts + published)
-router.get('/', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { collegeId: req.collegeId }
-    const notices = await Notice.find(filter).sort({ createdAt: -1 })
-    return res.status(200).json({ ok: true, notices: notices.map(n => n.toJSON()) })
+    const notices = await Notice.find(filter).sort({ pinned: -1, createdAt: -1 }).lean()
+    return res.status(200).json({ ok: true, notices: notices.map(n => ({ ...n, id: n._id.toString(), _id: undefined, __v: undefined })) })
   } catch (err) {
     console.error('[GET /notices]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch notices.' })
@@ -176,7 +181,7 @@ router.get('/college', requireAuth, async (req, res) => {
 router.post(
   '/',
   requireAuth,
-  requireRole('admin', 'college_admin'),
+  requireRole('admin', 'college_admin', 'faculty'),
   requireCollegeAccess,
   [
     body('title').trim().notEmpty().withMessage('Notice title is required.'),
@@ -279,8 +284,8 @@ router.get('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ ok: false, error: 'Access denied: You can only view notices from your college.' })
     }
 
-    // Students and faculty can only view published notices
-    if ((req.user.role === 'student' || req.user.role === 'faculty') && !notice.published) {
+    // Students can only view published notices
+    if (req.user.role === 'student' && !notice.published) {
       return res.status(403).json({ ok: false, error: 'Access denied: Notice is not published.' })
     }
 
@@ -299,7 +304,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 router.put(
   '/:id',
   requireAuth,
-  requireRole('admin', 'college_admin'),
+  requireRole('admin', 'college_admin', 'faculty'),
   requireCollegeAccess,
   [
     body('title').optional().trim(),
@@ -369,7 +374,7 @@ router.put(
 
 // ── DELETE /api/notices/:id ───────────────────────────────────────────────────
 // Delete a notice
-router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin', 'college_admin', 'faculty'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' 
       ? { _id: req.params.id }
@@ -404,7 +409,7 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requir
 
 // ── PATCH /api/notices/:id/publish ────────────────────────────────────────────
 // Publish/unpublish a notice
-router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin', 'faculty'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' 
       ? { _id: req.params.id }
@@ -446,7 +451,7 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin'),
 // ── PATCH /api/notices/:id/pin ────────────────────────────────────────────────────
 // Pin/unpin a notice (for official announcements)
 // Limit: Maximum 5 pinned notices per college
-router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin', 'faculty'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin'
       ? { _id: req.params.id }

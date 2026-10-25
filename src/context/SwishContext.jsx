@@ -480,7 +480,11 @@ export function SwishProvider({ children }) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchPosts()
+      // Faculty land on FacultyPage (not the feed), so defer posts to reduce startup load.
+      // Posts will still be fetched lazily when faculty navigate to /home or create a post.
+      if (currentUser?.role !== 'faculty') {
+        fetchPosts()
+      }
       fetchStories()
       fetchNotifications()
       fetchUnreadMsgCount()

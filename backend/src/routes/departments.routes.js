@@ -155,7 +155,7 @@ router.get('/by-domain', async (req, res) => {
 router.get(
   '/',
   requireAuth,
-  requireRole('admin', 'college_admin'),
+  requireRole('admin', 'college_admin', 'faculty'),
   requireCollegeAccess,
   async (req, res) => {
     try {

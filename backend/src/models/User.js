@@ -95,6 +95,12 @@ const UserSchema = new Schema(
 
 UserSchema.index({ collegeId: 1, role: 1 })
 UserSchema.index({ 'preferences.privacy.private': 1 })
+// Performance indexes for search, explore, and feed queries
+UserSchema.index({ username: 1 })
+UserSchema.index({ email: 1 })
+UserSchema.index({ followers: -1, createdAt: -1 })
+UserSchema.index({ deactivated: 1, role: 1 })
+UserSchema.index({ collegeId: 1, deactivated: 1, role: 1 })
 
 UserSchema.set('toJSON', {
   virtuals: true,

@@ -200,10 +200,7 @@ export default function App() {
                   }
                 >
                   <Route index element={<FacultyPage />} />
-                  <Route path="students" element={<FacultyPage defaultTab="Students" />} />
-                  <Route path="reports" element={<FacultyPage defaultTab="Reports" />} />
-                  <Route path="moderation" element={<FacultyPage defaultTab="Moderation" />} />
-                  <Route path="posts" element={<FacultyPage defaultTab="Posts" />} />
+                  <Route path="notices" element={<FacultyPage defaultTab="Notices" />} />
                 </Route>
 
                 {/* ── College Admin (requires college_admin role) ─────────── */}

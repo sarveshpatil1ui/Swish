@@ -117,7 +117,7 @@ router.get('/all', requireAuth, async (req, res) => {
 })
 
 // ── GET /api/users ───────────────────────────────────────────────────────────
-router.get('/', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
   try {
     const filter = {}
     
@@ -127,12 +127,6 @@ router.get('/', requireAuth, requireRole('admin', 'faculty', 'college_admin'), a
         return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
       }
       filter.collegeId = req.user.collegeId
-    } else if (req.user.role === 'faculty') {
-      if (!req.user.collegeId) {
-        return res.status(403).json({ ok: false, error: 'Access denied: Faculty has no associated college.' })
-      }
-      filter.collegeId = req.user.collegeId
-      filter.role = 'student' // faculty only views students
     } else if (req.user.role === 'admin' && req.query.collegeId) {
       filter.collegeId = req.query.collegeId
     }
@@ -528,7 +522,7 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
 
 
 
-router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'college_admin'), async (req, res) => {
+router.patch('/:id/status', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
   try {
     const { id } = req.params
 
@@ -552,14 +546,6 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'faculty', 'colleg
       }
     }
 
-    if (req.user.role === 'faculty') {
-      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
-        return res.status(403).json({ ok: false, error: 'You can only manage users from your college.' })
-      }
-      if (targetUser.role !== 'student') {
-        return res.status(403).json({ ok: false, error: 'Faculty can only manage student accounts.' })
-      }
-    }
     if ((req.user.role === 'admin' || req.user.role === 'main_admin') && (targetUser.role === 'admin' || targetUser.role === 'main_admin')) {
       return res.status(403).json({ ok: false, error: 'Admins cannot suspend other admins.' })
     }

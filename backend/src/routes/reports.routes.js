@@ -4,6 +4,8 @@ import { body, validationResult } from 'express-validator'
 import Report from '../models/Report.js'
 import User from '../models/User.js'
 import Post from '../models/Post.js'
+import College from '../models/College.js'
+import { emitToCollege } from '../services/socket.service.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import { logActivity } from '../services/activity-log.service.js'
 
@@ -38,7 +40,7 @@ async function requireCollegeAccess(req, res, next) {
   return res.status(403).json({ ok: false, error: 'Access denied.' })
 }
 
-// ── POST /api/reports — Create a new report (any authenticated user) ───────────
+// ── POST /api/reports — Create a new report (any authenticated user: Student / Faculty) ───
 router.post(
   '/',
   requireAuth,
@@ -65,44 +67,67 @@ router.post(
         return res.status(400).json({ ok: false, error: 'reportedCommentId is required for comment reports.' })
       }
 
-      // Get reporter's college
-      if (!req.user.collegeId) {
+      // Resolve reporter's collegeId reliably (handles students, faculty, and legacy users)
+      let reporterCollegeId = req.user.collegeId
+      if (!reporterCollegeId && req.user.college) {
+        const c = await College.findOne({ name: req.user.college }).select('_id')
+        if (c) reporterCollegeId = c._id
+      }
+      if (!reporterCollegeId && type === 'post' && reportedPostId) {
+        const p = await Post.findById(reportedPostId).select('collegeId')
+        if (p?.collegeId) reporterCollegeId = p.collegeId
+      }
+      if (!reporterCollegeId) {
         return res.status(400).json({ ok: false, error: 'You must be associated with a college to submit a report.' })
       }
 
-      // Get reported user info
-      const reportedUser = await User.findById(reportedUserId || (type === 'post' || type === 'comment' ? null : reportedUserId))
-      if (!reportedUser && reportedUserId) {
-        return res.status(404).json({ ok: false, error: 'Reported user not found.' })
-      }
-
-      // Verify the reported entity exists and belongs to the same college
-      if (type === 'post') {
-        const post = await Post.findById(reportedPostId)
+      // Resolve reported user
+      let targetUser = reportedUserId ? await User.findById(reportedUserId).select('_id name') : null
+      if (type === 'post' && reportedPostId) {
+        const post = await Post.findById(reportedPostId).populate('user', 'name')
         if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
-        if (!post.user.equals(req.user.collegeId) && !post.user.equals(req.user._id)) {
-          // Allow cross-college reports for now, but they'll be routed to super admin
+        if (!targetUser && post.user) {
+          targetUser = post.user
         }
       }
 
       const report = await Report.create({
         reporterId: req.user._id,
         reporterName: req.user.name,
-        reportedUserId: reportedUserId || null,
-        reportedUserName: reportedUser?.name || 'Unknown',
+        reportedUserId: targetUser?._id || reportedUserId || null,
+        reportedUserName: targetUser?.name || 'Unknown',
         reportedPostId: reportedPostId || null,
         reportedCommentId: reportedCommentId || null,
         type,
         category,
         description,
-        collegeId: req.user.collegeId,
-        college: req.user.college,
+        collegeId: reporterCollegeId,
+        college: req.user.college || '',
       })
+
+      // Realtime notification to College Admin
+      try {
+        emitToCollege(reporterCollegeId, 'report:new', { report })
+      } catch (socketErr) {
+        console.warn('[Report] Socket notification error:', socketErr?.message)
+      }
+
+      // Audit Log
+      await logActivity({
+        userId: req.user._id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        collegeId: reporterCollegeId,
+        action: 'REPORT_SUBMITTED',
+        targetType: type.toUpperCase(),
+        targetId: report._id,
+        description: `${req.user.name} (${req.user.role}) reported a ${type} (${category}): "${description.slice(0, 80)}"`,
+      }).catch(err => console.warn('[Report] Failed to log activity:', err))
 
       res.status(201).json({ ok: true, report })
     } catch (err) {
       console.error('[POST /reports]', err)
-      res.status(500).json({ ok: false, error: 'Failed to submit report.' })
+      res.status(500).json({ ok: false, error: 'Failed to submit report. Please try again.' })
     }
   }
 )
