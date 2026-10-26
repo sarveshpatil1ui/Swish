@@ -64,27 +64,23 @@ function UserAvatar({ user, size = 'w-7 h-7', textSize = 'text-xs' }) {
 
 // ── Suggested Account Card ───────────────────────────────────────────────────
 function SuggestedAccountCard({ account, onToggleFollow }) {
-  const [following, setFollowing] = useState(Boolean(account.isFollowing))
+  const { followUser, unfollowUser, isUserFollowed } = useSwish()
+  const following = isUserFollowed ? isUserFollowed(account.id, account.isFollowing) : Boolean(account.isFollowing)
   const [loading, setLoading] = useState(false)
 
   const handleToggle = async (e) => {
     e.stopPropagation()
     if (loading) return
     setLoading(true)
-    const nextState = !following
-    setFollowing(nextState)
-
     try {
-      const res = nextState
-        ? await apiFollowUser(account.id)
-        : await apiUnfollowUser(account.id)
-      if (!res.ok) {
-        setFollowing(!nextState) // rollback
-      } else if (onToggleFollow) {
-        onToggleFollow(account.id, nextState)
+      const res = following
+        ? await unfollowUser(account.id)
+        : await followUser(account.id)
+      if (res?.ok && onToggleFollow) {
+        onToggleFollow(account.id, !following)
       }
-    } catch {
-      setFollowing(!nextState)
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }

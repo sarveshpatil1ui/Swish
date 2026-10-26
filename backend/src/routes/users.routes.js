@@ -397,7 +397,7 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
 
     const existing = await Follow.findOne({ follower: req.user.id, following: targetId })
     if (existing) {
-      return res.status(409).json({ ok: false, error: 'You already follow this user.' })
+      return res.status(200).json({ ok: true, following: true, message: 'You already follow this user.' })
     }
 
     await Follow.create({ follower: req.user.id, following: targetId })
@@ -439,7 +439,13 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
 
     const existing = await Follow.findOneAndDelete({ follower: req.user.id, following: targetId })
     if (!existing) {
-      return res.status(404).json({ ok: false, error: 'You do not follow this user.' })
+      const target = await User.findById(targetId).select('followers')
+      return res.status(200).json({
+        ok: true,
+        following: false,
+        message: 'You do not follow this user.',
+        followerCount: target?.followers || 0,
+      })
     }
 
     const [target] = await Promise.all([

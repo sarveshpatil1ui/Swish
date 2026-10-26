@@ -57,7 +57,7 @@ function GradientCard({ emoji, label, gradientFrom, gradientTo }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 function PostCard({ post }) {
-  const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost, toggleSavePost } = useSwish()
+  const { currentUser, likePost, unlikePost, followUser, unfollowUser, deletePost, toggleSavePost, isUserFollowed } = useSwish()
 
   // Likes/comment-count now live in the `post` prop (owned by SwishContext),
   // so this component reads them directly instead of cloning into local state
@@ -66,7 +66,7 @@ function PostCard({ post }) {
   const [showLikesModal, setShowLikesModal] = useState(false)
   const [copied,       setCopied]       = useState(false)
   const [liking,       setLiking]       = useState(false)
-  const [followed,     setFollowed]     = useState(false)
+  const isFollowing = isUserFollowed ? isUserFollowed(post.userId, post.isFollowing) : Boolean(post.isFollowing)
   const [followLoading, setFollowLoading] = useState(false)
   const [imgLoaded,    setImgLoaded]    = useState(false)
   const [imgError,     setImgError]     = useState(false)
@@ -139,12 +139,16 @@ function PostCard({ post }) {
   const handleFollow = async () => {
     if (followLoading) return
     setFollowLoading(true)
-    const result = followed ? await unfollowUser(post.userId) : await followUser(post.userId)
-    setFollowLoading(false)
-    if (result.ok) {
-      setFollowed(f => !f)
-    } else if (result.error) {
-      console.error('[PostCard] follow/unfollow failed:', result.error)
+    try {
+      if (isFollowing) {
+        await unfollowUser(post.userId)
+      } else {
+        await followUser(post.userId)
+      }
+    } catch (err) {
+      console.error('[PostCard] follow/unfollow failed:', err)
+    } finally {
+      setFollowLoading(false)
     }
   }
 
@@ -278,12 +282,12 @@ function PostCard({ post }) {
                 disabled={followLoading}
                 whileTap={{ scale: 0.95 }}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-                  followed
+                  isFollowing
                     ? 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
                     : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
                 }`}
               >
-                {followed ? 'Following' : 'Follow'}
+                {isFollowing ? 'Following' : 'Follow'}
               </motion.button>
             )}
 

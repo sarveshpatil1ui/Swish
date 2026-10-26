@@ -6,7 +6,7 @@ import { useSwish } from '../../context/SwishContext'
 import { apiFetch } from '../../utils/auth'
 
 export default function PostLikesModal({ postId, onClose }) {
-  const { followUser, unfollowUser, currentUser } = useSwish()
+  const { followUser, unfollowUser, currentUser, isUserFollowed } = useSwish()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -40,7 +40,8 @@ export default function PostLikesModal({ postId, onClose }) {
     if (followLoadingIds.has(user.id)) return
     setFollowLoadingIds(prev => new Set(prev).add(user.id))
 
-    const result = user.isFollowing
+    const isCurrentlyFollowing = isUserFollowed ? isUserFollowed(user.id, user.isFollowing) : Boolean(user.isFollowing)
+    const result = isCurrentlyFollowing
       ? await unfollowUser(user.id)
       : await followUser(user.id)
 
@@ -51,7 +52,7 @@ export default function PostLikesModal({ postId, onClose }) {
     })
 
     if (result.ok) {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isFollowing: !u.isFollowing } : u))
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isFollowing: !isCurrentlyFollowing } : u))
     }
   }
 

@@ -144,7 +144,6 @@ function AccountSection({ currentUser, updateUser, showToast }) {
   const handleSave = async () => {
     if (!name.trim()) { showToast('Name cannot be empty.', 'error'); return }
     setSaving(true)
-    await new Promise(r => setTimeout(r, 500))
     const result = await updateUser({ name, username, bio })
     setSaving(false)
     if (result?.ok) {
@@ -315,14 +314,21 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
     if (newPwd.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return }
     if (newPwd !== confirmPwd) { showToast('Passwords do not match.', 'error'); return }
     setPwdLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    const result = changePassword(curPwd, newPwd)
-    setPwdLoading(false)
-    if (result.ok) {
-      showToast('Password updated!')
-      setCurPwd(''); setNewPwd(''); setConfirmPwd(''); setShowPwdForm(false)
-    } else {
-      showToast(result.error, 'error')
+    try {
+      const result = await changePassword(curPwd, newPwd)
+      if (result?.ok) {
+        showToast('Password updated!')
+        setCurPwd('')
+        setNewPwd('')
+        setConfirmPwd('')
+        setShowPwdForm(false)
+      } else {
+        showToast(result?.error || 'Failed to update password.', 'error')
+      }
+    } catch (err) {
+      showToast(err?.message || 'Error updating password.', 'error')
+    } finally {
+      setPwdLoading(false)
     }
   }
 

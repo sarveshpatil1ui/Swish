@@ -24,6 +24,11 @@ const NotificationSchema = new Schema(
       ref: 'Post',
       default: null,
     },
+    notice: {
+      type: Schema.Types.ObjectId,
+      ref: 'Notice',
+      default: null,
+    },
     text: {
       type: String,
       required: true,

@@ -180,7 +180,27 @@ export function SwishProvider({ children }) {
     return () => { cancelled = true }
   }, [])
 
-  // ── Fetch users for Admin / Faculty ─────────────────────────────────────────
+  // ── Following User IDs (Synchronized across feed and profile) ──────────────
+  const [followingIds, setFollowingIds] = useState(() => new Set())
+  const [followingLoaded, setFollowingLoaded] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.id) {
+      apiFetchFollowing(currentUser.id).then(res => {
+        if (res?.ok && Array.isArray(res.users)) {
+          setFollowingIds(new Set(res.users.map(u => (u.id || u._id).toString())))
+          setFollowingLoaded(true)
+        }
+      }).catch(() => {
+        setFollowingLoaded(true)
+      })
+    } else {
+      setFollowingIds(new Set())
+      setFollowingLoaded(false)
+    }
+  }, [isAuthenticated, currentUser?.id])
+
+    // ── Fetch users for Admin / Faculty ─────────────────────────────────────────
   const [users, setUsers] = useState([])
   useEffect(() => {
     if (isAuthenticated && (currentUser?.role === 'admin' || currentUser?.role === 'faculty')) {
@@ -213,7 +233,18 @@ export function SwishProvider({ children }) {
         const res = await apiGetPosts()
         if (reqSeq !== fetchPostsSeq.current) return
         if (res.ok && Array.isArray(res.posts)) {
-          setPosts(res.posts.map(normalizePost))
+          const normalized = res.posts.map(normalizePost)
+          setPosts(normalized)
+          setFollowingIds(prev => {
+            const next = new Set(prev)
+            normalized.forEach(p => {
+              if (p.isFollowing && p.userId) {
+                next.add(p.userId.toString())
+              }
+            })
+            return next
+          })
+          setFollowingLoaded(true)
           lastPostsFetchTime.current = Date.now()
         }
       } catch (err) {
@@ -584,8 +615,66 @@ export function SwishProvider({ children }) {
   }
 
   // ── Follow / Unfollow (FR-07) ─────────────────────────────────────────────────
-  const followUser = async (userId) => apiFollowUser(userId)
-  const unfollowUser = async (userId) => apiUnfollowUser(userId)
+  const isUserFollowed = useCallback((userId, fallbackValue = false) => {
+    if (!userId) return false
+    const uStr = userId.toString()
+    if (!followingLoaded) return Boolean(fallbackValue)
+    return followingIds.has(uStr)
+  }, [followingIds, followingLoaded])
+
+  const followUser = async (userId) => {
+    if (!userId) return { ok: false, error: 'No user ID' }
+    const uStr = userId.toString()
+    setFollowingIds(prev => new Set([...prev, uStr]))
+    setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
+    try {
+      const res = await apiFollowUser(userId)
+      if (res?.ok || res?.message === 'You already follow this user.' || res?.error === 'You already follow this user.') {
+        setFollowingIds(prev => new Set([...prev, uStr]))
+        setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
+        return { ok: true, following: true, ...res }
+      }
+      setFollowingIds(prev => {
+        const next = new Set(prev)
+        next.delete(uStr)
+        return next
+      })
+      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: false } : p))
+      return res
+    } catch (err) {
+      setFollowingIds(prev => {
+        const next = new Set(prev)
+        next.delete(uStr)
+        return next
+      })
+      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: false } : p))
+      return { ok: false, error: err?.message || 'Failed to follow user' }
+    }
+  }
+
+  const unfollowUser = async (userId) => {
+    if (!userId) return { ok: false, error: 'No user ID' }
+    const uStr = userId.toString()
+    setFollowingIds(prev => {
+      const next = new Set(prev)
+      next.delete(uStr)
+      return next
+    })
+    setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: false } : p))
+    try {
+      const res = await apiUnfollowUser(userId)
+      if (res?.ok) {
+        return res
+      }
+      setFollowingIds(prev => new Set([...prev, uStr]))
+      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
+      return res
+    } catch (err) {
+      setFollowingIds(prev => new Set([...prev, uStr]))
+      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
+      return { ok: false, error: err?.message || 'Failed to unfollow user' }
+    }
+  }
 
   // ── Followers / Following lists ───────────────────────────────────────────────
   const fetchFollowers = async (userId) => apiFetchFollowers(userId)
@@ -739,20 +828,28 @@ const domainApproved = async (email) => {
     })
   }
 
-  // ── updatePreferences ─────────────────────────────────────────────────────
-  // TODO: replace with PATCH /api/users/:id/preferences
+  // ── updatePreferences (Instant Optimistic UI + Async Background Sync) ─────
   const updatePreferences = async (partial) => {
     if (!currentUser) return { ok: false, error: 'Not authenticated.' }
+    const previousPrefs = currentUser.preferences
     const merged = {
       notifications: { ...currentUser.preferences?.notifications, ...partial.notifications },
       privacy:       { ...currentUser.preferences?.privacy,       ...partial.privacy },
       security:      { ...currentUser.preferences?.security,      ...partial.security },
     }
-    const res = await apiUpdatePreferences(merged)
-    if (res.ok) {
-      setCurrentUser(u => ({ ...u, preferences: mergePrefs(res.user?.preferences || merged) }))
+    // Instant optimistic update (0ms delay for button switches)
+    setCurrentUser(u => (u ? { ...u, preferences: mergePrefs(merged) } : null))
+
+    try {
+      const res = await apiUpdatePreferences(merged)
+      if (!res.ok) {
+        setCurrentUser(u => (u ? { ...u, preferences: previousPrefs } : null))
+      }
+      return res
+    } catch (err) {
+      setCurrentUser(u => (u ? { ...u, preferences: previousPrefs } : null))
+      return { ok: false, error: err?.message }
     }
-    return res
   }
 
   // ── changePassword ────────────────────────────────────────────────────────
@@ -918,6 +1015,8 @@ const domainApproved = async (email) => {
         updateStoryReplyRealtime,
         fetchStoryReplies,
         // Follow (FR-07)
+        followingIds,
+        isUserFollowed,
         followUser,
         unfollowUser,
         fetchFollowers,

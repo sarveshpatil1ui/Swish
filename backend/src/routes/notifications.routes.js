@@ -36,6 +36,7 @@ export function formatNotification(n) {
     createdAt: n.createdAt || new Date().toISOString(),
     read: Boolean(n.read),
     postId: n.post ? (n.post._id ? n.post._id.toString() : n.post.toString()) : null,
+    noticeId: n.notice ? (n.notice._id ? n.notice._id.toString() : n.notice.toString()) : null,
   }
 }
 

@@ -11,7 +11,7 @@ const preferenceByType = {
   event: 'events',
 }
 
-export async function createNotification({ recipient, sender, type, post = null, text, subtext = '' }) {
+export async function createNotification({ recipient, sender, type, post = null, notice = null, text, subtext = '' }) {
   const preferenceKey = preferenceByType[type]
   if (preferenceKey) {
     const recipientUser = await User.findById(recipient).select('preferences').lean()
@@ -20,7 +20,7 @@ export async function createNotification({ recipient, sender, type, post = null,
     }
   }
 
-  const notification = await Notification.create({ recipient, sender, type, post, text, subtext })
+  const notification = await Notification.create({ recipient, sender, type, post, notice, text, subtext })
   const populated = await notification.populate('sender', 'name username initials avatarColor profilePhoto')
   emitToUser(recipient, 'notification:new', formatNotification(populated))
   return notification

@@ -60,7 +60,7 @@ export function extractHashtags(caption = '') {
   return normalizeTags([], caption)
 }
 
-export function serializePost(post, viewerId) {
+export function serializePost(post, viewerId, isFollowing = false) {
   const json = typeof post.toJSON === 'function' ? post.toJSON() : { ...post, id: (post._id ? post._id.toString() : post.id) }
   delete json._id
   delete json.__v
@@ -80,6 +80,7 @@ export function serializePost(post, viewerId) {
     likeCount,
     liked: likes.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
     saved: savedBy.some(id => (id?._id?.toString() || id?.toString()) === viewerStr),
+    isFollowing: Boolean(isFollowing),
     likes: undefined, // don't ship the full liker-id list to every client
     savedBy: undefined,
   }
@@ -263,9 +264,15 @@ router.get('/', requireAuth, async (req, res) => {
       ? posts[posts.length - 1].createdAt.toISOString()
       : null
 
+    const viewerFollows = await Follow.find({ follower: req.user._id }).select('following').lean()
+    const followingSet = new Set(viewerFollows.map(f => f.following.toString()))
+
     res.json({
       ok: true,
-      posts: posts.map(p => serializePost(p, req.user.id)),
+      posts: posts.map(p => {
+        const authorId = (p.user?._id || p.user?.id || p.user)?.toString()
+        return serializePost(p, req.user.id, followingSet.has(authorId))
+      }),
       nextCursor,
       hasMore,
     })
@@ -323,7 +330,9 @@ router.get('/:postId', requireAuth, async (req, res) => {
         return res.status(403).json({ ok: false, error: 'This account is private.' })
       }
     }
-    res.json({ ok: true, post: serializePost(post, req.user.id) })
+    const authorId = post.user?._id ? post.user._id.toString() : (post.user?.id ? post.user.id.toString() : post.user?.toString())
+    const isFollowing = authorId ? await Follow.exists({ follower: req.user._id, following: authorId }) : false
+    res.json({ ok: true, post: serializePost(post, req.user.id, Boolean(isFollowing)) })
   } catch (err) {
     console.error('[GET /api/posts/:postId] Error:', err)
     if (err.name === 'CastError') {

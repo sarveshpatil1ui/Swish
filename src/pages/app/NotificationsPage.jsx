@@ -1,4 +1,6 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { NoticeDetailModal } from '../../components/app/CollegeNoticePanel'
+import { apiGetNoticeById, apiGetCollegeNotices } from '../../utils/auth'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, AtSign, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,13 +14,19 @@ const iconMap = {
   event:   { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',    color: 'text-amber-500'    },
 }
 
-function NotificationItem({ notification: n, index, onRead }) {
+function NotificationItem({ notification: n, index, onRead, onSelectNotice }) {
   const navigate = useNavigate()
   const cfg  = iconMap[n.type] || iconMap.like
   const Icon = cfg.icon
 
   const handleClick = () => {
     onRead(n.id)
+    if (n.type === 'event' || n.noticeId) {
+      if (onSelectNotice) {
+        onSelectNotice(n)
+        return
+      }
+    }
     if (n.postId) {
       navigate(`/post/${n.postId}`)
     } else if (n.user?.id) {
@@ -83,7 +91,48 @@ function NotificationItem({ notification: n, index, onRead }) {
 }
 
 export default function NotificationsPage() {
-  const { notifications = [], fetchNotifications, markNotificationRead, markAllNotificationsRead } = useSwish()
+  const { currentUser, notifications = [], fetchNotifications, markNotificationRead, markAllNotificationsRead } = useSwish()
+  const [selectedNotice, setSelectedNotice] = useState(null)
+
+  const handleSelectNotice = async (n) => {
+    if (n.noticeId) {
+      try {
+        const res = await apiGetNoticeById(n.noticeId)
+        if (res?.ok && res.notice) {
+          setSelectedNotice(res.notice)
+          return
+        }
+      } catch (err) {
+        console.warn('[NotificationsPage] Notice by ID fetch error:', err)
+      }
+    }
+
+    // Fallback: match by title from college notices
+    try {
+      const res = await apiGetCollegeNotices()
+      if (res?.ok && Array.isArray(res.notices)) {
+        const match = res.notices.find(item =>
+          (n.noticeId && (item.id === n.noticeId || item._id === n.noticeId)) ||
+          (n.subtext && item.title?.trim().toLowerCase() === n.subtext?.trim().toLowerCase())
+        )
+        if (match) {
+          setSelectedNotice(match)
+          return
+        }
+      }
+    } catch (err) {
+      console.warn('[NotificationsPage] College notices search error:', err)
+    }
+
+    // Graceful fallback modal object
+    setSelectedNotice({
+      title: n.subtext || 'Campus Notice',
+      content: n.text || 'Official campus announcement.',
+      createdBy: n.user,
+      createdAt: n.createdAt,
+      college: currentUser?.college || 'College Notice',
+    })
+  }
 
   useEffect(() => {
     fetchNotifications?.()
@@ -165,6 +214,7 @@ export default function NotificationsPage() {
                 notification={n}
                 index={i}
                 onRead={() => markOneRead(n.id)}
+                onSelectNotice={handleSelectNotice}
               />
             ))}
           </div>
@@ -179,11 +229,21 @@ export default function NotificationsPage() {
           </p>
           <div className="space-y-2">
             {readItems.map((n, i) => (
-              <NotificationItem key={n.id} notification={n} index={i} onRead={() => {}} />
+              <NotificationItem key={n.id} notification={n} index={i} onRead={() => {}}
+                onSelectNotice={handleSelectNotice} />
             ))}
           </div>
         </div>
       )}
+      {/* Notice Detail Modal */}
+      <AnimatePresence>
+        {selectedNotice && (
+          <NoticeDetailModal
+            notice={selectedNotice}
+            onClose={() => setSelectedNotice(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -41,6 +41,7 @@ async function notifyNoticeAudience(notice, senderId) {
     recipient: user._id,
     sender: senderId,
     type: 'event',
+    notice: notice._id,
     text: notifText,
     subtext: notice.title,
   })))
