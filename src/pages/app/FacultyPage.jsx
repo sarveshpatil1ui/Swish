@@ -3,7 +3,7 @@ import {
   FileText, Activity,
   GraduationCap,
   TrendingUp, TrendingDown, UserPlus,
-  AlertTriangle, Building2, Megaphone,
+  AlertTriangle, Building2, Megaphone, BarChart3,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
@@ -29,39 +29,39 @@ function StatCard({
   trendVal,
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-      <div className="flex items-start justify-between mb-5">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-3.5 sm:p-5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <div className="flex items-start justify-between mb-3 sm:mb-5">
         <div
-          className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}
+          className={`w-9 h-9 sm:w-10 sm:h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}
         >
-          <Icon size={20} className={iconColor} />
+          <Icon size={18} className={iconColor} />
         </div>
 
         {trendVal && (
           <span
-            className={`flex items-center gap-1 text-xs font-bold ${
+            className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold ${
               trend === 'up' ? 'text-emerald-600' : 'text-red-500'
             }`}
           >
             {trend === 'up' ? (
-              <TrendingUp size={12} />
+              <TrendingUp size={11} />
             ) : (
-              <TrendingDown size={12} />
+              <TrendingDown size={11} />
             )}
             {trendVal}
           </span>
         )}
       </div>
 
-      <p className="text-[28px] font-black text-slate-900 dark:text-white leading-none mb-1">
+      <p className="text-xl sm:text-[28px] font-black text-slate-900 dark:text-white leading-none mb-1">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
 
-      <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+      <p className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5 truncate">
         {label}
       </p>
 
-      <p className="text-[11px] text-slate-400">
+      <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
         {sub}
       </p>
     </div>
@@ -78,6 +78,12 @@ function TabLoader() {
 }
 
 export default function FacultyPage({ defaultTab = 'Overview' }) {
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [noticeCount, setNoticeCount] = useState(0)
   const [recentNotices, setRecentNotices] = useState([])
@@ -250,25 +256,25 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
   // ============================================================
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
+    <div className="px-3.5 py-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto pb-24 md:pb-8">
 
       {/* ========================================================
           HEADER
       ======================================================== */}
 
-      <div className="mb-7">
+      <div className="mb-5 sm:mb-7">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-500/20">
             <GraduationCap
               size={20}
               className="text-white"
             />
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-              Good evening, {user?.name || 'Faculty'} 👋
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white truncate">
+              {getGreeting()}, {user?.name || 'Faculty'} 👋
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 truncate">
               Campus academics, official notices, and departmental overview
             </p>
           </div>
@@ -279,7 +285,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           TABS
       ======================================================== */}
 
-      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl mb-8 w-fit flex-wrap">
+      <div className="grid grid-cols-2 sm:flex gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl mb-6 sm:mb-8 w-full sm:w-fit">
         {tabs.map(tab => (
           <button
             key={tab}
@@ -289,13 +295,20 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             }}
             onMouseEnter={tab === 'Notices' ? handleNoticesHint : undefined}
             onFocus={tab === 'Notices' ? handleNoticesHint : undefined}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
+            className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
               activeTab === tab
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            {tab}
+            {tab === 'Overview' && <BarChart3 size={15} />}
+            {tab === 'Notices' && <Megaphone size={15} />}
+            <span>{tab}</span>
+            {tab === 'Notices' && noticeCount > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                {noticeCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -315,7 +328,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           </div>
 
           {/* STAT CARDS */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <StatCard
               icon={GraduationCap}
               label="Total Students"
@@ -362,11 +375,11 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           </div>
 
           {/* MAIN CONTENT */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
 
             {/* RECENT ACTIVITY */}
             <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h2 className="font-bold text-[15px] text-slate-900 dark:text-white">
                   Recent Activity
                 </h2>
@@ -375,7 +388,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                 </span>
               </div>
 
-              <div className="p-6 divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="p-4 sm:p-6 divide-y divide-slate-100 dark:divide-slate-800">
                 {activityFeed.map((item, index) => {
                   const Icon = item.icon
                   const colorConfig = activityColors[item.type] || activityColors.brand
@@ -383,7 +396,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                   return (
                     <div
                       key={index}
-                      className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
+                      className="flex items-start gap-3 sm:gap-4 py-3.5 sm:py-4 first:pt-0 last:pb-0"
                     >
                       <div
                         className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${colorConfig.bg}`}
@@ -416,7 +429,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             <div className="space-y-6">
 
               {/* DEPARTMENT DISTRIBUTION */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-5">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 sm:p-5">
                 <h2 className="font-bold text-[15px] text-slate-900 dark:text-white mb-4">
                   Department Distribution
                 </h2>

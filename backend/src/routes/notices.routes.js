@@ -28,12 +28,20 @@ async function notifyNoticeAudience(notice, senderId) {
     filter.dept = notice.department
   }
 
+  const isUrgent = notice.priority === 'urgent'
+  const isHigh = notice.priority === 'high'
+  const notifText = isUrgent
+    ? '🚨 URGENT Notice posted'
+    : isHigh
+    ? '⚠️ Important Notice posted'
+    : 'posted a new campus announcement'
+
   const recipients = await User.find(filter).select('_id')
   await Promise.all(recipients.map(user => createNotification({
     recipient: user._id,
     sender: senderId,
     type: 'event',
-    text: 'posted a new campus announcement',
+    text: notifText,
     subtext: notice.title,
   })))
 }
@@ -85,7 +93,20 @@ async function requireCollegeAccess(req, res, next) {
 router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), requireCollegeAccess, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { collegeId: req.collegeId }
-    const notices = await Notice.find(filter).sort({ pinned: -1, createdAt: -1 }).lean()
+    const notices = await Notice.find(filter)
+      .populate('createdBy', 'name email designation role')
+      .sort({ pinned: -1, createdAt: -1 })
+      .lean()
+    // Sort by pinned first, then priority hierarchy, then date
+    const priorityWeight = { urgent: 4, high: 3, medium: 2, low: 1 }
+    notices.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      const pDiff = (priorityWeight[b.priority] || 2) - (priorityWeight[a.priority] || 2)
+      if (pDiff !== 0) return pDiff
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+
     return res.status(200).json({ ok: true, notices: notices.map(n => ({ ...n, id: n._id.toString(), _id: undefined, __v: undefined })) })
   } catch (err) {
     console.error('[GET /notices]', err)
@@ -256,6 +277,7 @@ router.post(
         ipAddress: req.ip,
       })
 
+      await notice.populate('createdBy', 'name email designation role')
       return res.status(201).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[POST /notices]', err)
@@ -364,6 +386,7 @@ router.put(
         ipAddress: req.ip,
       })
 
+      await notice.populate('createdBy', 'name email designation role')
       return res.status(200).json({ ok: true, notice: notice.toJSON() })
     } catch (err) {
       console.error('[PUT /notices/:id]', err)
@@ -441,6 +464,7 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin', 
       ipAddress: req.ip,
     })
 
+    await notice.populate('createdBy', 'name email designation role')
     return res.status(200).json({ ok: true, notice: notice.toJSON() })
   } catch (err) {
     console.error('[PATCH /notices/:id/publish]', err)
@@ -494,6 +518,7 @@ router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin', 'fac
       ipAddress: req.ip,
     })
 
+    await notice.populate('createdBy', 'name email designation role')
     return res.status(200).json({ ok: true, notice: notice.toJSON() })
   } catch (err) {
     console.error('[PATCH /notices/:id/pin]', err)

@@ -6,7 +6,9 @@ import PostCard from '../../components/app/PostCard'
 import Stories from '../../components/app/Stories'
 import RightPanel from '../../components/app/RightPanel'
 import CreatePostModal from '../../components/app/CreatePostModal'
-import { PenSquare, Search, X } from 'lucide-react'
+import { PenSquare, Search, X, ShieldAlert } from 'lucide-react'
+import { apiGetCollegeNotices } from '../../utils/auth'
+import { NoticeDetailModal } from '../../components/app/CollegeNoticePanel'
 
 
 // ── Empty feed ────────────────────────────────────────────────────────────────
@@ -54,6 +56,28 @@ export default function HomePage() {
   const [showCreate,  setShowCreate]  = useState(false)
   const [searchParams]               = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '')
+  const [urgentNotice, setUrgentNotice] = useState(null)
+  const [isUrgentDismissed, setIsUrgentDismissed] = useState(false)
+  const [selectedNotice, setSelectedNotice] = useState(null)
+
+  // Fetch active urgent notice for emergency broadcast banner
+  useEffect(() => {
+    let mounted = true
+    apiGetCollegeNotices()
+      .then(res => {
+        if (mounted && res?.ok && Array.isArray(res.notices)) {
+          const urgent = res.notices.find(n => n.priority === 'urgent')
+          if (urgent) {
+            const isDismissed = sessionStorage.getItem(`dismiss_urgent_${urgent.id || urgent._id}`) === 'true'
+            if (!isDismissed) {
+              setUrgentNotice(urgent)
+            }
+          }
+        }
+      })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     fetchPosts()
@@ -132,6 +156,58 @@ export default function HomePage() {
             </AnimatePresence>
           </div>
 
+          {/* ── Urgent Campus Alert Banner ────────────────────────── */}
+          <AnimatePresence>
+            {urgentNotice && !isUrgentDismissed && !hasSearch && (
+              <motion.div
+                key="urgent-banner"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                onClick={() => setSelectedNotice(urgentNotice)}
+                className="group relative p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/15 via-rose-500/10 to-amber-500/10 border border-rose-300 dark:border-rose-900/60 shadow-sm hover:shadow-md hover:border-rose-400 dark:hover:border-rose-800 transition-all cursor-pointer flex items-center justify-between gap-3 overflow-hidden"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm shadow-rose-500/30">
+                    <ShieldAlert size={17} className="animate-pulse" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-600 text-white">
+                        Urgent Alert
+                      </span>
+                      <span className="text-xs text-slate-400">·</span>
+                      <span className="text-xs font-semibold text-slate-500 dark:text-gray-400 truncate">
+                        {urgentNotice.department || user?.college || 'College Notice'}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors mt-0.5">
+                      {urgentNotice.title}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400 hidden sm:inline group-hover:underline">
+                    Read Notice →
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      sessionStorage.setItem(`dismiss_urgent_${urgentNotice.id || urgentNotice._id}`, 'true')
+                      setIsUrgentDismissed(true)
+                    }}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 transition-colors"
+                    title="Dismiss alert"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* ── Stories (hidden while searching) ─────────────────────── */}
           <AnimatePresence>
             {!hasSearch && (
@@ -206,6 +282,16 @@ export default function HomePage() {
           onClose={() => setShowCreate(false)}
         />
       )}
+
+      {/* Notice Detail Modal for Urgent Campus Alert */}
+      <AnimatePresence>
+        {selectedNotice && (
+          <NoticeDetailModal
+            notice={selectedNotice}
+            onClose={() => setSelectedNotice(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

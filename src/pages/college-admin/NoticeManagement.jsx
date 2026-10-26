@@ -7,6 +7,7 @@ export default function NoticeManagement() {
   const [filteredNotices, setFilteredNotices] = useState([])
   const [departments, setDepartments] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPriority, setSelectedPriority] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingNotice, setEditingNotice] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,22 +21,26 @@ export default function NoticeManagement() {
     published: false
   })
   const [errors, setErrors] = useState({})
+  const [expandedNotices, setExpandedNotices] = useState({})
 
   useEffect(() => {
     fetchData()
   }, [])
 
   useEffect(() => {
+    let filtered = notices
     if (searchQuery) {
-      const filtered = notices.filter(n =>
-        n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        n.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(n =>
+        n.title.toLowerCase().includes(q) ||
+        n.content?.toLowerCase().includes(q)
       )
-      setFilteredNotices(filtered)
-    } else {
-      setFilteredNotices(notices)
     }
-  }, [searchQuery, notices])
+    if (selectedPriority !== 'all') {
+      filtered = filtered.filter(n => n.priority === selectedPriority)
+    }
+    setFilteredNotices(filtered)
+  }, [searchQuery, selectedPriority, notices])
 
   const fetchData = async () => {
     try {
@@ -201,14 +206,14 @@ export default function NoticeManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Notices & Announcements</h1>
-          <p className="text-slate-500 dark:text-gray-500 mt-1">Create and manage notices for your college</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Notices & Announcements</h1>
+          <p className="text-slate-500 dark:text-gray-500 text-xs sm:text-sm mt-0.5">Create and manage notices for your college</p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 active:scale-95 w-full sm:w-auto"
         >
           <Plus size={18} /> Create Notice
         </button>
@@ -224,6 +229,45 @@ export default function NoticeManagement() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
         />
+      </div>
+
+      {/* Priority Filters */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {['all', 'urgent', 'high', 'medium', 'low'].map(p => {
+          const count = p === 'all'
+            ? notices.length
+            : notices.filter(n => n.priority === p).length
+
+          const isActive = selectedPriority === p
+
+          return (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setSelectedPriority(p)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
+                isActive
+                  ? p === 'urgent'
+                    ? 'bg-rose-600 text-white shadow-sm shadow-rose-500/20'
+                    : p === 'high'
+                    ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/20'
+                    : 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-400 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {p === 'urgent' && '🚨 '}
+              {p === 'high' && '⚠️ '}
+              {p}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-gray-400'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Add/Edit Form */}
@@ -344,7 +388,7 @@ export default function NoticeManagement() {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredNotices.map((notice) => (
-              <div key={notice.id} className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+              <div key={notice.id || notice._id} className="p-4 md:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -363,11 +407,36 @@ export default function NoticeManagement() {
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{notice.content}</p>
+                    <p className={`text-slate-600 dark:text-gray-400 text-sm mb-2 whitespace-pre-line leading-relaxed ${
+                      expandedNotices[notice.id || notice._id] ? '' : 'line-clamp-2'
+                    }`}>
+                      {notice.content}
+                    </p>
+                    {notice.content && notice.content.length > 100 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedNotices(prev => ({
+                          ...prev,
+                          [notice.id || notice._id]: !prev[notice.id || notice._id]
+                        }))}
+                        className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline mb-3 inline-block"
+                      >
+                        {expandedNotices[notice.id || notice._id] ? 'Show less' : 'Read full notice →'}
+                      </button>
+                    )}
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs text-slate-500 dark:text-gray-500">
                       <span className="flex items-center gap-1">
                         <User size={12} /> {notice.targetAudience}
                       </span>
+                      {notice.createdBy && (
+                        <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-gray-300">
+                          <User size={12} className="text-indigo-500" />
+                          {typeof notice.createdBy === 'object' && notice.createdBy.name
+                            ? `${notice.createdBy.name} (${notice.createdBy.role === 'faculty' ? 'Faculty' : 'College Admin'})`
+                            : 'College Admin'}
+                        </span>
+                      )}
+                      
                       {notice.department && (
                         <span className="flex items-center gap-1">
                           <Building2 size={12} /> {notice.department}
@@ -378,16 +447,16 @@ export default function NoticeManagement() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 md:gap-1 mt-3 md:mt-0">
+                  <div className="flex items-center justify-end sm:justify-start gap-1 pt-2 sm:pt-0 border-t border-slate-100 dark:border-slate-800/60 sm:border-0 mt-3 sm:mt-0 flex-shrink-0">
                     <button
-                      onClick={() => handlePin(notice.id)}
+                      onClick={() => handlePin(notice.id || notice._id)}
                       className={`p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${notice.pinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-gray-400'}`}
                       title={notice.pinned ? 'Unpin' : 'Pin'}
                     >
                       <Pin size={16} fill={notice.pinned ? 'currentColor' : 'none'} />
                     </button>
                     <button
-                      onClick={() => handlePublish(notice.id)}
+                      onClick={() => handlePublish(notice.id || notice._id)}
                       className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       title={notice.published ? 'Unpublish' : 'Publish'}
                     >
@@ -405,7 +474,7 @@ export default function NoticeManagement() {
                       <Edit size={16} className="text-slate-600 dark:text-gray-400" />
                     </button>
                     <button
-                      onClick={() => handleDelete(notice.id)}
+                      onClick={() => handleDelete(notice.id || notice._id)}
                       className="p-2 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors"
                       title="Delete"
                     >

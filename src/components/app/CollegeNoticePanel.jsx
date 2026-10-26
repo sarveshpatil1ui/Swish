@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Megaphone, Calendar, User, Clock, AlertCircle,
-  RefreshCw, X, ChevronRight, Building2, ShieldAlert
+  RefreshCw, X, ChevronRight, Building2, ShieldAlert, ChevronDown, ChevronUp
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { apiGetCollegeNotices } from '../../utils/auth'
@@ -17,11 +17,37 @@ function formatDate(dateStr) {
   })
 }
 
-function NoticeDetailModal({ notice, onClose }) {
+
+function getNoticeAuthor(createdBy) {
+  if (!createdBy) return 'College Admin'
+
+  if (typeof createdBy === 'object') {
+    const name = createdBy.name?.trim()
+    const role = createdBy.role
+
+    let roleLabel = 'College Admin'
+    if (role === 'faculty') {
+      roleLabel = 'Faculty'
+    } else if (role === 'college_admin') {
+      roleLabel = 'College Admin'
+    } else if (role === 'admin' || role === 'main_admin') {
+      roleLabel = 'Admin'
+    }
+
+    if (name) {
+      return `${name} (${roleLabel})`
+    }
+    return roleLabel
+  }
+
+  return 'College Admin'
+}
+
+export function NoticeDetailModal({ notice, onClose }) {
   if (!notice) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -49,7 +75,7 @@ function NoticeDetailModal({ notice, onClose }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Priority & Audience Badges */}
           <div className="flex flex-wrap items-center gap-2">
             {notice.priority === 'urgent' && (
@@ -83,7 +109,7 @@ function NoticeDetailModal({ notice, onClose }) {
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-gray-400 py-2 border-y border-slate-100 dark:border-gray-800">
             <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-gray-300">
               <User size={14} className="text-indigo-500" />
-              {notice.createdBy?.name ? `${notice.createdBy.name} (College Admin)` : 'College Admin'}
+              {getNoticeAuthor(notice.createdBy)}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar size={14} />
@@ -116,7 +142,8 @@ function NoticeDetailModal({ notice, onClose }) {
   )
 }
 
-export default function CollegeNoticePanel({ title = 'College Notices', className = '' }) {
+export default function CollegeNoticePanel({ title = 'College Notices', className = '', collapsible = false, defaultOpen = true, showHeader = true }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const { currentUser: user } = useSwish()
   const [notices, setNotices] = useState([])
   const [loading, setLoading] = useState(true)
@@ -154,7 +181,8 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
     <>
       <div className={`bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm ${className}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        {showHeader && (
+          <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Megaphone size={15} />
@@ -171,7 +199,9 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
             </div>
           </div>
 
+          <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={fetchNotices}
             disabled={loading}
             title="Refresh notices"
@@ -179,8 +209,22 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
+          {collapsible && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-1 rounded-lg text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={isOpen ? "Collapse notices" : "Expand notices"}
+            >
+              {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          )}
         </div>
+      </div>
+        )}
 
+        {(!collapsible || isOpen) && (
+          <>
         {/* Loading State */}
         {loading && notices.length === 0 && (
           <div className="space-y-3 py-2">
@@ -250,7 +294,8 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
                       {notice.title}
                     </h4>
                     {isUrgent && (
-                      <span className="flex-shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-600 text-white">
+                      <span className="flex-shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-600 text-white flex items-center gap-1 shadow-sm shadow-rose-600/30">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                         Urgent
                       </span>
                     )}
@@ -261,8 +306,8 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
                   </p>
 
                   <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-gray-500 pt-1 border-t border-slate-200/40 dark:border-gray-800/60">
-                    <span className="font-medium text-slate-600 dark:text-gray-400">
-                      College Admin
+                    <span className="font-medium text-slate-600 dark:text-gray-400 truncate max-w-[180px]">
+                      {getNoticeAuthor(notice.createdBy)}
                     </span>
                     <span>
                       {formatDate(notice.publishedAt || notice.createdAt)}
@@ -273,6 +318,9 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
             })}
           </div>
         )}
+          </>
+        )}
+
       </div>
 
       {/* Notice Detail Modal */}

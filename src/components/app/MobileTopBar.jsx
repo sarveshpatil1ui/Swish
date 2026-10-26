@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Zap, MessageSquare, Bell, Settings, Sun, Moon, LogOut, User, Shield, GraduationCap, ChevronRight } from 'lucide-react'
+import { Zap, MessageSquare, Bell, Settings, Sun, Moon, LogOut, User, Shield, GraduationCap, ChevronRight, Megaphone, X } from 'lucide-react'
+import CollegeNoticePanel from './CollegeNoticePanel'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '../../context/ThemeContext'
 import { useSwish } from '../../context/SwishContext'
 import { resolveImageUrl } from '../../utils/posts'
+import { apiGetCollegeNotices } from '../../utils/auth'
 
 export default function MobileTopBar() {
   const { pathname } = useLocation()
@@ -12,6 +14,23 @@ export default function MobileTopBar() {
   const { dark, toggle } = useTheme()
   const { currentUser: user, logout, notifications = [], unreadMsgCount = 0 } = useSwish()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [noticesModalOpen, setNoticesModalOpen] = useState(false)
+  const [noticeCount, setNoticeCount] = useState(0)
+  const [hasUrgentNotice, setHasUrgentNotice] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    apiGetCollegeNotices()
+      .then(res => {
+        if (mounted && res?.ok && Array.isArray(res.notices)) {
+          setNoticeCount(res.notices.length)
+          const urgent = res.notices.some(n => n.priority === 'urgent')
+          setHasUrgentNotice(urgent)
+        }
+      })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [])
 
   const unreadCount = notifications.filter(n => !n.read).length
   const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
@@ -109,6 +128,21 @@ export default function MobileTopBar() {
             )}
           </Link>
 
+          {/* Campus Notices & Announcements */}
+          <button
+            type="button"
+            onClick={() => setNoticesModalOpen(true)}
+            aria-label="Notices & Announcements"
+            className="relative flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 active:scale-90 transition-all"
+          >
+            <Megaphone size={19} strokeWidth={1.8} />
+            {hasUrgentNotice ? (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-950 animate-pulse" />
+            ) : noticeCount > 0 ? (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white dark:ring-gray-950" />
+            ) : null}
+          </button>
+
           {/* Account button / Avatar */}
           <button
             id="mobile-account-button"
@@ -191,6 +225,28 @@ export default function MobileTopBar() {
                   </div>
                   <ChevronRight size={16} className="text-slate-400" />
                 </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false)
+                    setNoticesModalOpen(true)
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <Megaphone size={18} className="text-amber-500" />
+                    <span className="text-sm font-medium">Notices & Announcements</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {noticeCount > 0 && (
+                      <span className="text-[11px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                        {noticeCount}
+                      </span>
+                    )}
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+                </button>
 
                 <Link
                   to="/settings"
@@ -276,6 +332,46 @@ export default function MobileTopBar() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Campus Notices / Announcements Modal */}
+      <AnimatePresence>
+        {noticesModalOpen && (
+          <div
+            onClick={() => setNoticesModalOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={e => e.stopPropagation()}
+              className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-gray-900/50 flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-sm">
+                    <Megaphone size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Notices & Announcements</h3>
+                    <p className="text-[11px] text-slate-400 dark:text-gray-500">{user?.college || 'Official campus announcements'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setNoticesModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label="Close announcements modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1">
+                <CollegeNoticePanel className="border-0 shadow-none p-0 !bg-transparent" showHeader={false} />
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

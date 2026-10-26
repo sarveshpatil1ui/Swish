@@ -35,6 +35,17 @@ test('Phase 2 — Database Model Indexes Integrity', async (t) => {
     assert.equal(hasPrivacyIndex, true, 'User must have index on preferences.privacy.private')
   })
 
+  await t.test('User model does not declare duplicate username or email indexes', () => {
+    const indexes = User.schema.indexes()
+    const usernameIndexes = indexes.filter(([fields]) => fields.username === 1)
+    const emailIndexes = indexes.filter(([fields]) => fields.email === 1)
+
+    assert.equal(usernameIndexes.length, 1, 'User must have exactly one username index')
+    assert.equal(emailIndexes.length, 1, 'User must have exactly one email index')
+    assert.equal(usernameIndexes[0][1].unique, true, 'Username index must remain unique')
+    assert.equal(emailIndexes[0][1].unique, true, 'Email index must remain unique')
+  })
+
   await t.test('Conversation model contains compound participants and lastMessageAt index', () => {
     const indexes = Conversation.schema.indexes()
     const hasParticipantsLastMessageIndex = indexes.some(
