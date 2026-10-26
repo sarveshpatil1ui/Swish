@@ -117,18 +117,31 @@ router.get('/all', requireAuth, async (req, res) => {
 })
 
 // ── GET /api/users ───────────────────────────────────────────────────────────
-router.get('/', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), async (req, res) => {
   try {
     const filter = {}
     
-    // College admin can only see users from their college
+    // College admin & faculty can only see users from their college
     if (req.user.role === 'college_admin') {
       if (!req.user.collegeId) {
         return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
       }
       filter.collegeId = req.user.collegeId
+    } else if (req.user.role === 'faculty') {
+      if (!req.user.collegeId) {
+        return res.status(403).json({ ok: false, error: 'Access denied: Faculty has no associated college.' })
+      }
+      filter.collegeId = req.user.collegeId
+      filter.role = 'student' // Faculty can only view students in their college
+      if (req.query.dept) {
+        filter.dept = req.query.dept
+      }
     } else if (req.user.role === 'admin' && req.query.collegeId) {
       filter.collegeId = req.query.collegeId
+    }
+    
+    if (req.query.role && req.user.role !== 'faculty') {
+      filter.role = req.query.role
     }
     
     const users = await User.find(filter).sort({ createdAt: -1 })
@@ -140,17 +153,17 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin'), async (req, 
 })
 
 // ── GET /api/users/stats ─────────────────────────────────────────────────────
-// Get dynamic statistics for college admin dashboard
-router.get('/stats', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+// Get dynamic statistics for college dashboard
+router.get('/stats', requireAuth, requireRole('admin', 'college_admin', 'faculty'), async (req, res) => {
   try {
     const filter = {}
     const deptFilter = {}
     const noticeFilter = {}
     
-    // College admin can only see stats from their college
-    if (req.user.role === 'college_admin') {
+    // College admin and faculty can only see stats from their college
+    if (req.user.role === 'college_admin' || req.user.role === 'faculty') {
       if (!req.user.collegeId) {
-        return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
+        return res.status(403).json({ ok: false, error: 'Access denied: User has no associated college.' })
       }
       filter.collegeId = req.user.collegeId
       deptFilter.collegeId = req.user.collegeId

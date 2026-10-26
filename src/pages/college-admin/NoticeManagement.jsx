@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User, Building2, Pin } from 'lucide-react'
 import { apiGetNotices, apiCreateNotice, apiUpdateNotice, apiDeleteNotice, apiPublishNotice, apiPinNotice, apiGetDepartments } from '../../utils/auth'
+import { useSwish } from '../../context/SwishContext'
 
 export default function NoticeManagement() {
+  const { currentUser } = useSwish()
   const [notices, setNotices] = useState([])
   const [filteredNotices, setFilteredNotices] = useState([])
   const [departments, setDepartments] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPriority, setSelectedPriority] = useState('all')
+  const [scopeFilter, setScopeFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingNotice, setEditingNotice] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,8 +42,15 @@ export default function NoticeManagement() {
     if (selectedPriority !== 'all') {
       filtered = filtered.filter(n => n.priority === selectedPriority)
     }
+    if (scopeFilter === 'mine' && currentUser) {
+      const currentId = (currentUser.id || currentUser._id)?.toString()
+      filtered = filtered.filter(n => {
+        const authorId = (n.createdBy?._id || n.createdBy?.id || n.createdBy)?.toString()
+        return authorId === currentId
+      })
+    }
     setFilteredNotices(filtered)
-  }, [searchQuery, selectedPriority, notices])
+  }, [searchQuery, selectedPriority, scopeFilter, notices, currentUser])
 
   const fetchData = async () => {
     try {
@@ -60,6 +70,72 @@ export default function NoticeManagement() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const currentUserId = (currentUser?.id || currentUser?._id)?.toString()
+  const myNoticesCount = notices.filter(n => {
+    const authorId = (n.createdBy?._id || n.createdBy?.id || n.createdBy)?.toString()
+    return Boolean(authorId && currentUserId && authorId === currentUserId)
+  }).length
+
+  const canManageNotice = (notice) => {
+    if (!currentUser) return false
+    if (currentUser.role === 'admin' || currentUser.role === 'college_admin') {
+      return true
+    }
+    const authorId = (notice.createdBy?._id || notice.createdBy?.id || notice.createdBy)?.toString()
+    return Boolean(authorId && currentUserId && authorId === currentUserId)
+  }
+
+  const handleOpenAddForm = () => {
+    let defaultDeptId = ''
+    let defaultDeptName = ''
+    if (currentUser?.dept && departments.length > 0) {
+      const matched = departments.find(d => 
+        d.name?.toLowerCase() === currentUser.dept.toLowerCase() ||
+        d.code?.toLowerCase() === currentUser.dept.toLowerCase()
+      )
+      if (matched) {
+        defaultDeptId = matched.id || matched._id
+        defaultDeptName = matched.name
+      } else {
+        defaultDeptName = currentUser.dept
+      }
+    }
+    setFormData({
+      title: '',
+      content: '',
+      targetAudience: 'all',
+      priority: 'medium',
+      departmentId: defaultDeptId,
+      department: defaultDeptName,
+      published: false
+    })
+    setErrors({})
+    setShowAddForm(true)
+  }
+
+  const handleTargetAudienceChange = (val) => {
+    let deptId = formData.departmentId
+    let deptName = formData.department
+    if (val === 'department' && !deptId && currentUser?.dept && departments.length > 0) {
+      const matched = departments.find(d => 
+        d.name?.toLowerCase() === currentUser.dept.toLowerCase() ||
+        d.code?.toLowerCase() === currentUser.dept.toLowerCase()
+      )
+      if (matched) {
+        deptId = matched.id || matched._id
+        deptName = matched.name
+      } else {
+        deptName = currentUser.dept
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      targetAudience: val,
+      departmentId: deptId,
+      department: deptName,
+    }))
   }
 
   const handleAdd = async (e) => {
@@ -212,7 +288,7 @@ export default function NoticeManagement() {
           <p className="text-slate-500 dark:text-gray-500 text-xs sm:text-sm mt-0.5">Create and manage notices for your college</p>
         </div>
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={handleOpenAddForm}
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 active:scale-95 w-full sm:w-auto"
         >
           <Plus size={18} /> Create Notice
@@ -231,8 +307,36 @@ export default function NoticeManagement() {
         />
       </div>
 
-      {/* Priority Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {/* Filters & Scope */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Scope Toggle: All Notices vs My Notices */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-fit">
+          <button
+            type="button"
+            onClick={() => setScopeFilter('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              scopeFilter === 'all'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            All Notices ({notices.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setScopeFilter('mine')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              scopeFilter === 'mine'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            My Notices ({myNoticesCount})
+          </button>
+        </div>
+
+        {/* Priority Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
         {['all', 'urgent', 'high', 'medium', 'low'].map(p => {
           const count = p === 'all'
             ? notices.length
@@ -268,6 +372,7 @@ export default function NoticeManagement() {
             </button>
           )
         })}
+        </div>
       </div>
 
       {/* Add/Edit Form */}
@@ -304,7 +409,7 @@ export default function NoticeManagement() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Target Audience</label>
                 <select
                   value={formData.targetAudience}
-                  onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                  onChange={(e) => handleTargetAudienceChange(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
                 >
                   <option value="all">All</option>
@@ -447,9 +552,10 @@ export default function NoticeManagement() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-end sm:justify-start gap-1 pt-2 sm:pt-0 border-t border-slate-100 dark:border-slate-800/60 sm:border-0 mt-3 sm:mt-0 flex-shrink-0">
-                    <button
-                      onClick={() => handlePin(notice.id || notice._id)}
+                  {canManageNotice(notice) && (
+                    <div className="flex items-center justify-end sm:justify-start gap-1 pt-2 sm:pt-0 border-t border-slate-100 dark:border-slate-800/60 sm:border-0 mt-3 sm:mt-0 flex-shrink-0">
+                      <button
+                        onClick={() => handlePin(notice.id || notice._id)}
                       className={`p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${notice.pinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-gray-400'}`}
                       title={notice.pinned ? 'Unpin' : 'Pin'}
                     >
@@ -480,7 +586,8 @@ export default function NoticeManagement() {
                     >
                       <Trash2 size={16} className="text-rose-600 dark:text-rose-400" />
                     </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

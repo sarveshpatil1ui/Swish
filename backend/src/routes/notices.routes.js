@@ -349,6 +349,10 @@ router.put(
         return res.status(404).json({ ok: false, error: 'Notice not found.' })
       }
 
+      if (req.user.role === 'faculty' && notice.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ ok: false, error: 'Access denied: You can only edit your own notices.' })
+      }
+
       const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
       const wasPublished = notice.published
 
@@ -404,10 +408,16 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin', 'facult
       ? { _id: req.params.id }
       : { _id: req.params.id, collegeId: req.collegeId }
     
-    const notice = await Notice.findOneAndDelete(filter)
+    const notice = await Notice.findOne(filter)
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
     }
+
+    if (req.user.role === 'faculty' && notice.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'Access denied: You can only delete your own notices.' })
+    }
+
+    await Notice.findByIdAndDelete(notice._id)
 
     // Log the action
     await logActivity({
@@ -442,6 +452,10 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin', 
     const notice = await Notice.findOne(filter)
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
+
+    if (req.user.role === 'faculty' && notice.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'Access denied: You can only publish or unpublish your own notices.' })
     }
 
     notice.published = !notice.published
@@ -485,6 +499,10 @@ router.patch('/:id/pin', requireAuth, requireRole('admin', 'college_admin', 'fac
     const notice = await Notice.findOne(filter)
     if (!notice) {
       return res.status(404).json({ ok: false, error: 'Notice not found.' })
+    }
+
+    if (req.user.role === 'faculty' && notice.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'Access denied: You can only pin or unpin your own notices.' })
     }
 
     // If pinning, check if we've reached the limit (max 5 pinned notices per college)
