@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Send, Smile,
   ChevronLeft, CheckCheck, Check,
-  X, MessageSquare, Loader2, UserSearch, Wifi, WifiOff,
+  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -80,23 +80,86 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
 }
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMe }) {
+function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.16 }}
-      className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1`}
+    <div
+      id={`msg-${msg.id}`}
+      className={`relative flex ${isMe ? 'justify-end' : 'justify-start'} mb-1 group/bubble transition-all duration-300`}
     >
-      <div className={`max-w-[72%] group flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-          isMe
-            ? 'bg-indigo-600 text-white rounded-br-sm'
-            : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
-        }`}>
-          {msg.text}
+      {/* Swipe-to-reply background indicator (revealed when dragging right on mobile) */}
+      <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 opacity-60 pointer-events-none md:hidden">
+        <Reply size={16} />
+      </div>
+
+      {/* Draggable bubble wrapper */}
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0.05, right: 0.45 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.x > 50) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate(25)
+            }
+            onReply?.(msg)
+          }
+        }}
+        className={`max-w-[72%] flex flex-col ${isMe ? 'items-end' : 'items-start'} z-10`}
+      >
+        <div className={`relative flex items-center gap-1.5 ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
+          {/* Quick reply action button (visible on hover) */}
+          <button
+            type="button"
+            onClick={() => onReply?.(msg)}
+            title="Reply"
+            className="opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0"
+          >
+            <Reply size={14} />
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+              isMe
+                ? 'bg-indigo-600 text-white rounded-br-sm'
+                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
+            }`}>
+              {/* Quoted Reply Preview inside bubble */}
+              {msg.replyTo && (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onScrollToMessage?.(msg.replyTo.messageId)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.stopPropagation()
+                      onScrollToMessage?.(msg.replyTo.messageId)
+                    }
+                  }}
+                  className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
+                    isMe
+                      ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
+                      : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                  }`}
+                >
+                  <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                    {msg.replyTo.senderName || 'Replied message'}
+                  </p>
+                  <p className="truncate opacity-90 text-[11px] mt-0.5">
+                    {msg.replyTo.text}
+                  </p>
+                </div>
+              )}
+
+              <div>{msg.text}</div>
+            </div>
+          </div>
         </div>
-        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
+
+        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover/bubble:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
           <span className="text-[10px] text-slate-400 dark:text-gray-500">{msgTime(msg.createdAt)}</span>
           {isMe && (
             msg.readBy?.length > 1
@@ -104,8 +167,8 @@ function MessageBubble({ msg, isMe }) {
               : <Check size={12} className="text-slate-400" />
           )}
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   )
 }
 
@@ -273,6 +336,7 @@ export default function CollegeAdminMessages() {
   const [typingUsers,    setTypingUsers]    = useState({})
   const [unreadNotifs,   setUnreadNotifs]   = useState([])
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [replyingTo,      setReplyingTo]      = useState(null)
 
   const messagesEndRef = useRef(null)
   const inputRef       = useRef(null)
@@ -433,6 +497,7 @@ export default function CollegeAdminMessages() {
     setActiveChatConvId?.(conv.id)
     setMobileShowChat(true)
     setShowInfo(false)
+    setReplyingTo(null)
     setMessages([])
     setTypingUsers(prev => { const n = {...prev}; delete n[conv.id]; return n })
 
@@ -471,11 +536,41 @@ export default function CollegeAdminMessages() {
     }
   }
 
+    // ── Handle reply to message ───────────────────────────────────────────────
+  const handleReply = useCallback((msg) => {
+    const myId = String(currentUser?.id || currentUser?._id || '')
+    const isFromMe = String(msg.senderId) === myId
+    const senderName = isFromMe ? 'You' : (activeConv?.name || 'User')
+    const textSnippet = msg.text || 'Message'
+    setReplyingTo({
+      messageId: msg.id,
+      senderId: msg.senderId,
+      senderName,
+      text: textSnippet,
+    })
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 50)
+  }, [currentUser, activeConv])
+
+  const scrollToMessage = useCallback((messageId) => {
+    if (!messageId) return
+    const el = document.getElementById(`msg-${messageId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'rounded-2xl', 'transition-all', 'duration-300')
+      setTimeout(() => {
+        el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2')
+      }, 1500)
+    }
+  }, [])
+
   const sendMessage = () => {
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
     const myId = currentUser?.id || currentUser?._id
+    const currentReply = replyingTo
 
     emit('typing:stop', { convId: activeConvId })
     clearTimeout(typingTimer.current)
@@ -485,18 +580,25 @@ export default function CollegeAdminMessages() {
       id:        tempId,
       senderId:  myId,
       text,
+      replyTo:   currentReply ? {
+        messageId:  currentReply.messageId,
+        senderId:   currentReply.senderId,
+        senderName: currentReply.senderName,
+        text:       currentReply.text,
+      } : null,
       createdAt: new Date().toISOString(),
       readBy:    [myId],
       _temp:     true,
     }
     setMessages(prev => [...prev, tempMsg])
     setInputText('')
+    setReplyingTo(null)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     inputRef.current?.focus()
 
     setSending(true)
     const sentToConvId = activeConvId
-    emit('msg:send', { convId: sentToConvId, text }, (ack) => {
+    emit('msg:send', { convId: sentToConvId, text, replyTo: currentReply }, (ack) => {
       setSending(false)
       if (ack?.ok && ack.message) {
         setMessages(prev => {
@@ -693,7 +795,13 @@ export default function CollegeAdminMessages() {
                       </div>
                     ) : (
                       messages.map(msg => (
-                        <MessageBubble key={msg.id} msg={msg} isMe={msg.senderId === currentUser?.id} />
+                        <MessageBubble
+                          key={msg.id}
+                          msg={msg}
+                          isMe={String(msg.senderId) === String(currentUser?.id || currentUser?._id)}
+                          onReply={handleReply}
+                          onScrollToMessage={scrollToMessage}
+                        />
                       ))
                     )}
 
@@ -707,6 +815,37 @@ export default function CollegeAdminMessages() {
 
                 {/* Input bar */}
                 <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
+                  {/* Replying preview banner (WhatsApp style) */}
+                  <AnimatePresence>
+                    {replyingTo && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, y: 8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: 8 }}
+                        transition={{ duration: 0.16 }}
+                        className="mb-2 bg-slate-100 dark:bg-gray-800/90 border-l-4 border-indigo-600 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-sm overflow-hidden"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
+                            <Reply size={13} className="inline-block" />
+                            <span>Replying to {replyingTo.senderName}</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-gray-300 truncate mt-0.5 max-w-full">
+                            {replyingTo.text}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReplyingTo(null)}
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                          aria-label="Cancel reply"
+                        >
+                          <X size={14} />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <div className="flex items-end gap-2">
                     <div className="flex-1 relative">
                       <textarea

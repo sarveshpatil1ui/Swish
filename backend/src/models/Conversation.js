@@ -25,6 +25,17 @@ const PostShareSchema = new Schema(
   { _id: false }
 )
 
+// ── Message Reply Subschema (WhatsApp style) ──────────────────────────────────
+const ReplyToSchema = new Schema(
+  {
+    messageId:   { type: Schema.Types.ObjectId, default: null },
+    senderId:    { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    senderName:  { type: String, default: null },
+    text:        { type: String, default: null },
+  },
+  { _id: false }
+)
+
 // ── Message (embedded in Conversation) ────────────────────────────────────────
 const MessageSchema = new Schema(
   {
@@ -33,6 +44,7 @@ const MessageSchema = new Schema(
     readBy:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
     storyReply: { type: StoryReplySchema, default: null },
     postShare:  { type: PostShareSchema, default: null },
+    replyTo:    { type: ReplyToSchema, default: null },
   },
   { timestamps: true }
 )

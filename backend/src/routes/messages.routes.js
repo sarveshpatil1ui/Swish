@@ -163,6 +163,12 @@ router.get('/:convId', async (req, res) => {
         caption:    m.postShare.caption || '',
         authorName: m.postShare.authorName || '',
       } : null,
+      replyTo: m.replyTo && m.replyTo.text ? {
+        messageId:  m.replyTo.messageId ? m.replyTo.messageId.toString() : null,
+        senderId:   m.replyTo.senderId ? m.replyTo.senderId.toString() : null,
+        senderName: m.replyTo.senderName || '',
+        text:       m.replyTo.text || '',
+      } : null,
     }))
 
     return res.status(200).json({ ok: true, messages })
@@ -235,12 +241,23 @@ router.patch('/:convId/read', async (req, res) => {
 // ── POST /api/messages/:convId/send — send a message ─────────────────────────
 router.post('/:convId/send', async (req, res) => {
   try {
-    const { text, storyReply, postShare } = req.body
+    const { text, storyReply, postShare, replyTo } = req.body
     if (!text?.trim()) return res.status(400).json({ ok: false, error: 'Message text is required.' })
 
     const cleanText = text.trim()
     const now = new Date()
     const msgId = new mongoose.Types.ObjectId()
+
+    let sanitizedReplyTo = null
+    if (replyTo && typeof replyTo === 'object' && replyTo.text) {
+      sanitizedReplyTo = {
+        messageId: replyTo.messageId ? new mongoose.Types.ObjectId(replyTo.messageId) : null,
+        senderId: replyTo.senderId ? new mongoose.Types.ObjectId(replyTo.senderId) : null,
+        senderName: String(replyTo.senderName || '').slice(0, 80),
+        text: String(replyTo.text || '').slice(0, 300),
+      }
+    }
+
     const msg = {
       _id: msgId,
       sender: req.user._id,
@@ -250,6 +267,7 @@ router.post('/:convId/send', async (req, res) => {
       updatedAt: now,
       ...(storyReply && { storyReply }),
       ...(postShare && { postShare }),
+      ...(sanitizedReplyTo && { replyTo: sanitizedReplyTo }),
     }
 
     const conv = await Conversation.findOneAndUpdate(
@@ -286,6 +304,7 @@ router.post('/:convId/send', async (req, res) => {
       readBy:             [req.user._id.toString()],
       storyReply:         storyReply || null,
       postShare:          postShare || null,
+      replyTo:            replyTo || null,
     }
 
     // Emit to conversation room and notify offline/out-of-room participants

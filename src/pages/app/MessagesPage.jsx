@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Info, Send, Smile,
   ChevronLeft, CheckCheck, Check,
-  X, MessageSquare, Loader2, UserSearch, Wifi, WifiOff,
+  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -81,7 +81,7 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
 }
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMe }) {
+function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
   const storyReply = msg.storyReply
   const isReaction = msg.text?.startsWith('Reacted ') && msg.text?.includes(' to your story')
   const reactionEmoji =
@@ -91,95 +91,187 @@ function MessageBubble({ msg, isMe }) {
   const resolvedStoryImg = storyReply?.imageUrl ? resolveImageUrl(storyReply.imageUrl) : null
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.16 }}
-      className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}
+    <div
+      id={`msg-${msg.id}`}
+      className={`relative flex ${isMe ? 'justify-end' : 'justify-start'} mb-2 group/bubble transition-all duration-300`}
     >
-      <div className={`max-w-[85%] sm:max-w-[70%] group flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-        
-        {/* ── Story Reaction / Reply Preview Card (Instagram Style) ── */}
-        {storyReply && resolvedStoryImg ? (
-          <div
-            className={`rounded-2xl p-2 shadow-sm border transition-all ${
-              isMe
-                ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
-                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
-            }`}
+      {/* Swipe-to-reply background indicator (revealed when dragging right on mobile) */}
+      <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 opacity-60 pointer-events-none md:hidden">
+        <Reply size={16} />
+      </div>
+
+      {/* Draggable bubble wrapper */}
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0.05, right: 0.45 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.x > 50) {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate(25)
+            }
+            onReply?.(msg)
+          }
+        }}
+        className={`max-w-[85%] sm:max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'} z-10`}
+      >
+        <div className={`relative flex items-center gap-1.5 ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
+          {/* Quick reply action button (visible on hover) */}
+          <button
+            type="button"
+            onClick={() => onReply?.(msg)}
+            title="Reply"
+            className="opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0"
           >
-            {/* Header tag */}
-            <div className="flex items-center gap-1.5 px-1 pb-1.5 text-[11px] font-semibold opacity-90">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              <span>{isMe ? 'You replied to story' : 'Replied to your story'}</span>
-            </div>
+            <Reply size={14} />
+          </button>
 
-            {/* Story Thumbnail Card with vertical aspect ratio */}
-            <div className="relative w-40 h-56 sm:w-48 sm:h-64 rounded-xl overflow-hidden bg-slate-950 shadow-inner group/card">
-              <img
-                src={resolvedStoryImg}
-                alt="Story"
-                className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
+          {/* Main bubble content */}
+          <div className="flex-1 min-w-0">
+            {/* ── Story Reaction / Reply Preview Card (Instagram Style) ── */}
+            {storyReply && resolvedStoryImg ? (
+              <div
+                className={`rounded-2xl p-2 shadow-sm border transition-all ${
+                  isMe
+                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                }`}
+              >
+                {/* Quoted Reply Preview inside story reply bubble if present */}
+                {msg.replyTo && (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onScrollToMessage?.(msg.replyTo.messageId)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation()
+                        onScrollToMessage?.(msg.replyTo.messageId)
+                      }
+                    }}
+                    className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
+                      isMe
+                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
+                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                    }`}
+                  >
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                      {msg.replyTo.senderName || 'Replied message'}
+                    </p>
+                    <p className="truncate opacity-90 text-[11px] mt-0.5">
+                      {msg.replyTo.text}
+                    </p>
+                  </div>
+                )}
 
-              {/* Story caption overlay if present */}
-              {storyReply.caption && (
-                <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
-                  <p className="text-white text-[11px] line-clamp-2 leading-tight drop-shadow font-medium">
-                    {storyReply.caption}
-                  </p>
+                {/* Header tag */}
+                <div className="flex items-center gap-1.5 px-1 pb-1.5 text-[11px] font-semibold opacity-90">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  <span>{isMe ? 'You replied to story' : 'Replied to your story'}</span>
                 </div>
-              )}
 
-              {/* Floating Reaction Emoji Badge on bottom corner */}
-              {reactionEmoji && (
-                <div className="absolute -bottom-1 -right-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-full p-1 shadow-lg ring-2 ring-white/30 transform scale-110 flex items-center justify-center">
-                  <span className="text-2xl leading-none select-none">{reactionEmoji}</span>
+                {/* Story Thumbnail Card with vertical aspect ratio */}
+                <div className="relative w-40 h-56 sm:w-48 sm:h-64 rounded-xl overflow-hidden bg-slate-950 shadow-inner group/card">
+                  <img
+                    src={resolvedStoryImg}
+                    alt="Story"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+
+                  {/* Story caption overlay if present */}
+                  {storyReply.caption && (
+                    <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+                      <p className="text-white text-[11px] line-clamp-2 leading-tight drop-shadow font-medium">
+                        {storyReply.caption}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Floating Reaction Emoji Badge on bottom corner */}
+                  {reactionEmoji && (
+                    <div className="absolute -bottom-1 -right-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-full p-1 shadow-lg ring-2 ring-white/30 transform scale-110 flex items-center justify-center">
+                      <span className="text-2xl leading-none select-none">{reactionEmoji}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Message text below story card */}
-            {(!isReaction || (msg.text && !msg.text.startsWith('Reacted '))) && (
-              <div className="pt-2 px-1 text-sm font-medium leading-relaxed">
-                {msg.text}
+                {/* Message text below story card */}
+                {(!isReaction || (msg.text && !msg.text.startsWith('Reacted '))) && (
+                  <div className="pt-2 px-1 text-sm font-medium leading-relaxed">
+                    {msg.text}
+                  </div>
+                )}
+                {isReaction && (
+                  <div className="pt-2 px-1 text-xs opacity-90 font-medium flex items-center gap-1">
+                    <span>Reacted {reactionEmoji}</span>
+                  </div>
+                )}
+              </div>
+            ) : isReaction ? (
+              /* Fallback for older reaction messages: Instagram-like reaction pill */
+              <div
+                className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed flex items-center gap-2 border shadow-sm ${
+                  isMe
+                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                }`}
+              >
+                <span className="text-2xl leading-none">{reactionEmoji}</span>
+                <span className="text-xs font-semibold opacity-90">Reacted to story</span>
+              </div>
+            ) : (
+              /* Standard Message Bubble */
+              <div
+                className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  isMe
+                    ? 'bg-indigo-600 text-white rounded-br-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
+                }`}
+              >
+                {/* Quoted Reply Preview inside bubble */}
+                {msg.replyTo && (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onScrollToMessage?.(msg.replyTo.messageId)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation()
+                        onScrollToMessage?.(msg.replyTo.messageId)
+                      }
+                    }}
+                    className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
+                      isMe
+                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
+                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                    }`}
+                  >
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                      {msg.replyTo.senderName || 'Replied message'}
+                    </p>
+                    <p className="truncate opacity-90 text-[11px] mt-0.5">
+                      {msg.replyTo.text}
+                    </p>
+                  </div>
+                )}
+
+                <div>{msg.text}</div>
               </div>
             )}
-            {isReaction && (
-              <div className="pt-2 px-1 text-xs opacity-90 font-medium flex items-center gap-1">
-                <span>Reacted {reactionEmoji}</span>
-              </div>
-            )}
           </div>
-        ) : isReaction ? (
-          /* Fallback for older reaction messages: Instagram-like reaction pill */
-          <div
-            className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed flex items-center gap-2 border shadow-sm ${
-              isMe
-                ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
-                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
-            }`}
-          >
-            <span className="text-2xl leading-none">{reactionEmoji}</span>
-            <span className="text-xs font-semibold opacity-90">Reacted to story</span>
-          </div>
-        ) : (
-          /* Standard Message Bubble */
-          <div
-            className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-              isMe
-                ? 'bg-indigo-600 text-white rounded-br-sm'
-                : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
-            }`}
-          >
-            {msg.text}
-          </div>
-        )}
+        </div>
 
-        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover/bubble:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
           <span className="text-[10px] text-slate-400 dark:text-gray-500">{msgTime(msg.createdAt)}</span>
           {isMe && (
             msg.readBy?.length > 1
@@ -187,8 +279,8 @@ function MessageBubble({ msg, isMe }) {
               : <Check size={12} className="text-slate-400" />
           )}
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   )
 }
 
@@ -356,6 +448,7 @@ export default function MessagesPage() {
   const [typingUsers,    setTypingUsers]    = useState({}) // convId → {userId, name}
   const [unreadNotifs,   setUnreadNotifs]   = useState([]) // for toast-style notifs
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [replyingTo,      setReplyingTo]      = useState(null)
 
   const messagesEndRef = useRef(null)
   const inputRef       = useRef(null)
@@ -540,6 +633,7 @@ export default function MessagesPage() {
     setActiveChatConvId?.(conv.id)
     setMobileShowChat(true)
     setShowInfo(false)
+    setReplyingTo(null)
     setMessages([])
     setTypingUsers(prev => { const n = {...prev}; delete n[conv.id]; return n })
 
@@ -582,12 +676,42 @@ export default function MessagesPage() {
     }
   }
 
+  // ── Handle reply to message ───────────────────────────────────────────────
+  const handleReply = useCallback((msg) => {
+    const myId = String(currentUser?.id || currentUser?._id || '')
+    const isFromMe = String(msg.senderId) === myId
+    const senderName = isFromMe ? 'You' : (activeConv?.name || 'User')
+    const textSnippet = msg.text || (msg.storyReply ? 'Story reply' : 'Message')
+    setReplyingTo({
+      messageId: msg.id,
+      senderId: msg.senderId,
+      senderName,
+      text: textSnippet,
+    })
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 50)
+  }, [currentUser, activeConv])
+
+  const scrollToMessage = useCallback((messageId) => {
+    if (!messageId) return
+    const el = document.getElementById(`msg-${messageId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'rounded-2xl', 'transition-all', 'duration-300')
+      setTimeout(() => {
+        el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2')
+      }, 1500)
+    }
+  }, [])
+
   // ── Send message via Socket.io ──────────────────────────────────────────────
   const sendMessage = () => {
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
     const myId = currentUser?.id || currentUser?._id
+    const currentReply = replyingTo
 
     // Stop typing indicator
     emit('typing:stop', { convId: activeConvId })
@@ -599,19 +723,26 @@ export default function MessagesPage() {
       id:        tempId,
       senderId:  myId,
       text,
+      replyTo:   currentReply ? {
+        messageId:  currentReply.messageId,
+        senderId:   currentReply.senderId,
+        senderName: currentReply.senderName,
+        text:       currentReply.text,
+      } : null,
       createdAt: new Date().toISOString(),
       readBy:    [myId],
       _temp:     true,
     }
     setMessages(prev => [...prev, tempMsg])
     setInputText('')
+    setReplyingTo(null)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     inputRef.current?.focus()
 
     setSending(true)
     // Capture the conv ID now so the ack closure doesn't stale
     const sentToConvId = activeConvId
-    emit('msg:send', { convId: sentToConvId, text }, (ack) => {
+    emit('msg:send', { convId: sentToConvId, text, replyTo: currentReply }, (ack) => {
       setSending(false)
       if (ack?.ok && ack.message) {
         // Replace temp bubble with server-confirmed message, avoiding duplicates
@@ -819,7 +950,13 @@ export default function MessagesPage() {
                   </div>
                 ) : (
                   messages.map(msg => (
-                    <MessageBubble key={msg.id} msg={msg} isMe={msg.senderId === currentUser?.id} />
+                    <MessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      isMe={String(msg.senderId) === String(currentUser?.id || currentUser?._id)}
+                      onReply={handleReply}
+                      onScrollToMessage={scrollToMessage}
+                    />
                   ))
                 )}
 
@@ -857,6 +994,37 @@ export default function MessagesPage() {
 
             {/* Input bar */}
             <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
+              {/* Replying preview banner (WhatsApp style) */}
+              <AnimatePresence>
+                {replyingTo && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: 8 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: 8 }}
+                    transition={{ duration: 0.16 }}
+                    className="mb-2 bg-slate-100 dark:bg-gray-800/90 border-l-4 border-indigo-600 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-sm overflow-hidden"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
+                        <Reply size={13} className="inline-block" />
+                        <span>Replying to {replyingTo.senderName}</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-gray-300 truncate mt-0.5 max-w-full">
+                        {replyingTo.text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo(null)}
+                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                      aria-label="Cancel reply"
+                    >
+                      <X size={14} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
                   <textarea

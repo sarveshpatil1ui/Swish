@@ -138,13 +138,24 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     })
 
     // ── Send a message ────────────────────────────────────────────────────────
-    socket.on('msg:send', async ({ convId, text, storyReply, postShare }, ack) => {
+    socket.on('msg:send', async ({ convId, text, storyReply, postShare, replyTo }, ack) => {
       try {
         if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
         const cleanText = text.trim()
         const now = new Date()
         const msgId = new mongoose.Types.ObjectId()
+
+        let sanitizedReplyTo = null
+        if (replyTo && typeof replyTo === 'object' && replyTo.text) {
+          sanitizedReplyTo = {
+            messageId: replyTo.messageId ? new mongoose.Types.ObjectId(replyTo.messageId) : null,
+            senderId: replyTo.senderId ? new mongoose.Types.ObjectId(replyTo.senderId) : null,
+            senderName: String(replyTo.senderName || '').slice(0, 80),
+            text: String(replyTo.text || '').slice(0, 300),
+          }
+        }
+
         const newMsg = {
           _id: msgId,
           sender: socket.user._id,
@@ -154,6 +165,7 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           updatedAt: now,
           ...(storyReply && { storyReply }),
           ...(postShare && { postShare }),
+          ...(sanitizedReplyTo && { replyTo: sanitizedReplyTo }),
         }
 
         // Atomic append with authorization verification in the database filter
@@ -186,6 +198,7 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           readBy:             [userId],
           storyReply:         storyReply || null,
           postShare:          postShare || null,
+          replyTo:            replyTo || null,
         }
 
         // Emit to other participants in the conversation room (sender gets message via ack)
