@@ -659,7 +659,6 @@ All mock and hardcoded profiles have been removed. The system strictly authentic
 
 ### 1. Platform Administrator
 - **Email:** `admin@swish.com`
-- **Password:** `SwishAdmin@2026` (configurable via `ADMIN_PASSWORD` in `backend/.env`)
 - **Dashboard:** `/admin` — Access platform metrics, college onboarding approvals, and moderation.
 
 ### 2. Testing Student & Faculty Accounts Locally
@@ -772,6 +771,7 @@ Swish includes a complete QA specification covering all 4 user tiers, real-time 
 
 * **Sarvesh Patil** — Project Architect & Full-Stack Lead
 * **Dhruv Nayak** — Core Developer & QA Lead
+* **Mandar Rajadhyaksha** — Innovation & Core Development Lead
 
 Contributions and pull requests are welcome! If you encounter an issue or want to suggest a new campus feature, please open an [Issue](https://github.com/sarveshpatil1ui/Swish/issues).
 
