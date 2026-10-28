@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Info, Send, Smile,
   ChevronLeft, CheckCheck, Check,
-  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff,
+  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff, ExternalLink,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -76,6 +76,66 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
       {online !== undefined && (
         <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-gray-950 ${online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'}`} />
       )}
+    </div>
+  )
+}
+
+// ─── Shared Post Card ──────────────────────────────────────────────────────────
+function SharedPostCard({ postShare, isMe }) {
+  const [imgError, setImgError] = useState(false)
+  const resolvedImg = postShare?.imageUrl ? resolveImageUrl(postShare.imageUrl) : null
+
+  return (
+    <div
+      className={`rounded-xl overflow-hidden border transition-all ${
+        isMe
+          ? 'bg-indigo-700/60 border-indigo-500/60 text-white'
+          : 'bg-slate-50 dark:bg-gray-900/60 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white'
+      }`}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 dark:border-gray-800">
+        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+        <span className="text-[11px] font-semibold truncate">
+          {postShare.authorName || 'Swish user'}
+        </span>
+      </div>
+
+      {/* Media thumbnail */}
+      {resolvedImg && !imgError && (
+        <div className="relative w-full h-44 sm:h-52 bg-slate-950 overflow-hidden">
+          <img
+            src={resolvedImg}
+            alt=""
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+      )}
+
+      {/* Caption snippet */}
+      {postShare.caption && (
+        <div className="px-3 pt-2 pb-1">
+          <p className="text-xs line-clamp-2 leading-relaxed opacity-90">
+            {postShare.caption}
+          </p>
+        </div>
+      )}
+
+      {/* Action link */}
+      <div className="p-2">
+        <Link
+          to={`/post/${postShare.postId}`}
+          className={`flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg transition-all ${
+            isMe
+              ? 'bg-white text-indigo-700 hover:bg-white/90 shadow-xs'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+          }`}
+        >
+          <span>View Post</span>
+          <ExternalLink size={12} />
+        </Link>
+      </div>
     </div>
   )
 }
@@ -225,6 +285,55 @@ function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
               >
                 <span className="text-2xl leading-none">{reactionEmoji}</span>
                 <span className="text-xs font-semibold opacity-90">Reacted to story</span>
+              </div>
+            ) : msg.postShare?.postId ? (
+              /* ── Shared Post Card ── */
+              <div
+                className={`rounded-2xl p-2.5 shadow-sm border transition-all w-64 sm:w-72 ${
+                  isMe
+                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                }`}
+              >
+                {/* Quoted Reply Preview inside bubble */}
+                {msg.replyTo && (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onScrollToMessage?.(msg.replyTo.messageId)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation()
+                        onScrollToMessage?.(msg.replyTo.messageId)
+                      }
+                    }}
+                    className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
+                      isMe
+                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
+                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                    }`}
+                  >
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                      {msg.replyTo.senderName || 'Replied message'}
+                    </p>
+                    <p className="truncate opacity-90 text-[11px] mt-0.5">
+                      {msg.replyTo.text}
+                    </p>
+                  </div>
+                )}
+
+                {/* Shared Post Card */}
+                <SharedPostCard postShare={msg.postShare} isMe={isMe} />
+
+                {/* Custom note below card if typed by user */}
+                {msg.text && msg.text !== 'Shared a post' && (
+                  <div className="pt-2 px-1 text-sm font-medium leading-relaxed">
+                    {msg.text}
+                  </div>
+                )}
               </div>
             ) : (
               /* Standard Message Bubble */

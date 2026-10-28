@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, Shield, CheckCircle, Check, Mail, User,
@@ -93,6 +93,12 @@ const blankForm = (role) => ({
 export default function JoinPage() {
   const { register, onVerified } = useSwish()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const fromLocation = location.state?.from
+  const targetDestination = fromLocation?.pathname
+    ? (fromLocation.pathname + (fromLocation.search || '') + (fromLocation.hash || ''))
+    : null
 
   // Role toggle
   const [role, setRole] = useState('student') // 'student' | 'faculty'
@@ -294,7 +300,7 @@ useEffect(() => {
     setOtpLoading(false)
     if (result.ok) {
       onVerified(result.user)
-      navigate(result.redirectTo || redirectPathForRole(result.user?.role) || '/home', { replace: true })
+      navigate(targetDestination || result.redirectTo || redirectPathForRole(result.user?.role) || '/home', { replace: true })
     } else {
       setOtpError(result.error || 'Invalid or expired code.')
       if (result.expired) startResendCooldown(0) // allow immediate resend
@@ -1077,6 +1083,7 @@ useEffect(() => {
               Already have an account?{' '}
               <Link
                 to="/login"
+                state={fromLocation ? { from: fromLocation } : undefined}
                 className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
               >
                 Sign in

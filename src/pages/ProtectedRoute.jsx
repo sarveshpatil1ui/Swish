@@ -4,11 +4,12 @@
 // making redirect decisions. Without this, a hard refresh would flash-redirect
 // authenticated users to /login while the session check is still in-flight.
 // ─────────────────────────────────────────────────────────────────────────────
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useSwish } from '../context/SwishContext'
 
 export default function ProtectedRoute({ children, dashboardOnly = false, allowedRoles,requirePasswordChange = false }) {
   const { isAuthenticated, currentUser, authLoading } = useSwish()
+  const location = useLocation()
 
   // While the /api/auth/me call is in-flight, show a clear loading state
   // instead of a blank screen (prevents flash redirect).
@@ -27,7 +28,7 @@ export default function ProtectedRoute({ children, dashboardOnly = false, allowe
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
 

@@ -140,9 +140,18 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     // ── Send a message ────────────────────────────────────────────────────────
     socket.on('msg:send', async ({ convId, text, storyReply, postShare, replyTo }, ack) => {
       try {
-        if (!text?.trim() || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
+        const cleanText = (text && typeof text === 'string' ? text.trim() : '') || (postShare ? 'Shared a post' : (storyReply ? 'Replied to story' : ''))
+        if (!cleanText || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
-        const cleanText = text.trim()
+        let sanitizedPostShare = null
+        if (postShare && typeof postShare === 'object' && postShare.postId) {
+          sanitizedPostShare = {
+            postId: new mongoose.Types.ObjectId(postShare.postId),
+            imageUrl: postShare.imageUrl ? String(postShare.imageUrl) : null,
+            caption: postShare.caption ? String(postShare.caption).slice(0, 500) : '',
+            authorName: postShare.authorName ? String(postShare.authorName).slice(0, 80) : 'Swish user',
+          }
+        }
         const now = new Date()
         const msgId = new mongoose.Types.ObjectId()
 
@@ -164,7 +173,7 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           createdAt: now,
           updatedAt: now,
           ...(storyReply && { storyReply }),
-          ...(postShare && { postShare }),
+          ...(sanitizedPostShare && { postShare: sanitizedPostShare }),
           ...(sanitizedReplyTo && { replyTo: sanitizedReplyTo }),
         }
 
@@ -197,7 +206,7 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           createdAt:          now.toISOString(),
           readBy:             [userId],
           storyReply:         storyReply || null,
-          postShare:          postShare || null,
+          postShare:          sanitizedPostShare || null,
           replyTo:            replyTo || null,
         }
 

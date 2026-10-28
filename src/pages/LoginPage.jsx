@@ -26,6 +26,18 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const fromLocation = location.state?.from
+  const targetDestination = fromLocation?.pathname
+    ? (fromLocation.pathname + (fromLocation.search || '') + (fromLocation.hash || ''))
+    : null
+
+  const getDestination = (role, defaultRedirect) => {
+    if (role === 'college_admin' || role === 'admin' || role === 'main_admin') {
+      return defaultRedirect || redirectPathForRole(role)
+    }
+    return targetDestination || defaultRedirect || redirectPathForRole(role)
+  }
+
   const [email, setEmail]             = useState('')
   const [password, setPassword]       = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -58,7 +70,7 @@ export default function LoginPage() {
     const result = await login(email, password)
     setLoading(false)
     if (result.ok) {
-      navigate(result.redirectTo || redirectPathForRole(result.role), { replace: true })
+      navigate(getDestination(result.role, result.redirectTo), { replace: true })
     } else if (result.pendingVerification) {
       // Account exists but email not verified — show OTP step
       setPendingEmail(result.email || email.trim().toLowerCase())
@@ -96,7 +108,7 @@ export default function LoginPage() {
     setOtpLoading(false)
     if (result.ok) {
       onVerified(result.user)
-      navigate(result.redirectTo || redirectPathForRole(result.user?.role), { replace: true })
+      navigate(getDestination(result.user?.role, result.redirectTo), { replace: true })
     } else {
       setOtpError(result.error || 'Invalid or expired code.')
       if (result.expired) startResendCooldown(0)
@@ -402,6 +414,25 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Shared post banner */}
+          <AnimatePresence mode="wait">
+            {targetDestination?.startsWith('/post/') && (
+              <motion.div
+                key="post-banner"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-2.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 rounded-xl px-4 py-3 mb-5"
+              >
+                <Shield size={16} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                <p className="text-indigo-700 dark:text-indigo-300 text-xs font-medium leading-snug">
+                  Please sign in with your campus account to view this shared post.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Success banner from password reset */}
           <AnimatePresence mode="wait">
             {successBanner && (
@@ -545,6 +576,7 @@ export default function LoginPage() {
             New to Swish?{' '}
             <Link
               to="/join"
+              state={fromLocation ? { from: fromLocation } : undefined}
               className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
             >
               Create your campus account →

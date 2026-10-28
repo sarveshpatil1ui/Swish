@@ -242,9 +242,18 @@ router.patch('/:convId/read', async (req, res) => {
 router.post('/:convId/send', async (req, res) => {
   try {
     const { text, storyReply, postShare, replyTo } = req.body
-    if (!text?.trim()) return res.status(400).json({ ok: false, error: 'Message text is required.' })
+    const cleanText = (text && typeof text === 'string' ? text.trim() : '') || (postShare ? 'Shared a post' : (storyReply ? 'Replied to story' : ''))
+    if (!cleanText) return res.status(400).json({ ok: false, error: 'Message text is required.' })
 
-    const cleanText = text.trim()
+    let sanitizedPostShare = null
+    if (postShare && typeof postShare === 'object' && postShare.postId) {
+      sanitizedPostShare = {
+        postId: new mongoose.Types.ObjectId(postShare.postId),
+        imageUrl: postShare.imageUrl ? String(postShare.imageUrl) : null,
+        caption: postShare.caption ? String(postShare.caption).slice(0, 500) : '',
+        authorName: postShare.authorName ? String(postShare.authorName).slice(0, 80) : 'Swish user',
+      }
+    }
     const now = new Date()
     const msgId = new mongoose.Types.ObjectId()
 
@@ -266,7 +275,7 @@ router.post('/:convId/send', async (req, res) => {
       createdAt: now,
       updatedAt: now,
       ...(storyReply && { storyReply }),
-      ...(postShare && { postShare }),
+      ...(sanitizedPostShare && { postShare: sanitizedPostShare }),
       ...(sanitizedReplyTo && { replyTo: sanitizedReplyTo }),
     }
 
@@ -303,7 +312,7 @@ router.post('/:convId/send', async (req, res) => {
       createdAt:          now.toISOString(),
       readBy:             [req.user._id.toString()],
       storyReply:         storyReply || null,
-      postShare:          postShare || null,
+      postShare:          sanitizedPostShare || null,
       replyTo:            replyTo || null,
     }
 

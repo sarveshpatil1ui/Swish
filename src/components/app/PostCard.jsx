@@ -11,6 +11,7 @@ import CommentDrawer from './CommentDrawer'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
 import ReportModal from './ReportModal'
+import SharePostModal from './SharePostModal'
 import { resolveImageUrl } from '../../utils/posts'
 import { resolveAudioUrl, playSharedAudio } from '../../utils/audioResolver'
 
@@ -64,6 +65,7 @@ function PostCard({ post }) {
   // — that keeps the displayed counts in sync everywhere the post appears.
   const [showComments, setShowComments] = useState(false)
   const [showLikesModal, setShowLikesModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [copied,       setCopied]       = useState(false)
   const [liking,       setLiking]       = useState(false)
   const isFollowing = isUserFollowed ? isUserFollowed(post.userId, post.isFollowing) : Boolean(post.isFollowing)
@@ -157,24 +159,8 @@ function PostCard({ post }) {
     if (!result.ok && result.error) console.error('[PostCard] save/unsave failed:', result.error)
   }
 
-  const handleShare = async () => {
+  const handleCopyLink = async () => {
     const url = `${window.location.origin}/post/${post.id}`
-    const shareTitle = `Post by ${post.userName || post.user?.name || 'Swish user'}`
-    const shareText = post.caption || post.content || 'Check out this post on Swish!'
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url,
-        })
-        return
-      } catch (err) {
-        if (err.name === 'AbortError') return
-      }
-    }
-
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url)
@@ -201,6 +187,10 @@ function PostCard({ post }) {
     } catch (err) {
       console.error('Failed to copy link:', err)
     }
+  }
+
+  const handleShare = () => {
+    setShowShareModal(true)
   }
 
   const handleDeletePost = async () => {
@@ -318,6 +308,12 @@ function PostCard({ post }) {
                     </button>
                     <button
                       onClick={() => { handleShare(); setShowMenu(false) }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Share post
+                    </button>
+                    <button
+                      onClick={() => { handleCopyLink(); setShowMenu(false) }}
                       className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       Copy link
@@ -645,6 +641,16 @@ function PostCard({ post }) {
         reportedUserId={post.userId}
         reportedUserName={post.userName}
       />
+
+      {/* Share post modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <SharePostModal
+            post={post}
+            onClose={() => setShowShareModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

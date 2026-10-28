@@ -12,6 +12,7 @@ import { formatRelativeTime, resolveImageUrl } from '../../utils/posts'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import PostLikesModal from './PostLikesModal'
 import ReportModal from './ReportModal'
+import SharePostModal from './SharePostModal'
 import { resolveAudioUrl, playSharedAudio } from '../../utils/audioResolver'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -36,6 +37,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
   const [liking, setLiking] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -201,24 +203,8 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
     if (res.ok) onClose()
   }
 
-  const handleShare = async () => {
+  const handleCopyLink = async () => {
     const url = `${window.location.origin}/post/${post.id}`
-    const shareTitle = `Post by ${post.userName || post.user?.name || 'Swish user'}`
-    const shareText = post.caption || post.content || 'Check out this post on Swish!'
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url,
-        })
-        return
-      } catch (err) {
-        if (err.name === 'AbortError') return
-      }
-    }
-
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url)
@@ -245,6 +231,10 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
     } catch (err) {
       console.error('Failed to copy link:', err)
     }
+  }
+
+  const handleShare = () => {
+    setShowShareModal(true)
   }
 
   return (
@@ -385,6 +375,9 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-lg py-1 min-w-[140px]"
                     >
                       <button onClick={() => { handleShare(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
+                        Share post
+                      </button>
+                      <button onClick={() => { handleCopyLink(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
                         Copy link
                       </button>
                       {isOwnPost ? (
@@ -613,6 +606,16 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
         reportedUserId={post.userId}
         reportedUserName={post.userName}
       />
+
+      {/* Share post modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <SharePostModal
+            post={post}
+            onClose={() => setShowShareModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }
