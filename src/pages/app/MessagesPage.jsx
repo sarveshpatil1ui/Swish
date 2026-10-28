@@ -141,7 +141,7 @@ function SharedPostCard({ postShare, isMe }) {
 }
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
+function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
   const storyReply = msg.storyReply
   const isReaction = msg.text?.startsWith('Reacted ') && msg.text?.includes(' to your story')
   const reactionEmoji =
@@ -155,11 +155,6 @@ function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
       id={`msg-${msg.id}`}
       className={`relative flex ${isMe ? 'justify-end' : 'justify-start'} mb-2 group/bubble transition-all duration-300`}
     >
-      {/* Swipe-to-reply background indicator (revealed when dragging right on mobile) */}
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 opacity-60 pointer-events-none md:hidden">
-        <Reply size={16} />
-      </div>
-
       {/* Draggable bubble wrapper */}
       <motion.div
         drag="x"
@@ -177,12 +172,12 @@ function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
         className={`max-w-[85%] sm:max-w-[70%] flex flex-col ${isMe ? 'items-end' : 'items-start'} z-10`}
       >
         <div className={`relative flex items-center gap-1.5 ${isMe ? 'flex-row' : 'flex-row-reverse'}`}>
-          {/* Quick reply action button (visible on hover) */}
+          {/* Quick reply action button (visible on hover on desktop only) */}
           <button
             type="button"
             onClick={() => onReply?.(msg)}
             title="Reply"
-            className="opacity-0 group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0"
+            className="opacity-0 md:group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0 hidden md:flex items-center justify-center"
           >
             <Reply size={14} />
           </button>
@@ -388,6 +383,19 @@ function MessageBubble({ msg, isMe, onReply, onScrollToMessage }) {
               : <Check size={12} className="text-slate-400" />
           )}
         </div>
+
+        {/* Instagram-style 'Seen' receipt below last sent message */}
+        {showSeen && (
+          <motion.div
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-end gap-1 mt-0.5 pr-1"
+          >
+            <span className="text-[11px] font-medium text-slate-400 dark:text-gray-500 select-none">
+              Seen
+            </span>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )
@@ -1058,15 +1066,24 @@ export default function MessagesPage() {
                     <p className="text-xs">Say hi to start the conversation 👋</p>
                   </div>
                 ) : (
-                  messages.map(msg => (
-                    <MessageBubble
-                      key={msg.id}
-                      msg={msg}
-                      isMe={String(msg.senderId) === String(currentUser?.id || currentUser?._id)}
-                      onReply={handleReply}
-                      onScrollToMessage={scrollToMessage}
-                    />
-                  ))
+                  messages.map((msg, idx) => {
+                    const isLast = idx === messages.length - 1
+                    const isMe = String(msg.senderId) === String(currentUser?.id || currentUser?._id)
+                    const otherSeen = isMe && msg.readBy && (
+                      msg.readBy.length > 1 ||
+                      msg.readBy.some(id => String(id) !== String(currentUser?.id || currentUser?._id))
+                    )
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        msg={msg}
+                        isMe={isMe}
+                        showSeen={isLast && isMe && otherSeen}
+                        onReply={handleReply}
+                        onScrollToMessage={scrollToMessage}
+                      />
+                    )
+                  })
                 )}
 
                 {/* Typing indicator */}
