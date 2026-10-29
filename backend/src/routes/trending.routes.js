@@ -9,6 +9,7 @@ import mongoose from 'mongoose'
 import Post from '../models/Post.js'
 import User from '../models/User.js'
 import Follow from '../models/Follow.js'
+import FollowRequest from '../models/FollowRequest.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 
 const router = Router()
@@ -625,9 +626,13 @@ router.get('/accounts', async (req, res) => {
   try {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 8), 20)
 
-    // Find users currently followed by the viewer
-    const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
+    // Find users currently followed or requested by the viewer
+    const [follows, requests] = await Promise.all([
+      Follow.find({ follower: req.user._id }).select('following').lean(),
+      FollowRequest.find({ requester: req.user._id, status: 'pending' }).select('recipient').lean(),
+    ])
     const followingIds = [req.user._id, ...follows.map(f => f.following)]
+    const requestedSet = new Set(requests.map(r => r.recipient.toString()))
 
     // Strictly students and faculty only — NO admin, main_admin, or college_admin
     const baseFilter = {
@@ -643,7 +648,7 @@ router.get('/accounts', async (req, res) => {
       suggested = await User.find({ ...baseFilter, collegeId: req.user.collegeId })
         .sort({ followers: -1, createdAt: -1 })
         .limit(limit)
-        .select('name username initials avatarColor profilePhoto dept year college followers role')
+        .select('name username initials avatarColor profilePhoto dept year college followers role preferences.privacy.private')
         .lean()
     }
 
@@ -657,7 +662,7 @@ router.get('/accounts', async (req, res) => {
       })
         .sort({ followers: -1, createdAt: -1 })
         .limit(remaining)
-        .select('name username initials avatarColor profilePhoto dept year college followers role')
+        .select('name username initials avatarColor profilePhoto dept year college followers role preferences.privacy.private')
         .lean()
 
       suggested = [...suggested, ...fallback]
@@ -678,6 +683,8 @@ router.get('/accounts', async (req, res) => {
         followers: u.followers || 0,
         role: u.role || 'student',
         isFollowing: false,
+        isRequested: requestedSet.has(u._id.toString()),
+        isPrivate: Boolean(u.preferences?.privacy?.private),
       })),
     })
   } catch (err) {

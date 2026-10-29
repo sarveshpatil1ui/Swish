@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, TrendingUp, X, UserX, Loader2, Users, Flame, ArrowRight } from 'lucide-react'
+import { Search, TrendingUp, X, UserX, Loader2, Users, Flame, ArrowRight, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
 import { getStoredToken } from '../../utils/auth'
@@ -68,17 +68,35 @@ function UserCard({ user: initialUser }) {
     if (loading) return
     setLoading(true)
     const wasFollowing = user.isFollowing
-    // Optimistic update
-    setUser(u => ({ ...u, isFollowing: !wasFollowing, followers: wasFollowing ? u.followers - 1 : u.followers + 1 }))
-    const result = wasFollowing
-      ? await apiDelete(`/api/users/${user.id}/follow`)
-      : await apiPost(`/api/users/${user.id}/follow`, {})
-    if (result.ok) {
-      // Emit real-time follow notification to the target user if they're online
-      if (!wasFollowing) emit('follow:notify', { targetUserId: user.id })
+    const wasRequested = user.isRequested
+
+    if (wasFollowing || wasRequested) {
+      // Unfollow or cancel request
+      const result = await apiDelete(`/api/users/${user.id}/follow`)
+      if (result.ok) {
+        setUser(u => ({
+          ...u,
+          isFollowing: false,
+          isRequested: false,
+          followers: typeof result.followerCount === 'number' ? result.followerCount : (wasFollowing ? Math.max(0, u.followers - 1) : u.followers),
+        }))
+      }
     } else {
-      // Rollback on failure
-      setUser(u => ({ ...u, isFollowing: wasFollowing, followers: wasFollowing ? u.followers + 1 : u.followers - 1 }))
+      // Send follow or follow request
+      const result = await apiPost(`/api/users/${user.id}/follow`, {})
+      if (result.ok) {
+        if (result.requested) {
+          setUser(u => ({ ...u, isRequested: true, isFollowing: false }))
+        } else {
+          setUser(u => ({
+            ...u,
+            isFollowing: true,
+            isRequested: false,
+            followers: typeof result.followerCount === 'number' ? result.followerCount : u.followers + 1,
+          }))
+          emit('follow:notify', { targetUserId: user.id })
+        }
+      }
     }
     setLoading(false)
   }
@@ -111,13 +129,26 @@ function UserCard({ user: initialUser }) {
       <button
         onClick={toggle}
         disabled={loading}
-        className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all flex-shrink-0 disabled:opacity-60 ${
+        className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all flex-shrink-0 disabled:opacity-60 flex items-center gap-1 ${
           user.isFollowing
             ? 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400'
+            : user.isRequested
+            ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 hover:bg-rose-50 hover:text-rose-600'
             : 'bg-indigo-600 text-white hover:bg-indigo-700'
         }`}
       >
-        {loading ? '…' : user.isFollowing ? 'Following' : 'Follow'}
+        {loading ? (
+          '…'
+        ) : user.isFollowing ? (
+          'Following'
+        ) : user.isRequested ? (
+          <>
+            <Clock size={12} />
+            <span>Requested</span>
+          </>
+        ) : (
+          'Follow'
+        )}
       </button>
     </motion.div>
   )

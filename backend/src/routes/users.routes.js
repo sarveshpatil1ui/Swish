@@ -8,6 +8,7 @@ import { uploadProfilePhoto, uploadPostPhoto } from '../middleware/upload.middle
 import { uploadPostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
 import User from '../models/User.js'
 import Follow from '../models/Follow.js'
+import FollowRequest from '../models/FollowRequest.js'
 import Department from '../models/Department.js'
 import Notice from '../models/Notice.js'
 import Notification from '../models/Notification.js'
@@ -49,13 +50,17 @@ router.get('/search', requireAuth, async (req, res) => {
       $or: [{ name: regex }, { username: regex }, { dept: regex }],
     })
       .limit(20)
-      .select('name username initials avatarColor profilePhoto dept year role followers')
+      .select('name username initials avatarColor profilePhoto dept year role followers preferences.privacy.private')
       .lean()
 
-    // Check follow status for each result
+    // Check follow & request status for each result
     const ids = users.map(u => u._id)
-    const followDocs = await Follow.find({ follower: req.user._id, following: { $in: ids } })
+    const [followDocs, requestDocs] = await Promise.all([
+      Follow.find({ follower: req.user._id, following: { $in: ids } }),
+      FollowRequest.find({ requester: req.user._id, recipient: { $in: ids }, status: 'pending' }),
+    ])
     const followingSet = new Set(followDocs.map(f => f.following.toString()))
+    const requestedSet = new Set(requestDocs.map(r => r.recipient.toString()))
 
     res.json({
       ok: true,
@@ -63,6 +68,8 @@ router.get('/search', requireAuth, async (req, res) => {
         ...u,
         id: u._id.toString(),
         isFollowing: followingSet.has(u._id.toString()),
+        isRequested: requestedSet.has(u._id.toString()),
+        isPrivate: Boolean(u.preferences?.privacy?.private),
         isSelf: u._id.toString() === req.user.id,
       })),
     })
@@ -96,12 +103,16 @@ router.get('/all', requireAuth, async (req, res) => {
       .sort({ followers: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select('name username initials avatarColor profilePhoto dept year role followers college collegeId')
+      .select('name username initials avatarColor profilePhoto dept year role followers college collegeId preferences.privacy.private')
       .lean()
 
     const ids = users.map(u => u._id)
-    const followDocs = await Follow.find({ follower: req.user._id, following: { $in: ids } })
+    const [followDocs, requestDocs] = await Promise.all([
+      Follow.find({ follower: req.user._id, following: { $in: ids } }),
+      FollowRequest.find({ requester: req.user._id, recipient: { $in: ids }, status: 'pending' }),
+    ])
     const followingSet = new Set(followDocs.map(f => f.following.toString()))
+    const requestedSet = new Set(requestDocs.map(r => r.recipient.toString()))
 
     res.json({
       ok: true,
@@ -109,6 +120,8 @@ router.get('/all', requireAuth, async (req, res) => {
         ...u,
         id: u._id.toString(),
         isFollowing: followingSet.has(u._id.toString()),
+        isRequested: requestedSet.has(u._id.toString()),
+        isPrivate: Boolean(u.preferences?.privacy?.private),
         isSelf: u._id.toString() === req.user.id,
       })),
       page,
@@ -258,6 +271,44 @@ router.patch('/preferences', requireAuth, async (req, res) => {
   }
 })
 
+// ── GET /api/users/follow-requests/pending — list pending follow requests for viewer ──
+router.get('/follow-requests/pending', requireAuth, async (req, res) => {
+  try {
+    const requests = await FollowRequest.find({
+      recipient: req.user._id,
+      status: 'pending',
+    })
+      .sort({ createdAt: -1 })
+      .populate('requester', 'name username initials avatarColor profilePhoto dept year role followers')
+      .lean()
+
+    res.json({
+      ok: true,
+      requests: requests
+        .filter(r => r.requester)
+        .map(r => ({
+          id: r._id.toString(),
+          createdAt: r.createdAt,
+          user: {
+            id: r.requester._id.toString(),
+            name: r.requester.name,
+            username: r.requester.username,
+            initials: r.requester.initials,
+            avatarColor: r.requester.avatarColor,
+            profilePhoto: r.requester.profilePhoto || null,
+            dept: r.requester.dept || '',
+            year: r.requester.year || '',
+            role: r.requester.role || 'student',
+            followers: r.requester.followers || 0,
+          },
+        })),
+    })
+  } catch (err) {
+    console.error('[GET /api/users/follow-requests/pending] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch follow requests.' })
+  }
+})
+
 router.get('/:userId', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
@@ -265,10 +316,17 @@ router.get('/:userId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
 
-    const isFollowing = await Follow.exists({
-      follower: req.user.id,
-      following: user.id,
-    })
+    const [isFollowing, isRequested] = await Promise.all([
+      Follow.exists({
+        follower: req.user.id,
+        following: user.id,
+      }),
+      FollowRequest.exists({
+        requester: req.user.id,
+        recipient: user.id,
+        status: 'pending',
+      }),
+    ])
 
     const serializedUser = user.toJSON()
     if (req.user.id !== user.id && !user.preferences?.privacy?.showEmail) {
@@ -283,6 +341,8 @@ router.get('/:userId', requireAuth, async (req, res) => {
           || !user.preferences?.privacy?.private
           || Boolean(isFollowing),
         isFollowing: Boolean(isFollowing),
+        isRequested: Boolean(isRequested),
+        isPrivate: Boolean(user.preferences?.privacy?.private),
         isSelf: req.user.id === user.id,
       },
     })
@@ -395,6 +455,7 @@ router.delete('/:userId', requireAuth, async (req, res, next) => {
       StoryView.deleteMany({ story: { $in: await Story.find({ user: userId }).distinct('_id') } }),
       Story.deleteMany({ user: userId }),
       Follow.deleteMany({ $or: [{ follower: userId }, { following: userId }] }),
+      FollowRequest.deleteMany({ $or: [{ requester: userId }, { recipient: userId }] }),
       Notification.deleteMany({ $or: [{ recipient: userId }, { sender: userId }] }),
       Conversation.deleteMany({ participants: userId }),
       User.deleteOne({ _id: userId }),
@@ -421,11 +482,68 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
 
-    const existing = await Follow.findOne({ follower: req.user.id, following: targetId })
-    if (existing) {
-      return res.status(200).json({ ok: true, following: true, message: 'You already follow this user.' })
+    // Role restriction: Students & Faculty ONLY. Admins cannot follow or be followed.
+    const adminRoles = ['admin', 'college_admin', 'main_admin']
+    if (adminRoles.includes(req.user.role) || adminRoles.includes(target.role)) {
+      return res.status(403).json({ ok: false, error: 'Follow actions are only available for students and faculty.' })
     }
 
+    // Check if already following
+    const existing = await Follow.findOne({ follower: req.user.id, following: targetId })
+    if (existing) {
+      return res.status(200).json({ ok: true, following: true, requested: false, message: 'You already follow this user.' })
+    }
+
+    // Check if target account is private
+    const isPrivate = Boolean(target.preferences?.privacy?.private)
+    if (isPrivate) {
+      const existingReq = await FollowRequest.findOne({
+        requester: req.user.id,
+        recipient: targetId,
+        status: 'pending',
+      })
+      if (existingReq) {
+        return res.status(200).json({
+          ok: true,
+          following: false,
+          requested: true,
+          message: 'Follow request already sent.',
+          followerCount: target.followers || 0,
+        })
+      }
+
+      await FollowRequest.findOneAndUpdate(
+        { requester: req.user.id, recipient: targetId },
+        { requester: req.user.id, recipient: targetId, status: 'pending' },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+
+      try {
+        await createNotification({
+          recipient: targetId,
+          sender: req.user.id,
+          type: 'follow_request',
+          text: 'requested to follow you',
+        })
+        emitToUser(targetId, 'follow_request:received', {
+          fromUserId: req.user.id,
+          fromUserName: req.user.name,
+          fromUserUsername: req.user.username,
+        })
+      } catch (notifErr) {
+        console.error('[Notification follow_request error]', notifErr)
+      }
+
+      return res.status(201).json({
+        ok: true,
+        following: false,
+        requested: true,
+        message: 'Follow request sent.',
+        followerCount: target.followers || 0,
+      })
+    }
+
+    // Public account: Direct follow
     await Follow.create({ follower: req.user.id, following: targetId })
     const [updatedTarget] = await Promise.all([
       User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
@@ -448,6 +566,7 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
     res.status(201).json({
       ok: true,
       following: true,
+      requested: false,
       followerCount: updatedTarget ? updatedTarget.followers : 0,
     })
   } catch (err) {
@@ -459,9 +578,35 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
     res.status(500).json({ ok: false, error: 'Failed to follow user.' })
   }
 })
+
 router.delete('/:userId/follow', requireAuth, async (req, res) => {
   try {
     const targetId = req.params.userId
+
+    // Check if there is a pending follow request to cancel
+    const pendingReq = await FollowRequest.findOneAndDelete({
+      requester: req.user.id,
+      recipient: targetId,
+      status: 'pending',
+    })
+
+    if (pendingReq) {
+      await Notification.deleteMany({
+        recipient: targetId,
+        sender: req.user.id,
+        type: 'follow_request',
+      })
+      emitToUser(targetId, 'follow_request:cancelled', { fromUserId: req.user.id })
+
+      const target = await User.findById(targetId).select('followers')
+      return res.json({
+        ok: true,
+        following: false,
+        requested: false,
+        message: 'Follow request cancelled.',
+        followerCount: target?.followers || 0,
+      })
+    }
 
     const existing = await Follow.findOneAndDelete({ follower: req.user.id, following: targetId })
     if (!existing) {
@@ -469,6 +614,7 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
       return res.status(200).json({
         ok: true,
         following: false,
+        requested: false,
         message: 'You do not follow this user.',
         followerCount: target?.followers || 0,
       })
@@ -482,11 +628,112 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
     res.json({
       ok: true,
       following: false,
+      requested: false,
       followerCount: target ? target.followers : 0,
     })
   } catch (err) {
     console.error('[DELETE /api/users/:userId/follow] Error:', err)
     res.status(500).json({ ok: false, error: 'Failed to unfollow user.' })
+  }
+})
+
+// ── POST /api/users/:userId/follow-request/accept ────────────────────────────
+// Authenticated user (recipient) accepts a follow request from requester (:userId)
+router.post('/:userId/follow-request/accept', requireAuth, async (req, res) => {
+  try {
+    const requesterId = req.params.userId
+    const recipientId = req.user.id
+
+    const followReq = await FollowRequest.findOneAndDelete({
+      requester: requesterId,
+      recipient: recipientId,
+      status: 'pending',
+    })
+
+    if (!followReq) {
+      return res.status(404).json({ ok: false, error: 'Follow request not found or already processed.' })
+    }
+
+    // Create follow relationship if it doesn't already exist
+    const existingFollow = await Follow.findOne({ follower: requesterId, following: recipientId })
+    let updatedSelf = null
+    if (!existingFollow) {
+      await Follow.create({ follower: requesterId, following: recipientId })
+      const [self, reqUser] = await Promise.all([
+        User.findByIdAndUpdate(recipientId, { $inc: { followers: 1 } }, { new: true }),
+        User.findByIdAndUpdate(requesterId, { $inc: { following: 1 } }, { new: true }),
+      ])
+      updatedSelf = self
+    } else {
+      updatedSelf = await User.findById(recipientId).select('followers')
+    }
+
+    // Remove the follow_request notification
+    await Notification.deleteMany({
+      recipient: recipientId,
+      sender: requesterId,
+      type: 'follow_request',
+    })
+
+    // Send follow_accept notification to the requester
+    try {
+      await createNotification({
+        recipient: requesterId,
+        sender: recipientId,
+        type: 'follow_accept',
+        text: 'accepted your follow request',
+      })
+      emitToUser(requesterId, 'follow_request:accepted', {
+        byUserId: recipientId,
+        byUserName: req.user.name,
+        byUserUsername: req.user.username,
+      })
+    } catch (notifErr) {
+      console.error('[Notification follow_accept error]', notifErr)
+    }
+
+    res.json({
+      ok: true,
+      message: 'Follow request accepted.',
+      followerCount: updatedSelf?.followers || 0,
+    })
+  } catch (err) {
+    console.error('[POST /api/users/:userId/follow-request/accept] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to accept follow request.' })
+  }
+})
+
+// ── POST /api/users/:userId/follow-request/reject ────────────────────────────
+// Authenticated user (recipient) rejects a follow request from requester (:userId)
+router.post('/:userId/follow-request/reject', requireAuth, async (req, res) => {
+  try {
+    const requesterId = req.params.userId
+    const recipientId = req.user.id
+
+    const followReq = await FollowRequest.findOneAndDelete({
+      requester: requesterId,
+      recipient: recipientId,
+      status: 'pending',
+    })
+
+    // Clean up any follow_request notification from that sender
+    await Notification.deleteMany({
+      recipient: recipientId,
+      sender: requesterId,
+      type: 'follow_request',
+    })
+
+    emitToUser(requesterId, 'follow_request:rejected', {
+      byUserId: recipientId,
+    })
+
+    res.json({
+      ok: true,
+      message: 'Follow request rejected.',
+    })
+  } catch (err) {
+    console.error('[POST /api/users/:userId/follow-request/reject] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to reject follow request.' })
   }
 })
 

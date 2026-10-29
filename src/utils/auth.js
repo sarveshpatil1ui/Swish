@@ -200,6 +200,18 @@ export async function apiUnfollowUser(userId) {
   return apiFetch(`/api/users/${userId}/follow`, { method: 'DELETE' })
 }
 
+export async function apiAcceptFollowRequest(userId) {
+  return apiFetch(`/api/users/${userId}/follow-request/accept`, { method: 'POST' })
+}
+
+export async function apiRejectFollowRequest(userId) {
+  return apiFetch(`/api/users/${userId}/follow-request/reject`, { method: 'POST' })
+}
+
+export async function apiGetPendingFollowRequests() {
+  return apiFetch('/api/users/follow-requests/pending')
+}
+
 // ── Post API calls (FR-05 Likes, FR-06 Comments) ──────────────────────────────
 
 /** On success: { ok: true, posts: Array } */

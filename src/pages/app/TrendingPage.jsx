@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Sparkles, Hash, GraduationCap,
-  Heart, MessageCircle, UserPlus, Check,
+  Heart, MessageCircle, UserPlus, Check, Clock,
   Loader2, RefreshCw, X, TrendingUp, Users, AlertCircle, Compass, Search, Music2
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
@@ -64,8 +64,9 @@ function UserAvatar({ user, size = 'w-7 h-7', textSize = 'text-xs' }) {
 
 // ── Suggested Account Card ───────────────────────────────────────────────────
 function SuggestedAccountCard({ account, onToggleFollow }) {
-  const { followUser, unfollowUser, isUserFollowed } = useSwish()
+  const { followUser, unfollowUser, isUserFollowed, isUserRequested } = useSwish()
   const following = isUserFollowed ? isUserFollowed(account.id, account.isFollowing) : Boolean(account.isFollowing)
+  const requested = isUserRequested ? isUserRequested(account.id, account.isRequested) : Boolean(account.isRequested)
   const [loading, setLoading] = useState(false)
 
   const handleToggle = async (e) => {
@@ -73,11 +74,11 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
     if (loading) return
     setLoading(true)
     try {
-      const res = following
+      const res = (following || requested)
         ? await unfollowUser(account.id)
         : await followUser(account.id)
       if (res?.ok && onToggleFollow) {
-        onToggleFollow(account.id, !following)
+        onToggleFollow(account.id, Boolean(res.following))
       }
     } catch (err) {
       console.error(err)
@@ -108,6 +109,8 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
         className={`mt-3 w-full py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
           following
             ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+            : requested
+            ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 hover:bg-rose-50 hover:text-rose-600'
             : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 active:scale-95'
         }`}
       >
@@ -117,6 +120,11 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
           <>
             <Check size={13} strokeWidth={2.5} />
             <span>Following</span>
+          </>
+        ) : requested ? (
+          <>
+            <Clock size={13} />
+            <span>Requested</span>
           </>
         ) : (
           <>

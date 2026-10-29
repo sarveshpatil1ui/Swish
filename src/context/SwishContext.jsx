@@ -23,7 +23,7 @@ import {
   apiGetComments, apiAddComment, apiDeletePost, apiDeleteComment,
   apiGetStories, apiCreateStory, apiUpdateStory, apiDeleteStory,
   apiLikeStory, apiReactStory, apiReplyStory, apiGetStoryReplies,
-  apiFollowUser, apiUnfollowUser, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
+  apiFollowUser, apiUnfollowUser, apiAcceptFollowRequest, apiRejectFollowRequest, apiGetProfile, apiUpdateProfile, apiUploadProfilePhoto,
   apiUpdatePreferences, apiDeleteAccount,
   apiFetchFollowers, apiFetchFollowing,
   apiGetColleges, apiAddCollege, apiToggleCollege,
@@ -180,8 +180,9 @@ export function SwishProvider({ children }) {
     return () => { cancelled = true }
   }, [])
 
-  // ── Following User IDs (Synchronized across feed and profile) ──────────────
+  // ── Following & Requested User IDs (Synchronized across feed and profile) ──
   const [followingIds, setFollowingIds] = useState(() => new Set())
+  const [requestedIds, setRequestedIds] = useState(() => new Set())
   const [followingLoaded, setFollowingLoaded] = useState(false)
 
   useEffect(() => {
@@ -622,32 +623,41 @@ export function SwishProvider({ children }) {
     return followingIds.has(uStr)
   }, [followingIds, followingLoaded])
 
+  const isUserRequested = useCallback((userId, fallbackValue = false) => {
+    if (!userId) return false
+    const uStr = userId.toString()
+    return requestedIds.has(uStr) || Boolean(fallbackValue)
+  }, [requestedIds])
+
   const followUser = async (userId) => {
     if (!userId) return { ok: false, error: 'No user ID' }
     const uStr = userId.toString()
-    setFollowingIds(prev => new Set([...prev, uStr]))
-    setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
     try {
       const res = await apiFollowUser(userId)
       if (res?.ok || res?.message === 'You already follow this user.' || res?.error === 'You already follow this user.') {
-        setFollowingIds(prev => new Set([...prev, uStr]))
-        setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
-        return { ok: true, following: true, ...res }
+        if (res.requested) {
+          // Follow request sent (private user)
+          setRequestedIds(prev => new Set([...prev, uStr]))
+          setFollowingIds(prev => {
+            const next = new Set(prev)
+            next.delete(uStr)
+            return next
+          })
+          return { ok: true, following: false, requested: true, ...res }
+        } else {
+          // Public user followed immediately
+          setFollowingIds(prev => new Set([...prev, uStr]))
+          setRequestedIds(prev => {
+            const next = new Set(prev)
+            next.delete(uStr)
+            return next
+          })
+          setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
+          return { ok: true, following: true, requested: false, ...res }
+        }
       }
-      setFollowingIds(prev => {
-        const next = new Set(prev)
-        next.delete(uStr)
-        return next
-      })
-      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: false } : p))
       return res
     } catch (err) {
-      setFollowingIds(prev => {
-        const next = new Set(prev)
-        next.delete(uStr)
-        return next
-      })
-      setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: false } : p))
       return { ok: false, error: err?.message || 'Failed to follow user' }
     }
   }
@@ -656,6 +666,11 @@ export function SwishProvider({ children }) {
     if (!userId) return { ok: false, error: 'No user ID' }
     const uStr = userId.toString()
     setFollowingIds(prev => {
+      const next = new Set(prev)
+      next.delete(uStr)
+      return next
+    })
+    setRequestedIds(prev => {
       const next = new Set(prev)
       next.delete(uStr)
       return next
@@ -673,6 +688,33 @@ export function SwishProvider({ children }) {
       setFollowingIds(prev => new Set([...prev, uStr]))
       setPosts(prev => prev.map(p => (p.userId && p.userId.toString() === uStr) ? { ...p, isFollowing: true } : p))
       return { ok: false, error: err?.message || 'Failed to unfollow user' }
+    }
+  }
+
+  const acceptFollowRequest = async (userId) => {
+    if (!userId) return { ok: false, error: 'No user ID' }
+    try {
+      const res = await apiAcceptFollowRequest(userId)
+      if (res?.ok) {
+        setNotifications(prev => prev.filter(n => !(n.type === 'follow_request' && (n.user?.id === userId || n.user?._id === userId))))
+        setCurrentUser(prev => prev ? { ...prev, followers: (prev.followers || 0) + 1 } : prev)
+      }
+      return res
+    } catch (err) {
+      return { ok: false, error: err?.message || 'Failed to accept request' }
+    }
+  }
+
+  const rejectFollowRequest = async (userId) => {
+    if (!userId) return { ok: false, error: 'No user ID' }
+    try {
+      const res = await apiRejectFollowRequest(userId)
+      if (res?.ok) {
+        setNotifications(prev => prev.filter(n => !(n.type === 'follow_request' && (n.user?.id === userId || n.user?._id === userId))))
+      }
+      return res
+    } catch (err) {
+      return { ok: false, error: err?.message || 'Failed to reject request' }
     }
   }
 
@@ -1020,9 +1062,13 @@ const domainApproved = async (email) => {
         fetchStoryReplies,
         // Follow (FR-07)
         followingIds,
+        requestedIds,
         isUserFollowed,
+        isUserRequested,
         followUser,
         unfollowUser,
+        acceptFollowRequest,
+        rejectFollowRequest,
         fetchFollowers,
         fetchFollowing,
         // Profile (FR-02)

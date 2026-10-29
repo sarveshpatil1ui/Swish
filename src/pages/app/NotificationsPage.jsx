@@ -2,22 +2,66 @@ import { useState, useEffect } from 'react'
 import { NoticeDetailModal } from '../../components/app/CollegeNoticePanel'
 import { apiGetNoticeById, apiGetCollegeNotices } from '../../utils/auth'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, UserPlus, Bell, Check, CheckCircle, AtSign, Calendar } from 'lucide-react'
+import { Heart, MessageCircle, UserPlus, UserCheck, Bell, Check, CheckCircle, AtSign, Calendar, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 
 const iconMap = {
-  like:    { icon: Heart,         bg: 'bg-rose-50 dark:bg-rose-950/40',    color: 'text-rose-500'    },
-  comment: { icon: MessageCircle, bg: 'bg-indigo-50 dark:bg-indigo-950/50', color: 'text-indigo-500'  },
-  follow:  { icon: UserPlus,      bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
-  mention: { icon: AtSign,        bg: 'bg-violet-50 dark:bg-violet-950/40',  color: 'text-violet-500'  },
-  event:   { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',    color: 'text-amber-500'    },
+  like:           { icon: Heart,         bg: 'bg-rose-50 dark:bg-rose-950/40',       color: 'text-rose-500'    },
+  comment:        { icon: MessageCircle, bg: 'bg-indigo-50 dark:bg-indigo-950/50',   color: 'text-indigo-500'  },
+  follow:         { icon: UserPlus,      bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
+  follow_request: { icon: UserPlus,      bg: 'bg-violet-50 dark:bg-violet-950/40',   color: 'text-violet-500'  },
+  follow_accept:  { icon: UserCheck,     bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
+  mention:        { icon: AtSign,        bg: 'bg-violet-50 dark:bg-violet-950/40',   color: 'text-violet-500'  },
+  event:          { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',     color: 'text-amber-500'   },
 }
 
-function NotificationItem({ notification: n, index, onRead, onSelectNotice }) {
+function NotificationItem({ notification: n, index, onRead, onSelectNotice, onAcceptRequest, onRejectRequest }) {
   const navigate = useNavigate()
   const cfg  = iconMap[n.type] || iconMap.like
   const Icon = cfg.icon
+  const [actionStatus, setActionStatus] = useState(null) // 'accepted' | 'rejected' | 'loading_accept' | 'loading_reject'
+
+  const handleProfileClick = (e) => {
+    e.stopPropagation()
+    if (n.user?.id) {
+      navigate(`/profile/${n.user.id}`)
+    }
+  }
+
+  const handleAccept = async (e) => {
+    e.stopPropagation()
+    if (!n.user?.id || actionStatus) return
+    setActionStatus('loading_accept')
+    try {
+      const res = await onAcceptRequest?.(n.user.id)
+      if (res?.ok) {
+        setActionStatus('accepted')
+        onRead?.(n.id)
+      } else {
+        setActionStatus(null)
+      }
+    } catch {
+      setActionStatus(null)
+    }
+  }
+
+  const handleReject = async (e) => {
+    e.stopPropagation()
+    if (!n.user?.id || actionStatus) return
+    setActionStatus('loading_reject')
+    try {
+      const res = await onRejectRequest?.(n.user.id)
+      if (res?.ok) {
+        setActionStatus('rejected')
+        onRead?.(n.id)
+      } else {
+        setActionStatus(null)
+      }
+    } catch {
+      setActionStatus(null)
+    }
+  }
 
   const handleClick = () => {
     onRead(n.id)
@@ -52,26 +96,30 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice }) {
         <Icon size={16} className={cfg.color} />
       </div>
 
-      {/* User avatar */}
-      {n.user?.profilePhoto ? (
-        <img
-          src={n.user.profilePhoto}
-          alt={n.user.name}
-          className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5"
-        />
-      ) : (
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
-          style={{ backgroundColor: n.user?.avatarColor || '#6366f1' }}
-        >
-          {n.user?.initials || '??'}
-        </div>
-      )}
+      {/* User avatar - clickable to view profile */}
+      <div onClick={handleProfileClick} className="cursor-pointer hover:opacity-85 transition-opacity">
+        {n.user?.profilePhoto ? (
+          <img
+            src={n.user.profilePhoto}
+            alt={n.user.name}
+            className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5"
+          />
+        ) : (
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
+            style={{ backgroundColor: n.user?.avatarColor || '#6366f1' }}
+          >
+            {n.user?.initials || '??'}
+          </div>
+        )}
+      </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="text-slate-800 dark:text-gray-200 text-sm leading-snug">
-          <span className="font-semibold">{n.user?.name}</span>{' '}
+          <span onClick={handleProfileClick} className="font-semibold hover:underline cursor-pointer">
+            {n.user?.name}
+          </span>{' '}
           <span className="text-slate-600 dark:text-gray-400">{n.text}</span>
         </p>
         {n.subtext && (
@@ -80,6 +128,42 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice }) {
           </p>
         )}
         <p className="text-slate-300 dark:text-gray-600 text-xs mt-1.5">{n.time}</p>
+
+        {/* Follow request interactive actions */}
+        {n.type === 'follow_request' && (
+          <div className="mt-2.5">
+            {actionStatus === 'accepted' ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <Check size={14} /> Request accepted
+              </span>
+            ) : actionStatus === 'rejected' ? (
+              <span className="inline-flex items-center text-xs text-slate-400 dark:text-gray-500 italic">
+                Request declined
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={Boolean(actionStatus)}
+                  onClick={handleAccept}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all disabled:opacity-60 flex items-center gap-1"
+                >
+                  {actionStatus === 'loading_accept' && <Loader2 size={12} className="animate-spin" />}
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(actionStatus)}
+                  onClick={handleReject}
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 active:bg-slate-300 dark:active:bg-gray-600 text-slate-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all disabled:opacity-60 flex items-center gap-1"
+                >
+                  {actionStatus === 'loading_reject' && <Loader2 size={12} className="animate-spin" />}
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Unread dot */}
@@ -91,7 +175,15 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice }) {
 }
 
 export default function NotificationsPage() {
-  const { currentUser, notifications = [], fetchNotifications, markNotificationRead, markAllNotificationsRead } = useSwish()
+  const {
+    currentUser,
+    notifications = [],
+    fetchNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    acceptFollowRequest,
+    rejectFollowRequest,
+  } = useSwish()
   const [selectedNotice, setSelectedNotice] = useState(null)
 
   const handleSelectNotice = async (n) => {
@@ -215,6 +307,8 @@ export default function NotificationsPage() {
                 index={i}
                 onRead={() => markOneRead(n.id)}
                 onSelectNotice={handleSelectNotice}
+                onAcceptRequest={acceptFollowRequest}
+                onRejectRequest={rejectFollowRequest}
               />
             ))}
           </div>
@@ -229,8 +323,15 @@ export default function NotificationsPage() {
           </p>
           <div className="space-y-2">
             {readItems.map((n, i) => (
-              <NotificationItem key={n.id} notification={n} index={i} onRead={() => {}}
-                onSelectNotice={handleSelectNotice} />
+              <NotificationItem
+                key={n.id}
+                notification={n}
+                index={i}
+                onRead={() => {}}
+                onSelectNotice={handleSelectNotice}
+                onAcceptRequest={acceptFollowRequest}
+                onRejectRequest={rejectFollowRequest}
+              />
             ))}
           </div>
         </div>

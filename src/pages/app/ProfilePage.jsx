@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Grid3X3, Bookmark, Settings, Loader2, Camera, Heart, MessageCircle } from 'lucide-react'
+import { Grid3X3, Bookmark, Settings, Loader2, Camera, Heart, MessageCircle, Clock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
+import { useSocket } from '../../context/SocketContext'
 import EditProfileModal from '../../components/app/EditProfileModal'
 import FollowListModal from '../../components/app/FollowListModal'
 import PostViewerModal from '../../components/app/PostViewerModal'
@@ -44,6 +45,7 @@ function ProfileSkeleton() {
 export default function ProfilePage() {
   const { userId } = useParams()
   const { currentUser, fetchProfile, followUser, unfollowUser, fetchPosts, posts } = useSwish()
+  const { on, off } = useSocket()
   const [activeTab, setActiveTab] = useState('posts')
   const [showEditModal, setShowEditModal] = useState(false)
   const [followListMode, setFollowListMode] = useState(null) // 'followers' | 'following' | null
@@ -57,6 +59,7 @@ export default function ProfilePage() {
   const [notFound, setNotFound]       = useState(false)
 
   const [followed, setFollowed]           = useState(false)
+  const [requested, setRequested]         = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [followLoading, setFollowLoading] = useState(false)
   const [isPostsUpdating, setIsPostsUpdating] = useState(false)
@@ -67,6 +70,7 @@ export default function ProfilePage() {
     if (isOwnProfile && currentUser) {
       setProfileUser(currentUser)
       setFollowed(Boolean(currentUser.isFollowing))
+      setRequested(false)
       setFollowerCount(currentUser.followers ?? 0)
       setLoading(false)
     } else {
@@ -79,6 +83,7 @@ export default function ProfilePage() {
       if (res.ok) {
         setProfileUser(res.user)
         setFollowed(Boolean(res.user.isFollowing))
+        setRequested(Boolean(res.user.isRequested))
         setFollowerCount(res.user.followers ?? 0)
       } else {
         setNotFound(true)
@@ -95,40 +100,115 @@ export default function ProfilePage() {
     }
   }, [isOwnProfile, currentUser])
 
+  // Real-time sync for follow requests accepted or rejected
+  useEffect(() => {
+    if (!on || !off || !targetUserId) return
+
+    const handleRequestAccepted = (data) => {
+      if (data.byUserId === targetUserId) {
+        setFollowed(true)
+        setRequested(false)
+        setFollowerCount(c => c + 1)
+        setProfileUser(prev => prev ? { ...prev, isFollowing: true, isRequested: false, canViewPosts: true } : prev)
+        fetchPosts()
+      }
+    }
+
+    const handleRequestRejected = (data) => {
+      if (data.byUserId === targetUserId) {
+        setFollowed(false)
+        setRequested(false)
+        setProfileUser(prev => prev ? { ...prev, isRequested: false } : prev)
+      }
+    }
+
+    on('follow_request:accepted', handleRequestAccepted)
+    on('follow_request:rejected', handleRequestRejected)
+
+    return () => {
+      off('follow_request:accepted', handleRequestAccepted)
+      off('follow_request:rejected', handleRequestRejected)
+    }
+  }, [on, off, targetUserId, fetchPosts])
+
   const handleFollow = async () => {
     if (followLoading || !profileUser) return
-    // Optimistic
-    const wasFollowed = followed
-    setFollowed(!wasFollowed)
-    setFollowerCount(c => wasFollowed ? Math.max(0, c - 1) : c + 1)
-    setFollowLoading(true)
 
-    const result = wasFollowed
-      ? await unfollowUser(profileUser.id)
-      : await followUser(profileUser.id)
-    setFollowLoading(false)
-
-    if (!result.ok) {
-      // Rollback
-      setFollowed(wasFollowed)
-      setFollowerCount(c => wasFollowed ? c + 1 : Math.max(0, c - 1))
-    } else {
-      if (typeof result.followerCount === 'number') {
-        setFollowerCount(result.followerCount)
-      }
-      setIsPostsUpdating(true)
-      setProfileUser(prev => prev ? {
-        ...prev,
-        isFollowing: !wasFollowed,
-      } : prev)
-      try {
-        await fetchPosts()
+    // Case 1: Already following -> Unfollow
+    if (followed) {
+      setFollowed(false)
+      setFollowerCount(c => Math.max(0, c - 1))
+      setFollowLoading(true)
+      const result = await unfollowUser(profileUser.id)
+      setFollowLoading(false)
+      if (!result.ok) {
+        setFollowed(true)
+        setFollowerCount(c => c + 1)
+      } else {
+        if (typeof result.followerCount === 'number') {
+          setFollowerCount(result.followerCount)
+        }
+        setIsPostsUpdating(true)
         setProfileUser(prev => prev ? {
           ...prev,
-          canViewPosts: wasFollowed ? false : true,
+          isFollowing: false,
+          canViewPosts: !prev.isPrivate && !prev.preferences?.privacy?.private,
         } : prev)
-      } finally {
         setIsPostsUpdating(false)
+      }
+      return
+    }
+
+    // Case 2: Already requested -> Cancel follow request
+    if (requested) {
+      setRequested(false)
+      setFollowLoading(true)
+      const result = await unfollowUser(profileUser.id)
+      setFollowLoading(false)
+      if (!result.ok) {
+        setRequested(true)
+      } else {
+        setProfileUser(prev => prev ? { ...prev, isRequested: false } : prev)
+      }
+      return
+    }
+
+    // Case 3: Neither -> Send follow or request
+    const isTargetPrivate = Boolean(profileUser.isPrivate || profileUser.preferences?.privacy?.private)
+    if (isTargetPrivate) {
+      setRequested(true)
+      setFollowLoading(true)
+      const result = await followUser(profileUser.id)
+      setFollowLoading(false)
+      if (!result.ok) {
+        setRequested(false)
+      } else {
+        setProfileUser(prev => prev ? { ...prev, isRequested: true } : prev)
+      }
+    } else {
+      setFollowed(true)
+      setFollowerCount(c => c + 1)
+      setFollowLoading(true)
+      const result = await followUser(profileUser.id)
+      setFollowLoading(false)
+      if (!result.ok) {
+        setFollowed(false)
+        setFollowerCount(c => Math.max(0, c - 1))
+      } else {
+        if (typeof result.followerCount === 'number') {
+          setFollowerCount(result.followerCount)
+        }
+        setIsPostsUpdating(true)
+        setProfileUser(prev => prev ? {
+          ...prev,
+          isFollowing: true,
+          canViewPosts: true,
+        } : prev)
+        try {
+          await fetchPosts()
+        } finally {
+          setIsPostsUpdating(false)
+        }
       }
     }
   }
@@ -214,13 +294,25 @@ export default function ProfilePage() {
                     onClick={handleFollow}
                     disabled={followLoading}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-6 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                    className={`px-6 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
                       followed
                         ? 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400'
+                        : requested
+                        ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 dark:hover:bg-rose-950/30'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
                     }`}
                   >
-                    {followed ? 'Following' : 'Follow'}
+                    {followLoading && <Loader2 size={14} className="animate-spin" />}
+                    {followed ? (
+                      'Following'
+                    ) : requested ? (
+                      <>
+                        <Clock size={14} />
+                        <span>Requested</span>
+                      </>
+                    ) : (
+                      'Follow'
+                    )}
                   </motion.button>
                 )}
               </div>
@@ -313,7 +405,11 @@ export default function ProfilePage() {
             className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl"
           >
             <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">This account is private</h3>
-            <p className="text-slate-400 dark:text-gray-500 text-sm">Follow this user to view their posts.</p>
+            <p className="text-slate-400 dark:text-gray-500 text-sm">
+              {requested
+                ? 'Follow request pending. Wait for the user to approve your request.'
+                : 'Follow this user to view their posts.'}
+            </p>
           </motion.div>
         ) : gridItems.length === 0 ? (
           <motion.div

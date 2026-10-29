@@ -9,6 +9,8 @@ const preferenceByType = {
   follow: 'follows',
   mention: 'mentions',
   event: 'events',
+  follow_request: 'follows',
+  follow_accept: 'follows',
 }
 
 export async function createNotification({ recipient, sender, type, post = null, notice = null, text, subtext = '' }) {
