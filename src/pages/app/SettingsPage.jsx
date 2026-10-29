@@ -135,16 +135,27 @@ function ConfirmModal({ title, body, confirmLabel, onConfirm, onCancel, danger =
 
 // ── Sub-section screens ───────────────────────────────────────────────────────
 
+const STUDENT_YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Masters / PhD']
+const DESIGNATIONS = ['HOD', 'Professor', 'Assistant Professor', 'Lecturer', 'Other']
+
 function AccountSection({ currentUser, updateUser, showToast }) {
-  const [name,     setName]     = useState(currentUser?.name     ?? '')
-  const [username, setUsername] = useState(currentUser?.username ?? '')
-  const [bio,      setBio]      = useState(currentUser?.bio      ?? '')
-  const [saving,   setSaving]   = useState(false)
+  const [name,        setName]        = useState(currentUser?.name        ?? '')
+  const [username,    setUsername]    = useState(currentUser?.username    ?? '')
+  const [bio,         setBio]         = useState(currentUser?.bio         ?? '')
+  const [year,        setYear]        = useState(currentUser?.year        ?? '')
+  const [designation, setDesignation] = useState(currentUser?.designation ?? '')
+  const [saving,      setSaving]      = useState(false)
 
   const handleSave = async () => {
     if (!name.trim()) { showToast('Name cannot be empty.', 'error'); return }
     setSaving(true)
-    const result = await updateUser({ name, username, bio })
+    const result = await updateUser({
+      name,
+      username,
+      bio,
+      ...(currentUser?.role === 'student' ? { year } : {}),
+      ...(currentUser?.role === 'faculty' ? { designation } : {}),
+    })
     setSaving(false)
     if (result?.ok) {
       showToast('Profile saved successfully!')
@@ -191,6 +202,42 @@ function AccountSection({ currentUser, updateUser, showToast }) {
             <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Email <span className="font-normal normal-case tracking-normal">(read only)</span></label>
             <input type="email" value={currentUser?.email ?? ''} readOnly className={`${INPUT_BASE} opacity-60 cursor-not-allowed`} />
           </div>
+          {currentUser?.role === 'student' && (
+            <div>
+              <label htmlFor="settings-year" className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                Academic Year
+              </label>
+              <select
+                id="settings-year"
+                value={year}
+                onChange={e => setYear(e.target.value)}
+                className={`${INPUT_BASE} cursor-pointer`}
+              >
+                <option value="">Select Year</option>
+                {STUDENT_YEARS.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {currentUser?.role === 'faculty' && (
+            <div>
+              <label htmlFor="settings-designation" className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                Designation
+              </label>
+              <select
+                id="settings-designation"
+                value={designation}
+                onChange={e => setDesignation(e.target.value)}
+                className={`${INPUT_BASE} cursor-pointer`}
+              >
+                <option value="">Select Designation</option>
+                {DESIGNATIONS.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Bio</label>
             <textarea id="settings-bio" rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell your campus about yourself…" className={`${INPUT_BASE} resize-none`} />
@@ -214,13 +261,16 @@ function AccountSection({ currentUser, updateUser, showToast }) {
           { label: 'College', value: currentUser?.college || '—' },
           { label: 'Dept',    value: currentUser?.dept || '—' },
           ...(currentUser?.role === 'student'
-            ? [{ label: 'Year', value: currentUser?.year || '—' }, { label: 'Student ID', value: currentUser?.studentId || '—' }]
+            ? [{ label: 'Student ID', value: currentUser?.studentId || '—', sub: '' }]
             : currentUser?.role === 'faculty'
-            ? [{ label: 'Designation', value: currentUser?.designation || '—' }, { label: 'Employee ID', value: currentUser?.employeeId || '—' }]
+            ? [{ label: 'Employee ID', value: currentUser?.employeeId || '—', sub: '' }]
             : []),
-        ].map(({ label, value }) => (
+        ].map(({ label, value, sub }) => (
           <div key={label} className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0">
-            <p className="text-slate-500 dark:text-gray-400 text-sm">{label}</p>
+            <div>
+              <p className="text-slate-500 dark:text-gray-400 text-sm">{label}</p>
+              {sub && <p className="text-[10px] text-slate-400 dark:text-gray-500">{sub}</p>}
+            </div>
             <p className="text-slate-900 dark:text-white text-sm font-medium capitalize">{value}</p>
           </div>
         ))}

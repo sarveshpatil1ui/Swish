@@ -6,16 +6,21 @@ import { resolveImageUrl } from '../../utils/posts'
 
 const MAX_BIO_LENGTH = 300
 
+const STUDENT_YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Masters / PhD']
+const DESIGNATIONS = ['HOD', 'Professor', 'Assistant Professor', 'Lecturer', 'Other']
+
 export default function EditProfileModal({ onClose, onSaved }) {
   const { currentUser, saveProfile, uploadProfilePhoto } = useSwish()
 
-  const [name, setName]     = useState(currentUser?.name ?? '')
-  const [bio, setBio]       = useState(currentUser?.bio ?? '')
+  const [name, setName]               = useState(currentUser?.name ?? '')
+  const [bio, setBio]                 = useState(currentUser?.bio ?? '')
+  const [year, setYear]               = useState(currentUser?.year ?? '')
+  const [designation, setDesignation] = useState(currentUser?.designation ?? '')
   const [photoPreview, setPhotoPreview] = useState(currentUser?.profilePhoto ?? null)
   const [photoFile, setPhotoFile]       = useState(null)
-  const [saving, setSaving]       = useState(false)
+  const [saving, setSaving]             = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [error, setError]         = useState('')
+  const [error, setError]               = useState('')
   const fileRef = useRef(null)
 
   const handlePhotoChange = (file) => {
@@ -38,7 +43,7 @@ export default function EditProfileModal({ onClose, onSaved }) {
     setSaving(true)
     setError('')
 
-    // Upload photo first (if changed), then save name/bio.
+    // Upload photo first (if changed), then save name/bio/academic fields.
     if (photoFile) {
       setUploadingPhoto(true)
       const photoRes = await uploadProfilePhoto(photoFile)
@@ -54,6 +59,8 @@ export default function EditProfileModal({ onClose, onSaved }) {
       name: name.trim(),
       bio: bio.trim(),
       username: currentUser.username,
+      ...(currentUser?.role === 'student' ? { year } : {}),
+      ...(currentUser?.role === 'faculty' ? { designation } : {}),
     })
     setSaving(false)
 
@@ -156,6 +163,42 @@ export default function EditProfileModal({ onClose, onSaved }) {
                 aria-label="Name"
               />
             </div>
+
+            {/* Academic Year (Student) */}
+            {currentUser?.role === 'student' && (
+              <div className="mb-4">
+                <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Academic Year</label>
+                <select
+                  value={year}
+                  onChange={e => setYear(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 cursor-pointer"
+                  aria-label="Academic Year"
+                >
+                  <option value="">Select Year</option>
+                  {STUDENT_YEARS.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Designation (Faculty) */}
+            {currentUser?.role === 'faculty' && (
+              <div className="mb-4">
+                <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Designation</label>
+                <select
+                  value={designation}
+                  onChange={e => setDesignation(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 cursor-pointer"
+                  aria-label="Designation"
+                >
+                  <option value="">Select Designation</option>
+                  {DESIGNATIONS.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Bio */}
             <div className="mb-2">

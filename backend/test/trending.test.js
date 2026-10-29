@@ -141,5 +141,45 @@ describe('Trending & Discovery Route Integrity and Business Logic', () => {
     // Router has route stack containing validation middlewares
     assert.ok(postsRouteLayer.route.stack.length > 0, 'Route has validation stack')
   })
+
+  test('9. serializeTrendingPost preserves music, styling, saved, and isFollowing', () => {
+    const viewerId = new mongoose.Types.ObjectId()
+    const authorId = new mongoose.Types.ObjectId()
+    const rawPost = {
+      _id: new mongoose.Types.ObjectId(),
+      caption: 'Testing post with audio and styling',
+      likes: [viewerId],
+      savedBy: [viewerId],
+      music: { id: 'track1', title: 'Campus Beat', artist: 'DJ Swish' },
+      emoji: '🎵',
+      label: 'Campus Vibes',
+      gradientFrom: '#4f46e5',
+      gradientTo: '#ec4899',
+      user: {
+        _id: authorId,
+        name: 'Aarav Patel',
+        username: 'aarav',
+      },
+    }
+
+    const followingSet = new Set([authorId.toString()])
+    const serialized = serializeTrendingPost(rawPost, viewerId, followingSet)
+
+    assert.equal(serialized.liked, true)
+    assert.equal(serialized.saved, true)
+    assert.equal(serialized.isFollowing, true)
+    assert.deepEqual(serialized.music, { id: 'track1', title: 'Campus Beat', artist: 'DJ Swish' })
+    assert.equal(serialized.emoji, '🎵')
+    assert.equal(serialized.label, 'Campus Vibes')
+    assert.equal(serialized.gradientFrom, '#4f46e5')
+    assert.equal(serialized.gradientTo, '#ec4899')
+  })
+
+  test('10. Trending router registers /accounts for suggested peers', () => {
+    const accountsRouteLayer = trendingRouter.stack
+      .find(layer => layer.route && layer.route.path === '/accounts')
+
+    assert.ok(accountsRouteLayer, 'GET /accounts must be present')
+  })
 })
 

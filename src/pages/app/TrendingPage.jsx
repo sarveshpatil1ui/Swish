@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Flame, Sparkles, Hash, GraduationCap,
   Heart, MessageCircle, UserPlus, Check,
-  Loader2, RefreshCw, X, TrendingUp, Users, AlertCircle, Compass, Search
+  Loader2, RefreshCw, X, TrendingUp, Users, AlertCircle, Compass, Search, Music2
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -196,6 +196,16 @@ function PostTile({ post, onClick, onSelectTag }) {
         </div>
       )}
 
+      {/* Audio / Music Badge on Top Left */}
+      {post.music && (
+        <div className="absolute top-2 left-2 z-10 pointer-events-none">
+          <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md text-white text-[10px] font-medium px-2 py-0.5 rounded-full border border-white/20 shadow-sm">
+            <Music2 size={11} className="text-indigo-400" />
+            <span className="max-w-[70px] truncate">{post.music.title || post.music.name || 'Audio'}</span>
+          </span>
+        </div>
+      )}
+
       {/* Floating Score Badge on Top Right */}
       {typeof post.score === 'number' && (
         <div className="absolute top-2 right-2 z-10 pointer-events-none">
@@ -269,8 +279,8 @@ function GridSkeleton() {
 // MAIN TRENDING PAGE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function TrendingPage() {
-  const { currentUser } = useSwish()
-  const { emit } = useSocket()
+  const { currentUser, posts: globalPosts } = useSwish()
+  const { emit, on, off } = useSocket()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const activeTag = searchParams.get('tag') || ''
@@ -289,6 +299,82 @@ export default function TrendingPage() {
 
   // Modal inspection
   const [selectedPost, setSelectedPost] = useState(null)
+
+  // ── Sync with global posts (e.g. actions inside PostViewerModal) ──
+  useEffect(() => {
+    if (!globalPosts || globalPosts.length === 0) return
+    setPosts((prev) =>
+      prev.map((p) => {
+        const found = globalPosts.find((gp) => (gp.id || gp._id) === (p.id || p._id))
+        if (!found) return p
+        return {
+          ...p,
+          likeCount: found.likeCount ?? found.likes ?? p.likeCount,
+          likes: found.likeCount ?? found.likes ?? p.likes,
+          liked: found.liked ?? found.isLiked ?? p.liked,
+          isLiked: found.liked ?? found.isLiked ?? p.isLiked,
+          commentCount: found.commentCount ?? found.commentsCount ?? p.commentCount,
+          saved: found.saved ?? p.saved,
+        }
+      })
+    )
+  }, [globalPosts])
+
+  // ── Real-Time Socket Listeners for Likes, Comments, and Deletions ──
+  useEffect(() => {
+    if (!on || !off) return
+
+    const handleLikeUpdate = (data) => {
+      if (!data?.postId) return
+      setPosts((prev) =>
+        prev.map((p) => {
+          const pid = p.id || p._id
+          if (pid === data.postId) {
+            const isMe = currentUser && (currentUser._id === data.userId || currentUser.id === data.userId)
+            return {
+              ...p,
+              likeCount: data.likeCount ?? p.likeCount,
+              likes: data.likeCount ?? p.likes,
+              ...(isMe ? { liked: data.action === 'like', isLiked: data.action === 'like' } : {}),
+            }
+          }
+          return p
+        })
+      )
+    }
+
+    const handleCommentUpdate = (data) => {
+      if (!data?.postId) return
+      setPosts((prev) =>
+        prev.map((p) => {
+          const pid = p.id || p._id
+          if (pid === data.postId) {
+            return {
+              ...p,
+              commentCount: data.commentCount ?? p.commentCount,
+            }
+          }
+          return p
+        })
+      )
+    }
+
+    const handlePostDelete = (data) => {
+      if (!data?.postId) return
+      setPosts((prev) => prev.filter((p) => (p.id || p._id) !== data.postId))
+      setSelectedPost((curr) => ((curr?.id || curr?._id) === data.postId ? null : curr))
+    }
+
+    on('post:like:update', handleLikeUpdate)
+    on('post:comment:update', handleCommentUpdate)
+    on('post:delete', handlePostDelete)
+
+    return () => {
+      off('post:like:update', handleLikeUpdate)
+      off('post:comment:update', handleCommentUpdate)
+      off('post:delete', handlePostDelete)
+    }
+  }, [on, off, currentUser])
 
   // ── Load Trending Hashtags ──
   const fetchHashtags = useCallback(async () => {
@@ -310,7 +396,19 @@ export default function TrendingPage() {
     try {
       const res = await apiGetSuggestedAccounts(10)
       if (res.ok && Array.isArray(res.accounts)) {
-        setSuggestedAccounts(res.accounts)
+        // Defense-in-depth: strictly filter out any admin/college_admin accounts
+        const filtered = res.accounts.filter((acc) => {
+          const role = (acc.role || '').toLowerCase()
+          const dept = (acc.dept || '').toLowerCase()
+          const username = (acc.username || '').toLowerCase()
+          const name = (acc.name || '').toLowerCase()
+          if (['admin', 'college_admin', 'main_admin'].includes(role)) return false
+          if (dept === 'administration') return false
+          if (username === 'swish.admin' || username === 'admin' || username.startsWith('admin@')) return false
+          if (name.includes('admin user') || name.includes('swish admin')) return false
+          return true
+        })
+        setSuggestedAccounts(filtered)
       }
     } catch (e) {
       console.error('Failed to load suggested accounts:', e)

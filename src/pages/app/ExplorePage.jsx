@@ -45,6 +45,19 @@ function Avatar({ user, size = 11 }) {
     : <div className={`${cls} flex items-center justify-center text-white font-bold text-sm`} style={{ backgroundColor: user.avatarColor || '#6366f1' }}>{user.initials}</div>
 }
 
+// ── Non-admin campus user filter ─────────────────────────────────────────────
+function isRegularCampusUser(u) {
+  const role = (u?.role || '').toLowerCase()
+  const dept = (u?.dept || '').toLowerCase()
+  const username = (u?.username || '').toLowerCase()
+  const name = (u?.name || '').toLowerCase()
+  if (['admin', 'college_admin', 'main_admin'].includes(role)) return false
+  if (dept === 'administration') return false
+  if (username === 'swish.admin' || username === 'admin' || username.startsWith('admin@')) return false
+  if (name.includes('admin user') || name.includes('swish admin')) return false
+  return true
+}
+
 // ── User Card ──────────────────────────────────────────────────────────────────
 function UserCard({ user: initialUser }) {
   const [user, setUser] = useState(initialUser)
@@ -91,7 +104,7 @@ function UserCard({ user: initialUser }) {
         </p>
         <p className="text-slate-300 dark:text-gray-600 text-xs mt-0.5">
           {user.followers ?? 0} {user.followers === 1 ? 'follower' : 'followers'}
-          {user.role !== 'student' && <span className="ml-1 capitalize text-indigo-400 dark:text-indigo-500">· {user.role}</span>}
+          {user.role === 'faculty' && <span className="ml-1 capitalize text-indigo-400 dark:text-indigo-500">· {user.designation || 'Faculty'}</span>}
         </p>
       </Link>
 
@@ -120,21 +133,25 @@ export default function ExplorePage() {
   const [loadingAll,  setLoadingAll]  = useState(true)
   const [loadingSearch, setLoadingSearch] = useState(false)
 
-  // Load all users on mount
+  // Load all users on mount (strictly non-admin campus users)
   useEffect(() => {
     apiFetch('/api/users/all').then(data => {
-      if (data.ok) setAllUsers(data.users)
+      if (data.ok && Array.isArray(data.users)) {
+        setAllUsers(data.users.filter(isRegularCampusUser))
+      }
       setLoadingAll(false)
     })
   }, [])
 
-  // Debounced search
+  // Debounced search (strictly non-admin campus users)
   useEffect(() => {
     if (!query.trim()) { setSearchUsers([]); return }
     const t = setTimeout(async () => {
       setLoadingSearch(true)
       const data = await apiFetch(`/api/users/search?q=${encodeURIComponent(query)}`)
-      if (data.ok) setSearchUsers(data.users)
+      if (data.ok && Array.isArray(data.users)) {
+        setSearchUsers(data.users.filter(isRegularCampusUser))
+      }
       setLoadingSearch(false)
     }, 300)
     return () => clearTimeout(t)

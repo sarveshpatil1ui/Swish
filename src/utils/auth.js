@@ -153,8 +153,8 @@ export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }
 
-export async function apiUpdateProfile(userId, { name, username, bio }) {
-  return apiFetch(`/api/users/${userId}`, { method: 'PUT', body: { name, username, bio } })
+export async function apiUpdateProfile(userId, profileData) {
+  return apiFetch(`/api/users/${userId}`, { method: 'PUT', body: profileData })
 }
 
 export async function apiUpdatePreferences(preferences) {

@@ -683,15 +683,17 @@ export function SwishProvider({ children }) {
   // ── Profile fetch/update (FR-02) ──────────────────────────────────────────────
   const fetchProfile = useCallback((userId) => apiGetProfile(userId), [])
 
-  const saveProfile = async (userId, { name, username, bio }) => {
-    const res = await apiUpdateProfile(userId, { name, username, bio })
-    if (res.ok && currentUser?.id === userId) {
+  const saveProfile = async (userId, data) => {
+    const res = await apiUpdateProfile(userId, data)
+    if (res.ok && (currentUser?.id === userId || currentUser?._id === userId)) {
       setCurrentUser(u => ({
         ...u,
         name: res.user.name,
         username: res.user.username,
         bio: res.user.bio,
         initials: res.user.initials,
+        ...(res.user.year !== undefined ? { year: res.user.year } : {}),
+        ...(res.user.designation !== undefined ? { designation: res.user.designation } : {}),
       }))
     }
     return res
@@ -818,13 +820,15 @@ const domainApproved = async (email) => {
 }
 
   // ── updateUser ────────────────────────────────────────────────────────────
-  // TODO: replace with PATCH /api/users/:id when user-profile API is built
-  const updateUser = async ({ name, username, bio }) => {
+  // Updates current user profile (name, username, bio, year, designation)
+  const updateUser = async (data) => {
     if (!currentUser) return { ok: false, error: 'Not authenticated.' }
     return saveProfile(currentUser.id, {
-      name: name ?? currentUser.name,
-      username: username ?? currentUser.username,
-      bio: bio ?? currentUser.bio ?? '',
+      name: data.name ?? currentUser.name,
+      username: data.username ?? currentUser.username,
+      bio: data.bio ?? currentUser.bio ?? '',
+      ...(data.year !== undefined ? { year: data.year } : {}),
+      ...(data.designation !== undefined ? { designation: data.designation } : {}),
     })
   }
 

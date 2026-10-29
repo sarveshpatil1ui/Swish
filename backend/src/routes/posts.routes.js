@@ -637,6 +637,10 @@ router.delete('/:postId', requireAuth, async (req, res) => {
       { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } }
     ])
 
+    // Broadcast real-time deletion event scoped to college room
+    const collegeId = post.user?.collegeId || req.user.collegeId
+    broadcastEvent('post:delete', { postId: req.params.postId }, { collegeId })
+
     res.json({ ok: true, postId: req.params.postId })
   } catch (err) {
     console.error('[DELETE /api/posts/:postId] Error:', err)

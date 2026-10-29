@@ -47,10 +47,13 @@ export function invalidateHashtagCache() {
 }
 
 // ── Post serializer matching the Swish feed shape ─────────────────────────────
-export function serializeTrendingPost(p, viewerId) {
+export function serializeTrendingPost(p, viewerId, followingSet = null) {
   const author = p.user || {}
   const rawLikes = Array.isArray(p.likes) ? p.likes : []
-  const liked = rawLikes.some(id => (id?._id || id).toString() === viewerId.toString())
+  const rawSavedBy = Array.isArray(p.savedBy) ? p.savedBy : []
+  const viewerStr = viewerId ? viewerId.toString() : ''
+  const liked = rawLikes.some(id => (id?._id || id).toString() === viewerStr)
+  const saved = rawSavedBy.some(id => (id?._id || id).toString() === viewerStr)
   const likeCount = typeof p.likeCount === 'number' ? p.likeCount : rawLikes.length
 
   const authorId = author._id ? author._id.toString() : (author.id || '')
@@ -59,6 +62,8 @@ export function serializeTrendingPost(p, viewerId) {
       ? author.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
       : 'U'
   )
+  const isFollowing = followingSet ? followingSet.has(authorId) : Boolean(p.isFollowing)
+
   return {
     id: p._id ? p._id.toString() : p.id,
     _id: p._id ? p._id.toString() : p.id,
@@ -83,11 +88,18 @@ export function serializeTrendingPost(p, viewerId) {
     caption: p.caption || '',
     imageUrl: p.imageUrl || null,
     imagePublicId: p.imagePublicId || null,
+    music: p.music || null,
+    emoji: p.emoji || null,
+    label: p.label || null,
+    gradientFrom: p.gradientFrom || null,
+    gradientTo: p.gradientTo || null,
     tags: Array.isArray(p.tags) ? p.tags : [],
     likeCount,
     likes: likeCount,
     liked,
     isLiked: liked,
+    saved,
+    isFollowing,
     commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
     createdAt: p.createdAt,
     score: typeof p.score === 'number' ? Number(p.score.toFixed(3)) : undefined,
@@ -126,27 +138,32 @@ router.get(
       const now = new Date()
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      // Base query criteria: non-deleted
+      // Base query criteria: non-deleted and not hidden by moderation
       const matchCriteria = {
         isDeleted: false,
+        hidden: { $ne: true },
       }
 
       // Check if any posts were created in the last 7 days. If so, restrict to recent 7 days.
       // If none (e.g. seed data or sparse activity), fall back to all-time posts so the feed is never empty.
-      const hasRecentPosts = await Post.exists({ isDeleted: false, createdAt: { $gte: sevenDaysAgo } })
+      const hasRecentPosts = await Post.exists({
+        isDeleted: false,
+        hidden: { $ne: true },
+        createdAt: { $gte: sevenDaysAgo },
+      })
       if (hasRecentPosts) {
         matchCriteria.createdAt = { $gte: sevenDaysAgo }
       }
 
-      // Fetch user context for For You / College / Hashtags tabs
-      let followingIds = []
+      // Fetch user follow context (used for privacy filtering & affinity)
+      const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
+      const followingIds = follows.map(f => f.following)
+      const allowedAuthorIds = [req.user._id, ...followingIds]
+
       let viewerLikedTags = []
       if (tab === 'foryou') {
-        const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
-        followingIds = follows.map(f => f.following)
-
         // Find tags the user has liked recently
-        const likedQuery = { likes: req.user._id }
+        const likedQuery = { likes: req.user._id, hidden: { $ne: true } }
         if (hasRecentPosts) likedQuery.createdAt = { $gte: sevenDaysAgo }
         const likedPosts = await Post.find(likedQuery).select('tags').limit(30).lean()
 
@@ -199,7 +216,7 @@ router.get(
       const pipeline = [
         { $match: matchCriteria },
 
-        // Join author to exclude suspended or deactivated users
+        // Join author to exclude suspended/deactivated users and private accounts viewer does not follow
         {
           $lookup: {
             from: 'users',
@@ -213,6 +230,10 @@ router.get(
           $match: {
             'author.deactivated': { $ne: true },
             'author.suspended': { $ne: true },
+            $or: [
+              { 'author.preferences.privacy.private': { $ne: true } },
+              { 'author._id': { $in: allowedAuthorIds } },
+            ],
           },
         },
 
@@ -332,6 +353,12 @@ router.get(
             caption: 1,
             imageUrl: 1,
             imagePublicId: 1,
+            music: 1,
+            emoji: 1,
+            label: 1,
+            gradientFrom: 1,
+            gradientTo: 1,
+            savedBy: 1,
             tags: 1,
             likes: 1,
             likeCount: '$resolvedLikes',
@@ -357,7 +384,8 @@ router.get(
       const hasMore = rawPosts.length > limit
       if (hasMore) rawPosts.pop()
 
-      const posts = rawPosts.map(p => serializeTrendingPost(p, req.user._id))
+      const followingSet = new Set(followingIds.map(f => f.toString()))
+      const posts = rawPosts.map(p => serializeTrendingPost(p, req.user._id, followingSet))
       const nextCursor = hasMore
         ? Buffer.from(JSON.stringify({ skip: skip + limit })).toString('base64')
         : null
@@ -402,11 +430,17 @@ router.get(
 
       const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
+      // Exclude posts from private accounts and hidden posts from public trending hashtag aggregations
+      const privateUsers = await User.find({ 'preferences.privacy.private': true }).select('_id').lean()
+      const privateUserIds = privateUsers.map(u => u._id)
+
       // First try posts in the last 7 days; if none, fall back to all-time tagged posts
       let results = await Post.aggregate([
         {
           $match: {
             isDeleted: false,
+            hidden: { $ne: true },
+            user: { $nin: privateUserIds },
             createdAt: { $gte: sevenDaysAgo },
             'tags.0': { $exists: true },
           },
@@ -445,6 +479,8 @@ router.get(
           {
             $match: {
               isDeleted: false,
+              hidden: { $ne: true },
+              user: { $nin: privateUserIds },
               'tags.0': { $exists: true },
             },
           },
@@ -524,6 +560,23 @@ router.get(
         }
       }
 
+      const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
+      const followingIds = follows.map(f => f.following)
+      const allowedAuthorIds = [req.user._id, ...followingIds]
+
+      // Exclude deactivated, suspended, and private accounts that the viewer does not follow
+      const excludedUsers = await User.find({
+        $or: [
+          { deactivated: true },
+          { suspended: true },
+          {
+            'preferences.privacy.private': true,
+            _id: { $nin: allowedAuthorIds },
+          },
+        ],
+      }).select('_id').lean()
+      const excludedUserIds = excludedUsers.map(u => u._id)
+
       const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const posts = await Post.find({
         tags: {
@@ -535,6 +588,8 @@ router.get(
             new RegExp(`^#?${escaped}$`, 'i'),
           ],
         },
+        user: { $nin: excludedUserIds },
+        hidden: { $ne: true },
         isDeleted: false,
       })
         .sort({ createdAt: -1 })
@@ -545,6 +600,7 @@ router.get(
       const hasMore = posts.length > limit
       if (hasMore) posts.pop()
 
+      const followingSet = new Set(followingIds.map(f => f.toString()))
       const nextCursor = hasMore
         ? Buffer.from(JSON.stringify({ skip: skip + limit })).toString('base64')
         : null
@@ -552,7 +608,7 @@ router.get(
       res.json({
         ok: true,
         tag,
-        posts: posts.map(p => serializeTrendingPost(p, req.user._id)),
+        posts: posts.map(p => serializeTrendingPost(p, req.user._id, followingSet)),
         nextCursor,
         hasMore,
       })
@@ -573,34 +629,35 @@ router.get('/accounts', async (req, res) => {
     const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
     const followingIds = [req.user._id, ...follows.map(f => f.following)]
 
-    const filter = {
+    // Strictly students and faculty only — NO admin, main_admin, or college_admin
+    const baseFilter = {
       _id: { $nin: followingIds },
       deactivated: false,
       suspended: false,
+      role: { $in: ['student', 'faculty'] },
     }
 
     // Try finding peers from the same college first if viewer has a collegeId
     let suggested = []
     if (req.user.collegeId) {
-      suggested = await User.find({ ...filter, collegeId: req.user.collegeId })
+      suggested = await User.find({ ...baseFilter, collegeId: req.user.collegeId })
         .sort({ followers: -1, createdAt: -1 })
         .limit(limit)
-        .select('name username initials avatarColor profilePhoto dept year college followers')
+        .select('name username initials avatarColor profilePhoto dept year college followers role')
         .lean()
     }
 
-    // If fewer than limit, fill with general popular users
+    // If fewer than limit, fill with general popular students/faculty across campus
     if (suggested.length < limit) {
       const remaining = limit - suggested.length
       const existingIds = [...followingIds, ...suggested.map(u => u._id)]
       const fallback = await User.find({
+        ...baseFilter,
         _id: { $nin: existingIds },
-        deactivated: false,
-        suspended: false,
       })
         .sort({ followers: -1, createdAt: -1 })
         .limit(remaining)
-        .select('name username initials avatarColor profilePhoto dept year college followers')
+        .select('name username initials avatarColor profilePhoto dept year college followers role')
         .lean()
 
       suggested = [...suggested, ...fallback]
@@ -619,6 +676,7 @@ router.get('/accounts', async (req, res) => {
         year: u.year || '',
         college: u.college || '',
         followers: u.followers || 0,
+        role: u.role || 'student',
         isFollowing: false,
       })),
     })

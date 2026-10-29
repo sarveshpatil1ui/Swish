@@ -44,6 +44,8 @@ router.get('/search', requireAuth, async (req, res) => {
     const users = await User.find({
       _id:         { $ne: req.user._id },
       deactivated: false,
+      suspended:   { $ne: true },
+      role:        { $in: ['student', 'faculty'] },
       $or: [{ name: regex }, { username: regex }, { dept: regex }],
     })
       .limit(20)
@@ -71,12 +73,14 @@ router.get('/search', requireAuth, async (req, res) => {
 })
 
 // ── GET /api/users/all — list all users for Explore page ─────────────────────
-// College admin only sees users from their college
+// College admin only sees users from their college; excludes admin roles from campus directory
 router.get('/all', requireAuth, async (req, res) => {
   try {
     const filter = {
       _id:         { $ne: req.user._id },
       deactivated: false,
+      suspended:   { $ne: true },
+      role:        { $in: ['student', 'faculty'] },
     }
     
     // College admin can only see users from their college
@@ -312,6 +316,10 @@ router.put(
       .optional()
       .trim()
       .isLength({ max: 100 }).withMessage('Designation too long.'),
+    body('year')
+      .optional()
+      .trim()
+      .isLength({ max: 50 }).withMessage('Year value too long.'),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -322,7 +330,7 @@ router.put(
         return res.status(403).json({ ok: false, error: 'You can only edit your own profile.' })
       }
 
-      const { name, username, bio, designation } = req.body
+      const { name, username, bio, designation, year } = req.body
       if (name !== undefined) req.user.name = name
       if (username !== undefined && username.toLowerCase() !== req.user.username) {
         const existing = await User.findOne({ username: username.toLowerCase(), _id: { $ne: req.user.id } })
@@ -330,7 +338,12 @@ router.put(
         req.user.username = username.toLowerCase()
       }
       if (bio !== undefined) req.user.bio = bio
-      if (designation !== undefined) req.user.designation = designation
+      if (designation !== undefined && (req.user.role === 'faculty' || req.user.role === 'college_admin')) {
+        req.user.designation = designation
+      }
+      if (year !== undefined && req.user.role === 'student') {
+        req.user.year = year
+      }
       await req.user.save()
 
       res.json({ ok: true, user: req.user.toJSON() })
