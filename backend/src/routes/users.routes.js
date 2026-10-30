@@ -315,6 +315,9 @@ router.get('/:userId', requireAuth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
+    if (user.role === 'admin' && req.user.role !== 'admin') {
+      return res.status(404).json({ ok: false, error: 'User not found.' })
+    }
 
     const [isFollowing, isRequested] = await Promise.all([
       Follow.exists({

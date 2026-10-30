@@ -43,6 +43,8 @@ import AdminAnalytics from '../../components/admin/AdminAnalytics'
 import AdminDashboard from '../../components/admin/AdminDashboard'
 import AdminProfile from '../../components/admin/AdminProfile'
 import AdminPendingRequests from '../../components/admin/AdminPendingRequests'
+import AdminNotificationsPopover from '../../components/admin/AdminNotificationsPopover'
+import AdminReports from '../../components/admin/AdminReports'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -682,14 +684,15 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
           {/* Right actions: Bell + User dropdown */}
           <div className="flex items-center gap-3 shrink-0 ml-3">
-            <button
-              type="button"
-              className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
-              title="Notifications"
-            >
-              <Bell size={17} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-gray-950"></span>
-            </button>
+            <AdminNotificationsPopover
+              onNavigateToRequest={(requestId) => {
+                setPendingReviewId(requestId)
+                setActiveSection('Pending Requests')
+              }}
+              onNavigateToSection={(section) => {
+                navigateSection(section)
+              }}
+            />
 
             {/* User chip */}
             <div className="relative">
@@ -1488,6 +1491,14 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
               transition={{ duration: 0.2 }}
             >
               <AdminAnalytics onOpenSidebar={() => setMobileSidebarOpen(true)} />
+            </motion.div>
+          ) : activeSection === 'Reports' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminReports />
             </motion.div>
           ) : activeSection === 'My Profile' || activeSection === 'Profile' ? (
             <motion.div

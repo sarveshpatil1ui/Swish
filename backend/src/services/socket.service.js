@@ -33,6 +33,11 @@ export function emitToCollege(collegeId, event, data) {
   _io.to(`college:${String(collegeId)}`).emit(event, data)
 }
 
+export function emitToAdmin(event, data) {
+  if (!_io) return
+  _io.to('admin').emit(event, data)
+}
+
 let _io
 
 export function initSocket(app, { pubClient, subClient } = {}) {
@@ -82,7 +87,7 @@ export function initSocket(app, { pubClient, subClient } = {}) {
       if (!token) return next(new Error('Not authenticated'))
 
       const payload = jwt.verify(token, process.env.JWT_SECRET)
-      const user = await User.findById(payload.sub).select('name username initials avatarColor profilePhoto preferences')
+      const user = await User.findById(payload.sub).select('name username initials avatarColor profilePhoto preferences role collegeId')
       if (!user) return next(new Error('User not found'))
 
       socket.user = user
@@ -101,6 +106,11 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     // Join college-specific room so post likes and campus updates are scoped without global broadcast storms
     if (socket.user.collegeId) {
       socket.join(`college:${socket.user.collegeId.toString()}`)
+    }
+
+    // Join admin room for real-time platform & onboarding notifications
+    if (socket.user.role === 'admin' || socket.user.role === 'main_admin') {
+      socket.join('admin')
     }
 
     // Track this socket (a user may have multiple tabs open)

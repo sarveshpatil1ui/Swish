@@ -4,6 +4,10 @@ import express from 'express'
 import User from '../models/User.js'
 import College from '../models/College.js'
 import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
+import AdminNotification from '../models/AdminNotification.js'
+import Report from '../models/Report.js'
+import { emitToAdmin } from '../services/socket.service.js'
+import { createNotification } from '../services/notification.service.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
@@ -33,6 +37,7 @@ router.get(
         totalCollegeAdmins,
         pendingCollegeRequests,
         activeUsers,
+        escalatedReports,
       ] = await Promise.all([
         College.countDocuments(),
 
@@ -60,6 +65,14 @@ router.get(
           deactivated: false,
           suspended: false,
         }),
+
+        Report.countDocuments({
+          $or: [
+            { type: 'platform' },
+            { category: { $in: ['college_admin_misconduct', 'platform_bug', 'feature_request'] } },
+          ],
+          status: { $in: ['pending', 'reviewed'] },
+        }),
       ])
 
       return res.status(200).json({
@@ -72,7 +85,7 @@ router.get(
           totalCollegeAdmins,
           pendingCollegeRequests,
           activeUsers,
-          escalatedReports: 0,
+          escalatedReports,
         },
       })
     } catch (err) {
@@ -1095,6 +1108,300 @@ router.delete(
     } catch (err) {
       console.error('[DELETE /api/admin/profile/photo]', err)
       return res.status(500).json({ ok: false, error: 'Failed to remove profile photo.' })
+    }
+  }
+)
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔔 MAIN ADMIN NOTIFICATION ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/admin/notifications - List all admin notifications + unread count
+router.get(
+  '/notifications',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit, 10) || 40
+      const unreadOnly = req.query.unreadOnly === 'true'
+
+      const filter = unreadOnly ? { read: false } : {}
+      const [notifications, unreadCount] = await Promise.all([
+        AdminNotification.find(filter)
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean(),
+        AdminNotification.countDocuments({ read: false }),
+      ])
+
+      return res.status(200).json({
+        ok: true,
+        notifications: notifications.map((n) => ({
+          ...n,
+          id: n._id.toString(),
+        })),
+        unreadCount,
+      })
+    } catch (err) {
+      console.error('[GET /api/admin/notifications]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to fetch admin notifications.' })
+    }
+  }
+)
+
+// PATCH /api/admin/notifications/:id/read - Mark single notification as read
+router.patch(
+  '/notifications/:id/read',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const notification = await AdminNotification.findByIdAndUpdate(
+        req.params.id,
+        { $set: { read: true, readAt: new Date() } },
+        { new: true }
+      ).lean()
+
+      if (!notification) {
+        return res.status(404).json({ ok: false, error: 'Notification not found.' })
+      }
+
+      const unreadCount = await AdminNotification.countDocuments({ read: false })
+
+      return res.status(200).json({
+        ok: true,
+        notification: { ...notification, id: notification._id.toString() },
+        unreadCount,
+      })
+    } catch (err) {
+      console.error('[PATCH /api/admin/notifications/:id/read]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to update notification.' })
+    }
+  }
+)
+
+// PATCH /api/admin/notifications/read-all - Mark all notifications as read
+router.patch(
+  '/notifications/read-all',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      await AdminNotification.updateMany(
+        { read: false },
+        { $set: { read: true, readAt: new Date() } }
+      )
+      return res.status(200).json({
+        ok: true,
+        message: 'All notifications marked as read.',
+        unreadCount: 0,
+      })
+    } catch (err) {
+      console.error('[PATCH /api/admin/notifications/read-all]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to mark all notifications as read.' })
+    }
+  }
+)
+
+// DELETE /api/admin/notifications/:id - Delete single notification
+router.delete(
+  '/notifications/:id',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      await AdminNotification.findByIdAndDelete(req.params.id)
+      const unreadCount = await AdminNotification.countDocuments({ read: false })
+      return res.status(200).json({
+        ok: true,
+        message: 'Notification removed.',
+        unreadCount,
+      })
+    } catch (err) {
+      console.error('[DELETE /api/admin/notifications/:id]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to delete notification.' })
+    }
+  }
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🚨 PLATFORM REPORTS & GRIEVANCE ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// POST /api/admin/reports/platform - Submit platform bug or college admin grievance
+router.post(
+  '/reports/platform',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const { category, subject, description } = req.body
+      if (!subject?.trim() || !description?.trim()) {
+        return res.status(400).json({ ok: false, error: 'Subject and description are required.' })
+      }
+
+      const reportCategory = category || 'other'
+      const reporterRole = req.user.role || 'student'
+
+      const report = await Report.create({
+        reporterId: req.user._id,
+        reporterName: req.user.name,
+        reporterRole,
+        reportedUserName: reportCategory === 'college_admin_misconduct' ? 'College Administration' : 'Platform / System',
+        type: 'platform',
+        category: reportCategory,
+        description: `[${subject.trim()}] ${description.trim()}`,
+        collegeId: req.user.collegeId || null,
+        college: req.user.college || 'Swish Network',
+        status: 'pending',
+      })
+
+      // Create high-signal Admin Notification
+      const notifTitle = reportCategory === 'college_admin_misconduct'
+        ? `College Admin Grievance (${reporterRole.toUpperCase()})`
+        : `Platform Issue Reported (${reporterRole.toUpperCase()})`
+
+      const notif = await AdminNotification.create({
+        type: 'platform_report',
+        title: notifTitle,
+        message: `${req.user.name} [${reporterRole}] reported: "${subject.trim()}"`,
+        data: {
+          reportId: report._id.toString(),
+          reporterName: req.user.name,
+          reporterEmail: req.user.email,
+          reporterRole,
+          college: req.user.college || 'Swish Network',
+          category: reportCategory,
+          subject: subject.trim(),
+        },
+        link: '/admin/reports',
+        priority: reportCategory === 'college_admin_misconduct' ? 'urgent' : 'high',
+      })
+
+      emitToAdmin('admin:notification:new', notif)
+
+      return res.status(201).json({
+        ok: true,
+        message: 'Your report has been sent to the platform administrators.',
+        report: { id: report._id.toString() },
+      })
+    } catch (err) {
+      console.error('[POST /api/admin/reports/platform]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to submit report. Please try again.' })
+    }
+  }
+)
+
+// GET /api/admin/reports - Get platform reports & grievances for Main Admin
+router.get(
+  '/reports',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const reports = await Report.find({
+        $or: [
+          { type: 'platform' },
+          { category: { $in: ['college_admin_misconduct', 'platform_bug', 'feature_request'] } }
+        ]
+      })
+        .populate('reporterId', 'role name email')
+        .sort({ createdAt: -1 })
+        .lean()
+
+      return res.status(200).json({
+        ok: true,
+        reports: reports.map((r) => ({
+          ...r,
+          id: r._id.toString(),
+          reporterRole: r.reporterRole || r.reporterId?.role || 'student',
+          resolutionNote: r.resolutionNote || r.resolutionNotes || '',
+          resolutionNotes: r.resolutionNotes || r.resolutionNote || '',
+        })),
+      })
+    } catch (err) {
+      console.error('[GET /api/admin/reports]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to fetch platform reports.' })
+    }
+  }
+)
+
+// PATCH /api/admin/reports/:id/status - Update report status (reviewed, resolved, dismissed)
+router.patch(
+  '/reports/:id/status',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      const { status, resolutionNote, resolutionNotes } = req.body
+      if (!['pending', 'reviewed', 'resolved', 'dismissed'].includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Invalid status.' })
+      }
+
+      const cleanNote = (resolutionNote || resolutionNotes || '').trim()
+
+      const updateFields = {
+        status,
+        resolutionNote: cleanNote,
+        resolutionNotes: cleanNote,
+        reviewedBy: req.user._id,
+      }
+      if (status === 'resolved') updateFields.resolvedAt = new Date()
+      if (status === 'reviewed') updateFields.reviewedAt = new Date()
+
+      const report = await Report.findByIdAndUpdate(
+        req.params.id,
+        { $set: updateFields },
+        { new: true }
+      ).populate('reporterId', 'role name email').lean()
+
+      if (!report) {
+        return res.status(404).json({ ok: false, error: 'Report not found.' })
+      }
+
+      // Notify the reporter (Student or Faculty) about the resolution/update
+      if (report.reporterId) {
+        try {
+          const reporterUserId = report.reporterId._id || report.reporterId
+          let notifText = 'updated your report status'
+          if (status === 'resolved') {
+            notifText = 'resolved your platform report'
+          } else if (status === 'reviewed') {
+            notifText = 'is reviewing your platform report'
+          } else if (status === 'dismissed') {
+            notifText = 'reviewed and closed your platform report'
+          }
+
+          const subtext = cleanNote
+            ? `Admin Note: "${cleanNote}"`
+            : `Your report status is now marked as ${status}.`
+
+          await createNotification({
+            recipient: reporterUserId,
+            sender: req.user._id,
+            type: 'report_update',
+            text: notifText,
+            subtext,
+          })
+        } catch (notifErr) {
+          console.error('[PATCH /api/admin/reports/:id/status] Failed to notify reporter:', notifErr)
+        }
+      }
+
+      return res.status(200).json({
+        ok: true,
+        report: {
+          ...report,
+          id: report._id.toString(),
+          reporterRole: report.reporterRole || report.reporterId?.role || 'student',
+          resolutionNote: cleanNote,
+          resolutionNotes: cleanNote,
+        },
+      })
+    } catch (err) {
+      console.error('[PATCH /api/admin/reports/:id/status]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to update report status.' })
     }
   }
 )

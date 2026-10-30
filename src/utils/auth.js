@@ -662,3 +662,37 @@ export function getAvatarUrl(url) {
   const apiBase = BASE_URL || 'http://localhost:3001'
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`
 }
+
+// ── Main Admin Notifications API ───────────────────────────────────────────────
+export async function apiGetAdminNotifications(params = {}) {
+  const query = new URLSearchParams()
+  if (params.limit) query.append('limit', params.limit)
+  if (params.unreadOnly) query.append('unreadOnly', 'true')
+  const qStr = query.toString()
+  return apiFetch(`/api/admin/notifications${qStr ? `?${qStr}` : ''}`)
+}
+
+export async function apiMarkAdminNotificationRead(id) {
+  return apiFetch(`/api/admin/notifications/${id}/read`, { method: 'PATCH' })
+}
+
+export async function apiMarkAllAdminNotificationsRead() {
+  return apiFetch('/api/admin/notifications/read-all', { method: 'PATCH' })
+}
+
+export async function apiDeleteAdminNotification(id) {
+  return apiFetch(`/api/admin/notifications/${id}`, { method: 'DELETE' })
+}
+
+// ── Platform Reports & Grievances API ──────────────────────────────────────────
+export async function apiSubmitPlatformReport(data) {
+  return apiFetch('/api/admin/reports/platform', { method: 'POST', body: data })
+}
+
+export async function apiGetAdminReports() {
+  return apiFetch('/api/admin/reports')
+}
+
+export async function apiUpdateAdminReportStatus(id, data) {
+  return apiFetch(`/api/admin/reports/${id}/status`, { method: 'PATCH', body: data })
+}

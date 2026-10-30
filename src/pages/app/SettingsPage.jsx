@@ -10,6 +10,8 @@ import {
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
 import { resolveImageUrl } from '../../utils/posts'
+import ReportProblemModal from '../../components/common/ReportProblemModal'
+import { apiSubmitPlatformReport } from '../../utils/auth'
 
 // ── Menu list ─────────────────────────────────────────────────────────────────
 const MENU = [
@@ -467,25 +469,40 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
 }
 
 function HelpSection({ showToast }) {
+  const [showReportModal, setShowReportModal] = useState(false)
   const items = [
     { label: 'Help Center',          sub: 'Browse frequently asked questions' },
     { label: 'Contact Support',      sub: 'Get help from the Swish team' },
-    { label: 'Report a Problem',     sub: 'Something not working? Let us know' },
+    { label: 'Report a Problem',     sub: 'Report a platform bug or college admin grievance' },
     { label: 'Community Guidelines', sub: 'Learn about campus community rules' },
   ]
   return (
-    <GroupCard>
-      {items.map(({ label, sub }) => (
-        <button key={label} onClick={() => showToast(`${label} coming soon.`)}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0 active:bg-slate-50 dark:active:bg-gray-800/50 transition-colors">
-          <div className="text-left">
-            <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{label}</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{sub}</p>
-          </div>
-          <ChevronRight size={15} className="text-slate-300 dark:text-gray-600 flex-shrink-0" />
-        </button>
-      ))}
-    </GroupCard>
+    <>
+      <GroupCard>
+        {items.map(({ label, sub }) => (
+          <button
+            key={label}
+            onClick={() => {
+              if (label === 'Report a Problem') {
+                setShowReportModal(true)
+              } else {
+                showToast(`${label} coming soon.`)
+              }
+            }}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0 active:bg-slate-50 dark:active:bg-gray-800/50 transition-colors"
+          >
+            <div className="text-left">
+              <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{label}</p>
+              <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{sub}</p>
+            </div>
+            <ChevronRight size={15} className="text-slate-300 dark:text-gray-600 flex-shrink-0" />
+          </button>
+        ))}
+      </GroupCard>
+      {showReportModal && (
+        <ReportProblemModal onClose={() => setShowReportModal(false)} showToast={showToast} />
+      )}
+    </>
   )
 }
 

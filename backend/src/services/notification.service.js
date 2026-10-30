@@ -23,7 +23,7 @@ export async function createNotification({ recipient, sender, type, post = null,
   }
 
   const notification = await Notification.create({ recipient, sender, type, post, notice, text, subtext })
-  const populated = await notification.populate('sender', 'name username initials avatarColor profilePhoto')
+  const populated = await notification.populate('sender', 'name username initials avatarColor profilePhoto role')
   emitToUser(recipient, 'notification:new', formatNotification(populated))
   return notification
 }

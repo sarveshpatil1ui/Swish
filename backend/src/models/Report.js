@@ -11,6 +11,11 @@ const ReportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    reporterRole: {
+      type: String,
+      enum: ['student', 'faculty', 'college_admin', 'admin', 'user'],
+      default: 'student',
+    },
     reportedUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -32,12 +37,12 @@ const ReportSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['user', 'post', 'comment'],
+      enum: ['user', 'post', 'comment', 'platform'],
       required: true,
     },
     category: {
       type: String,
-      enum: ['harassment', 'spam', 'inappropriate_content', 'misinformation', 'other'],
+      enum: ['harassment', 'spam', 'inappropriate_content', 'misinformation', 'platform_bug', 'college_admin_misconduct', 'feature_request', 'other'],
       required: true,
     },
     description: {
@@ -53,7 +58,7 @@ const ReportSchema = new mongoose.Schema(
     collegeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'College',
-      required: true,
+      default: null,
     },
     college: {
       type: String,
@@ -69,6 +74,11 @@ const ReportSchema = new mongoose.Schema(
       default: null,
     },
     resolutionNotes: {
+      type: String,
+      default: '',
+      maxlength: 500,
+    },
+    resolutionNote: {
       type: String,
       default: '',
       maxlength: 500,

@@ -12,6 +12,7 @@ import { useSwish } from '../../context/SwishContext'
 import { apiGetNotices, apiGetUserStats, apiGetDepartments } from '../../utils/auth'
 import { resolveImageUrl } from '../../utils/posts'
 import Stories from '../../components/app/Stories'
+import ReportProblemModal from '../../components/common/ReportProblemModal'
 
 // Lazy-load NoticeManagement — only downloaded when Notices tab is first clicked
 const NoticeManagement = lazy(() => import('../college-admin/NoticeManagement'))
@@ -88,6 +89,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
     return 'Good evening'
   }
   const [activeTab, setActiveTab] = useState(defaultTab)
+  const [showReportModal, setShowReportModal] = useState(false)
   const [noticeCount, setNoticeCount] = useState(0)
   const [recentNotices, setRecentNotices] = useState([])
   const [statsData, setStatsData] = useState(null)
@@ -379,6 +381,15 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                 {user.college || user.collegeName}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100/80 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/50 shadow-sm transition-all cursor-pointer"
+              title="Report an issue or grievance directly to Main Admin"
+            >
+              <AlertTriangle size={13} className="text-rose-600 dark:text-rose-400" />
+              <span>Report Grievance / Bug</span>
+            </button>
           </div>
         </div>
       </div>
@@ -876,6 +887,14 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             <NoticeManagement />
           </Suspense>
         </motion.div>
+      )}
+      {showReportModal && (
+        <ReportProblemModal
+          onClose={() => setShowReportModal(false)}
+          showToast={(msg) => {
+            window.dispatchEvent(new CustomEvent('swish:toast', { detail: { title: 'Report Submitted', body: msg, type: 'success' } }))
+          }}
+        />
       )}
 
     </div>

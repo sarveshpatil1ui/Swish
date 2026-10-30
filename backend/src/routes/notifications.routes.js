@@ -19,16 +19,18 @@ function formatTimeAgo(date) {
 }
 
 export function formatNotification(n) {
+  const isSystemOrAdmin = n.type === 'report_update' || n.sender?.role === 'admin'
   return {
     id: n._id ? n._id.toString() : n.id,
     type: n.type,
     user: {
-      id: n.sender?._id ? n.sender._id.toString() : (n.sender?.id || ''),
-      name: n.sender?.name || 'Someone',
-      username: n.sender?.username || '',
-      initials: n.sender?.initials || '??',
-      avatarColor: n.sender?.avatarColor || '#6366f1',
-      profilePhoto: n.sender?.profilePhoto || null,
+      id: isSystemOrAdmin ? null : (n.sender?._id ? n.sender._id.toString() : (n.sender?.id || '')),
+      name: isSystemOrAdmin ? 'Swish Support Team' : (n.sender?.name || 'Someone'),
+      username: isSystemOrAdmin ? 'swish_support' : (n.sender?.username || ''),
+      initials: isSystemOrAdmin ? 'SW' : (n.sender?.initials || '??'),
+      avatarColor: isSystemOrAdmin ? '#4f46e5' : (n.sender?.avatarColor || '#6366f1'),
+      profilePhoto: isSystemOrAdmin ? null : (n.sender?.profilePhoto || null),
+      isSystem: isSystemOrAdmin,
     },
     text: n.text,
     subtext: n.subtext || '',
@@ -46,7 +48,7 @@ router.get('/', async (req, res) => {
     const list = await Notification.find({ recipient: req.user._id })
       .sort({ createdAt: -1 })
       .limit(50)
-      .populate('sender', 'name username initials avatarColor profilePhoto')
+      .populate('sender', 'name username initials avatarColor profilePhoto role')
       .lean()
 
     res.json({
