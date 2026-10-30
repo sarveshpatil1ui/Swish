@@ -157,23 +157,6 @@ export async function apiToggleHOD(userId, isHOD, departmentId) {
   return apiFetch(`/api/users/${userId}/hod`, { method: 'PATCH', body: { isHOD, departmentId } })
 }
 
-export async function apiHidePost(postId, reason) {
-  return apiFetch(`/api/posts/${postId}/hide`, { method: 'PATCH', body: { reason } })
-}
-
-export async function apiHideComment(commentId, reason) {
-  return apiFetch(`/api/comments/${commentId}/hide`, { method: 'PATCH', body: { reason } })
-}
-
-export async function apiGetActivityLogs(params = {}) {
-  const queryString = new URLSearchParams(params).toString()
-  return apiFetch(`/api/activity-logs${queryString ? `?${queryString}` : ''}`)
-}
-
-export async function apiGetActivityLogStats() {
-  return apiFetch('/api/activity-logs/stats')
-}
-
 export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }
@@ -637,16 +620,15 @@ export async function apiRestoreComment(id) {
 }
 
 // ── Activity Logs API ──────────────────────────────────────────────────────────
-export async function apiGetActivityLogs({ actionType, resourceType, limit, skip, startDate, endDate }) {
-  const params = new URLSearchParams()
-  if (actionType) params.append('actionType', actionType)
-  if (resourceType) params.append('resourceType', resourceType)
-  if (limit) params.append('limit', limit)
-  if (skip) params.append('skip', skip)
-  if (startDate) params.append('startDate', startDate)
-  if (endDate) params.append('endDate', endDate)
-  const query = params.toString()
-  return apiFetch(`/api/activity-logs${query ? `?${query}` : ''}`)
+export async function apiGetActivityLogs(params = {}) {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value)
+    }
+  }
+  const qStr = query.toString()
+  return apiFetch(`/api/activity-logs${qStr ? `?${qStr}` : ''}`)
 }
 
 export async function apiGetActivityLogStats() {

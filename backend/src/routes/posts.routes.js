@@ -681,7 +681,7 @@ router.delete('/:postId', requireAuth, async (req, res) => {
 
     // Decrement author's post count atomically
     await User.findByIdAndUpdate(post.user, [
-      { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } } }
+      { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } }
     ])
 
     // Broadcast real-time deletion event scoped to college room
