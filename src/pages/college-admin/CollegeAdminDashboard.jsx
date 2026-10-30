@@ -217,12 +217,6 @@ export default function CollegeAdminDashboard() {
               {formatDate(currentTime)} • {formatTime(currentTime)}
             </p>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Calendar size={14} className="text-slate-400" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">
-              Academic Year 2024-2025 • Semester 2
-            </p>
-          </div>
           <p className="text-slate-500 dark:text-gray-500 mt-1">
             Here's what's happening at {currentUser?.college || 'your college'}
           </p>
@@ -554,9 +548,9 @@ export default function CollegeAdminDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {recentNotices.map((notice) => (
+            {recentNotices.map((notice, idx) => (
               <div
-                key={notice.id}
+                key={notice._id || notice.id || `notice-${idx}`}
                 className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"
               >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -600,9 +594,9 @@ export default function CollegeAdminDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {activityLogs.map((log) => (
+            {activityLogs.map((log, idx) => (
               <div
-                key={log.id}
+                key={log._id || log.id || `log-${idx}`}
                 className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"
               >
                 <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center flex-shrink-0">

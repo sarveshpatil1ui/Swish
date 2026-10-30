@@ -66,6 +66,8 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
           src={src}
           alt={name}
           onError={() => setImgError(true)}
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
           className={`${sizes[size]} rounded-full object-cover`}
         />
       ) : (

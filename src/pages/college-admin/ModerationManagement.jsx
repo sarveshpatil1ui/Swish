@@ -52,14 +52,16 @@ export default function ModerationManagement() {
     setActionLoading(true)
     try {
       if (selectedItem.type === 'post') {
-        const res = await apiHidePost(selectedItem.data.id, hideReason)
+        const postId = selectedItem.data.id || selectedItem.data._id
+        const res = await apiHidePost(postId, hideReason)
         if (res.ok) {
-          setPosts(prev => prev.map(p => p.id === selectedItem.data.id ? res.post : p))
+          setPosts(prev => prev.map(p => (p.id === postId || p._id === postId) ? res.post : p))
         }
       } else {
-        const res = await apiHideComment(selectedItem.data.id, hideReason)
+        const commentId = selectedItem.data.id || selectedItem.data._id
+        const res = await apiHideComment(commentId, hideReason)
         if (res.ok) {
-          setComments(prev => prev.map(c => c.id === selectedItem.data.id ? res.comment : c))
+          setComments(prev => prev.map(c => (c.id === commentId || c._id === commentId) ? res.comment : c))
         }
       }
       setShowHideModal(false)
@@ -76,7 +78,7 @@ export default function ModerationManagement() {
     try {
       const res = await apiRestorePost(id)
       if (res.ok) {
-        setPosts(prev => prev.map(p => p.id === id ? res.post : p))
+        setPosts(prev => prev.map(p => (p.id === id || p._id === id) ? res.post : p))
       }
     } catch (err) {
       console.error('[ModerationManagement] Error restoring post:', err)
@@ -87,7 +89,7 @@ export default function ModerationManagement() {
     try {
       const res = await apiRestoreComment(id)
       if (res.ok) {
-        setComments(prev => prev.map(c => c.id === id ? res.comment : c))
+        setComments(prev => prev.map(c => (c.id === id || c._id === id) ? res.comment : c))
       }
     } catch (err) {
       console.error('[ModerationManagement] Error restoring comment:', err)
@@ -198,9 +200,9 @@ export default function ModerationManagement() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredPosts.map((post) => (
+              {filteredPosts.map((post, idx) => (
                 <PostItem
-                  key={post.id}
+                  key={post._id || post.id || `post-${idx}`}
                   post={post}
                   onHide={handleHidePost}
                   onRestore={handleRestorePost}
@@ -216,9 +218,9 @@ export default function ModerationManagement() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredComments.map((comment) => (
+              {filteredComments.map((comment, idx) => (
                 <CommentItem
-                  key={comment.id}
+                  key={comment._id || comment.id || `comment-${idx}`}
                   comment={comment}
                   onHide={handleHideComment}
                   onRestore={handleRestoreComment}
@@ -298,7 +300,7 @@ function PostItem({ post, onHide, onRestore }) {
         <div className="flex items-center gap-2">
           {post.hidden ? (
             <button
-              onClick={() => onRestore(post.id)}
+              onClick={() => onRestore(post._id || post.id)}
               className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition-colors"
               title="Restore"
             >
@@ -353,7 +355,7 @@ function CommentItem({ comment, onHide, onRestore }) {
         <div className="flex items-center gap-2">
           {comment.hidden ? (
             <button
-              onClick={() => onRestore(comment.id)}
+              onClick={() => onRestore(comment._id || comment.id)}
               className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition-colors"
               title="Restore"
             >

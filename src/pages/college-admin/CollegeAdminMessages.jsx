@@ -66,6 +66,8 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
           src={src}
           alt={name}
           onError={() => setImgError(true)}
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
           className={`${sizes[size]} rounded-full object-cover`}
         />
       ) : (
@@ -807,7 +809,7 @@ export default function CollegeAdminMessages() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Messages</h1>
-          <p className="text-slate-500 dark:text-gray-500 mt-1">Communicate with students, faculty, and admins</p>
+          <p className="text-slate-500 dark:text-gray-500 mt-1">Communicate with Students & Faculty </p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-xs font-medium flex items-center gap-1.5 ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-gray-500'}`}>

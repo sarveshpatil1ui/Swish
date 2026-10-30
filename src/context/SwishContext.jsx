@@ -16,7 +16,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 
 import {
-  apiLogin, apiRegister, apiLogout, apiMe, apiCheckCollegeDomain,
+  apiLogin, apiRegister, apiLogout, apiMe, getStoredToken, clearStoredToken, isTokenExpired, apiCheckCollegeDomain,
   apiGetUsers, apiToggleUserStatus,
   apiGetPosts, apiCreatePost, apiLikePost, apiUnlikePost,
   apiSavePost, apiUnsavePost,
@@ -155,6 +155,16 @@ export function SwishProvider({ children }) {
   // ── Rehydrate session on mount (replaces loadCurrentUser from localStorage) ─
   useEffect(() => {
     let cancelled = false
+    const token = getStoredToken()
+
+    // If no token exists or token is already expired, skip calling /api/auth/me
+    // to prevent unwanted 401 Unauthorized errors in browser console
+    if (!token || isTokenExpired(token)) {
+      if (token) clearStoredToken()
+      setAuthLoading(false)
+      return
+    }
+
     apiMe()
       .then(result => {
         if (cancelled) return
@@ -169,10 +179,14 @@ export function SwishProvider({ children }) {
           if (result.user.role === 'college_admin' && result.user.mustChangePassword) {
             setMustChangePassword(true)
           }
+        } else {
+          clearStoredToken()
+          setCurrentUser(null)
+          setIsAuthenticated(false)
         }
       })
       .catch(() => {
-        // Cookie not present or invalid — stay logged out
+        clearStoredToken()
       })
       .finally(() => {
         if (!cancelled) setAuthLoading(false)
