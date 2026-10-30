@@ -477,51 +477,39 @@ router.patch(
   }
 )
 
-// ── DELETE /api/departments/:id ────────────────────────────────────────────
-// Delete a department.
+// ── DELETE /api/departments/:id ───────────────────────────────────────────────
+// Delete a department (college admin only)
+router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requireCollegeAccess, async (req, res) => {
+  try {
+    const { id } = req.params
+    const department = await Department.findById(id)
+    if (!department) {
+      return res.status(404).json({ ok: false, error: 'Department not found.' })
+    }
 
-router.delete(
-  '/:id',
-  requireAuth,
-  requireRole('admin', 'college_admin'),
-  requireCollegeAccess,
-  async (req, res) => {
-    try {
-      const filter =
-        req.user.role === 'admin' || req.user.role === 'main_admin'
-          ? { _id: req.params.id }
-          : { _id: req.params.id, collegeId: req.collegeId }
+    // Check if there are active students or faculty assigned to this department
+    const activeUsersCount = await User.countDocuments({
+      departmentId: department._id,
+      deactivated: false
+    })
 
-      const department = await Department.findOneAndDelete(filter)
-
-      if (!department) {
-        return res.status(404).json({
-          ok: false,
-          error: 'Department not found.',
-        })
-      }
-
-      await delPattern(cacheKey('departments', 'by-domain', '*'))
-
-      await recordDepartmentActivity(
-        req,
-        department,
-        'department_deleted',
-        `Deleted department: ${department.name}`
-      )
-
-      return res.status(200).json({
-        ok: true,
-        message: 'Department deleted successfully.',
-      })
-    } catch (err) {
-      console.error('[DELETE /departments/:id]', err)
-      return res.status(500).json({
+    if (activeUsersCount > 0) {
+      return res.status(400).json({
         ok: false,
-        error: 'Failed to delete department.',
+        error: `Cannot delete department. ${activeUsersCount} active user(s) are assigned to this department. Please reassign or deactivate them first.`
       })
     }
+
+    await Department.findByIdAndDelete(id)
+
+    // Invalidate department cache
+    await invalidateDepartmentCache(req.user.collegeId)
+
+    res.json({ ok: true, message: 'Department deleted successfully.' })
+  } catch (err) {
+    console.error('[DELETE /api/departments/:id] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to delete department.' })
   }
-)
+})
 
 export default router

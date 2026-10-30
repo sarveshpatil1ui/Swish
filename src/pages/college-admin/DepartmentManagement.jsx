@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Search, Building2, Plus, Edit, Trash2, ToggleRight, ToggleLeft, User } from 'lucide-react'
-import { apiGetDepartments, apiCreateDepartment, apiUpdateDepartment, apiToggleDepartment, apiDeleteDepartment } from '../../utils/auth'
+import { apiGetDepartments, apiCreateDepartment, apiUpdateDepartment, apiToggleDepartment, apiDeleteDepartment, apiGetUsers } from '../../utils/auth'
 
 export default function DepartmentManagement() {
   const [departments, setDepartments] = useState([])
   const [filteredDepartments, setFilteredDepartments] = useState([])
+  const [faculty, setFaculty] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDept, setEditingDept] = useState(null)
@@ -14,6 +15,7 @@ export default function DepartmentManagement() {
 
   useEffect(() => {
     fetchDepartments()
+    fetchFaculty()
   }, [])
 
   useEffect(() => {
@@ -39,6 +41,18 @@ export default function DepartmentManagement() {
       console.error('[DepartmentManagement] Error fetching departments:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchFaculty = async () => {
+    try {
+      const res = await apiGetUsers()
+      if (res.ok) {
+        const facultyList = res.users.filter(u => u.role === 'faculty')
+        setFaculty(facultyList)
+      }
+    } catch (err) {
+      console.error('[DepartmentManagement] Error fetching faculty:', err)
     }
   }
 
@@ -203,12 +217,16 @@ export default function DepartmentManagement() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Head of Department</label>
-              <input
-                type="text"
+              <select
                 value={formData.headOfDepartment}
                 onChange={(e) => setFormData({ ...formData, headOfDepartment: e.target.value })}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
-              />
+              >
+                <option value="">Not assigned</option>
+                {faculty.map(fac => (
+                  <option key={fac.id} value={fac.name}>{fac.name} {fac.designation ? `(${fac.designation})` : ''}</option>
+                ))}
+              </select>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Description</label>
