@@ -12,6 +12,7 @@ export default function CollegeProfile() {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    domain: '',
     location: '',
     website: '',
     address: '',
@@ -33,6 +34,7 @@ export default function CollegeProfile() {
         setFormData({
           name: res.college.name || '',
           code: res.college.code || '',
+          domain: res.college.domain || '',
           location: res.college.location || '',
           website: res.college.website || '',
           address: res.college.address || '',
@@ -53,7 +55,14 @@ export default function CollegeProfile() {
     const validationErrors = {}
     if (!formData.name.trim()) validationErrors.name = 'Required'
     if (!formData.code.trim()) validationErrors.code = 'Required'
-    
+    if (!formData.domain.trim()) validationErrors.domain = 'Required'
+    if (formData.domain && !formData.domain.includes('.')) {
+      validationErrors.domain = 'Invalid domain format (e.g., example.com)'
+    }
+    if (formData.email && !formData.email.includes('@')) {
+      validationErrors.email = 'Invalid email format'
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
       return
@@ -81,6 +90,7 @@ export default function CollegeProfile() {
     setFormData({
       name: college?.name || '',
       code: college?.code || '',
+      domain: college?.domain || '',
       location: college?.location || '',
       website: college?.website || '',
       address: college?.address || '',
@@ -136,7 +146,7 @@ export default function CollegeProfile() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white">{college.name}</h2>
-              <p className="text-indigo-200 text-sm">{college.code}</p>
+              <p className="text-indigo-200 text-sm">{college.code} • @{college.domain}</p>
             </div>
           </div>
         </div>
@@ -165,6 +175,18 @@ export default function CollegeProfile() {
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                   />
                   {errors.code && <p className="text-rose-500 text-xs mt-1">{errors.code}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Email Domain <span className="text-slate-400">(Required for signup validation)</span></label>
+                  <input
+                    type="text"
+                    value={formData.domain}
+                    onChange={(e) => setFormData({ ...formData, domain: e.target.value.toLowerCase() })}
+                    placeholder="example.com"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                  />
+                  <p className="text-xs text-slate- dark:text-gray-500 mt-1">Students must sign up with an email ending in @{formData.domain || 'domain'}</p>
+                  {errors.domain && <p className="text-rose-500 text-xs mt-1">{errors.domain}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Location</label>
@@ -201,6 +223,7 @@ export default function CollegeProfile() {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
                   />
+                  {errors.email && <p className="text-rose-500 text-xs mt-1">{errors.email}</p>}
                 </div>
               </div>
               <div>
@@ -241,6 +264,14 @@ export default function CollegeProfile() {
           ) : (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Globe size={18} className="text-slate-400 dark:text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-gray-500">Email Domain</p>
+                    <p className="text-slate-900 dark:text-white font-medium">@{college.domain || 'Not specified'}</p>
+                    <p className="text-xs text-slate-400 dark:text-gray-500 mt-1">Required for student signup validation</p>
+                  </div>
+                </div>
                 <div className="flex items-start gap-3">
                   <MapPin size={18} className="text-slate-400 dark:text-gray-500 mt-0.5" />
                   <div>
