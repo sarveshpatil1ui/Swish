@@ -170,7 +170,7 @@ export default function App() {
     path="/admin/pending-requests"
     element={
       <ProtectedRoute dashboardOnly>
-        <PendingRequestsPage />
+        <AdminPage initialSection="Pending Requests" />
       </ProtectedRoute>
     }
   />
@@ -178,7 +178,7 @@ export default function App() {
     path="/admin/pending-requests/:id"
     element={
       <ProtectedRoute dashboardOnly>
-        <PendingRequestReviewPage />
+        <AdminPage initialSection="Pending Requests" />
       </ProtectedRoute>
     }
   />

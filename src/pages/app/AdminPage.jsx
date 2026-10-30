@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Rocket,
@@ -42,6 +42,7 @@ import { getStoredToken, getAvatarUrl } from '../../utils/auth'
 import AdminAnalytics from '../../components/admin/AdminAnalytics'
 import AdminDashboard from '../../components/admin/AdminDashboard'
 import AdminProfile from '../../components/admin/AdminProfile'
+import AdminPendingRequests from '../../components/admin/AdminPendingRequests'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -148,16 +149,34 @@ function SidebarItem({
   )
 }
 
-export default function AdminPage() {
+export default function AdminPage({ initialSection = null, initialReviewId = null }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const params = useParams()
 
   const { currentUser: user, authLoading, isAuthenticated, logout } = useSwish()
   const { dark, toggle } = useTheme()
 
-  const [activeSection, setActiveSection] = useState('Dashboard')
+  const defaultSection = useMemo(() => {
+    if (initialSection) return initialSection
+    if (location.pathname.startsWith('/admin/pending-requests')) return 'Pending Requests'
+    return 'Dashboard'
+  }, [initialSection, location.pathname])
+
+  const [activeSection, setActiveSection] = useState(defaultSection)
+  const [pendingReviewId, setPendingReviewId] = useState(() => params?.id || initialReviewId || null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [collegeMenuOpen, setCollegeMenuOpen] = useState(true)
+
+  useEffect(() => {
+    if (params?.id) {
+      setPendingReviewId(params.id)
+      setActiveSection('Pending Requests')
+    } else if (location.pathname === '/admin/pending-requests' || initialSection === 'Pending Requests') {
+      setActiveSection('Pending Requests')
+    }
+  }, [params?.id, location.pathname, initialSection])
 
 
   const [dashboardStats, setDashboardStats] = useState({
@@ -450,6 +469,9 @@ export default function AdminPage() {
 
   const navigateSection = section => {
     setActiveSection(section)
+    if (section === 'Pending Requests') {
+      setPendingReviewId(null)
+    }
     setMobileSidebarOpen(false)
   }
 
@@ -517,8 +539,8 @@ export default function AdminPage() {
             icon={FileText}
             label="Pending Requests"
             active={activeSection === 'Pending Requests'}
-            badge={dashboardStats.pendingCollegeRequests > 0 ? dashboardStats.pendingCollegeRequests : 1}
-            onClick={() => navigate('/admin/pending-requests')}
+            badge={dashboardStats.pendingCollegeRequests > 0 ? dashboardStats.pendingCollegeRequests : null}
+            onClick={() => navigateSection('Pending Requests')}
           />
 
           <SidebarItem
@@ -651,6 +673,8 @@ export default function AdminPage() {
               >
                 {activeSection === 'All Colleges' || activeSection === 'Colleges'
                   ? 'All Colleges'
+                  : activeSection === 'Pending Requests'
+                  ? (pendingReviewId ? 'Review College Request' : 'Pending Requests')
                   : activeSection}
               </h2>
             </div>
@@ -750,6 +774,18 @@ export default function AdminPage() {
               <AdminDashboard
                 onNavigate={navigateSection}
                 user={user}
+              />
+            </motion.div>
+          ) : activeSection === 'Pending Requests' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminPendingRequests
+                selectedId={pendingReviewId}
+                onSelectId={setPendingReviewId}
+                onStatsUpdated={loadDashboardStats}
               />
             </motion.div>
           ) : activeSection === 'Colleges' || activeSection === 'All Colleges' ? (

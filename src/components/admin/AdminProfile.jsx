@@ -1,10 +1,8 @@
-// src/components/admin/AdminProfile.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import {
   User,
   Mail,
   Briefcase,
-  Building2,
   Save,
   Edit2,
   Lock,
@@ -42,7 +40,6 @@ export default function AdminProfile() {
     name: 'Swish Admin',
     email: 'admin@swish.edu',
     designation: 'Platform Super Administrator / IT Head',
-    college: 'SWISH Central Platform (Super Admin)',
     bio: '',
   })
 
@@ -68,7 +65,6 @@ export default function AdminProfile() {
         name: currentUser.name && currentUser.name !== 'Admin User' ? currentUser.name : 'Swish Admin',
         email: currentUser.email || 'admin@swish.edu',
         designation: currentUser.designation || 'Platform Super Administrator / IT Head',
-        college: currentUser.college || 'SWISH Central Platform (Super Admin)',
         bio: currentUser.bio || '',
       })
     }
@@ -100,7 +96,6 @@ export default function AdminProfile() {
         body: JSON.stringify({
           name: formData.name.trim(),
           designation: formData.designation.trim(),
-          college: formData.college.trim(),
           bio: formData.bio?.trim() || '',
         }),
       })
@@ -132,7 +127,6 @@ export default function AdminProfile() {
       name: currentUser?.name && currentUser.name !== 'Admin User' ? currentUser.name : 'Swish Admin',
       email: currentUser?.email || 'admin@swish.edu',
       designation: currentUser?.designation || 'Platform Super Administrator / IT Head',
-      college: currentUser?.college || 'SWISH Central Platform (Super Admin)',
       bio: currentUser?.bio || '',
     })
     setErrors({})
@@ -345,9 +339,6 @@ export default function AdminProfile() {
                 <p className="text-indigo-100 text-sm font-medium mt-0.5">
                   Swish Admin (Super Admin)
                 </p>
-                <p className="text-indigo-200/90 text-xs mt-1 truncate">
-                  {formData.college}
-                </p>
               </div>
             </div>
 
@@ -444,7 +435,7 @@ export default function AdminProfile() {
                   </div>
 
                   {/* Designation */}
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
                       Designation
                     </label>
@@ -453,20 +444,6 @@ export default function AdminProfile() {
                       value={formData.designation}
                       onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                       placeholder="Platform Super Administrator / IT Head"
-                      className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3.5 py-2 text-sm focus:outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                    />
-                  </div>
-
-                  {/* College / Organization */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
-                      College / Organization
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.college}
-                      onChange={(e) => setFormData({ ...formData, college: e.target.value })}
-                      placeholder="SWISH Central Platform (Super Admin)"
                       className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-3.5 py-2 text-sm focus:outline-hidden focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
@@ -528,17 +505,6 @@ export default function AdminProfile() {
                     <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">Designation</p>
                     <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white mt-0.5">
                       {formData.designation}
-                    </p>
-                  </div>
-                </div>
-
-                {/* College / Organization */}
-                <div className="flex items-start gap-3">
-                  <Building2 size={18} className="text-slate-400 dark:text-gray-500 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">College</p>
-                    <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white mt-0.5">
-                      {formData.college}
                     </p>
                   </div>
                 </div>

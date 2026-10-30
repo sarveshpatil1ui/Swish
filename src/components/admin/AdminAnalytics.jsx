@@ -1,4 +1,3 @@
-// src/components/admin/AdminAnalytics.jsx
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Users,
