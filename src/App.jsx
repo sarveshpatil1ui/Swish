@@ -57,6 +57,7 @@ const DepartmentManagement = lazy(() => import('./pages/college-admin/Department
 const NoticeManagement = lazy(() => import('./pages/college-admin/NoticeManagement'))
 const ReportsManagement = lazy(() => import('./pages/college-admin/ReportsManagement'))
 const ModerationManagement = lazy(() => import('./pages/college-admin/ModerationManagement'))
+const ActivityLog = lazy(() => import('./pages/college-admin/ActivityLog'))
 const CollegeAdminMessages = lazy(() => import('./pages/college-admin/CollegeAdminMessages'))
 const CollegeProfile = lazy(() => import('./pages/college-admin/CollegeProfile'))
 const AdminProfile = lazy(() => import('./pages/college-admin/AdminProfile'))
@@ -220,6 +221,7 @@ export default function App() {
                   <Route path="notices" element={<NoticeManagement />} />
                   <Route path="reports" element={<ReportsManagement />} />
                   <Route path="moderation" element={<ModerationManagement />} />
+                  <Route path="activity-log" element={<ActivityLog />} />
                   <Route path="messages" element={<CollegeAdminMessages />} />
                   <Route path="college-profile" element={<CollegeProfile />} />
                   <Route path="profile" element={<AdminProfile />} />

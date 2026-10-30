@@ -165,6 +165,15 @@ export async function apiHideComment(commentId, reason) {
   return apiFetch(`/api/comments/${commentId}/hide`, { method: 'PATCH', body: { reason } })
 }
 
+export async function apiGetActivityLogs(params = {}) {
+  const queryString = new URLSearchParams(params).toString()
+  return apiFetch(`/api/activity-logs${queryString ? `?${queryString}` : ''}`)
+}
+
+export async function apiGetActivityLogStats() {
+  return apiFetch('/api/activity-logs/stats')
+}
+
 export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }
