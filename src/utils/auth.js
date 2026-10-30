@@ -149,6 +149,14 @@ export async function apiToggleUserStatus(userId) {
   return apiFetch(`/api/users/${userId}/status`, { method: 'PATCH' })
 }
 
+export async function apiToggleVerifiedBadge(userId, verified) {
+  return apiFetch(`/api/users/${userId}/verified-badge`, { method: 'PATCH', body: { verified } })
+}
+
+export async function apiToggleHOD(userId, isHOD, departmentId) {
+  return apiFetch(`/api/users/${userId}/hod`, { method: 'PATCH', body: { isHOD, departmentId } })
+}
+
 export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }

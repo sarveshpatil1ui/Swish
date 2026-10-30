@@ -1,30 +1,44 @@
 import { useState, useEffect } from 'react'
-import { Search, User, Mail, Calendar, MapPin, MoreVertical, Shield, ShieldAlert } from 'lucide-react'
-import { apiGetUsers, apiToggleUserStatus } from '../../utils/auth'
+import { Search, User, Mail, Calendar, MapPin, MoreVertical, Shield, ShieldAlert, Filter, ChevronDown, ChevronUp } from 'lucide-react'
+import { apiGetUsers, apiToggleUserStatus, apiGetDepartments } from '../../utils/auth'
 
 export default function StudentManagement() {
   const [students, setStudents] = useState([])
   const [filteredStudents, setFilteredStudents] = useState([])
+  const [departments, setDepartments] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [deptFilter, setDeptFilter] = useState('')
+  const [yearFilter, setYearFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showFilters, setShowFilters] = useState(false)
+
+  const academicYears = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year']
 
   useEffect(() => {
     fetchStudents()
+    fetchDepartments()
   }, [])
 
   useEffect(() => {
+    let filtered = students
     if (searchQuery) {
-      const filtered = students.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.dept?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.year?.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.email?.toLowerCase().includes(q) ||
+        s.dept?.toLowerCase().includes(q) ||
+        s.year?.toLowerCase().includes(q) ||
+        s.rollNumber?.toLowerCase().includes(q)
       )
-      setFilteredStudents(filtered)
-    } else {
-      setFilteredStudents(students)
     }
-  }, [searchQuery, students])
+    if (deptFilter) {
+      filtered = filtered.filter(s => s.dept === deptFilter)
+    }
+    if (yearFilter) {
+      filtered = filtered.filter(s => s.year === yearFilter)
+    }
+    setFilteredStudents(filtered)
+  }, [searchQuery, deptFilter, yearFilter, students])
 
   const fetchStudents = async () => {
     try {
@@ -38,6 +52,17 @@ export default function StudentManagement() {
       console.error('[StudentManagement] Error fetching students:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await apiGetDepartments()
+      if (res.ok) {
+        setDepartments(res.departments || [])
+      }
+    } catch (err) {
+      console.error('[StudentManagement] Error fetching departments:', err)
     }
   }
 
@@ -77,12 +102,60 @@ export default function StudentManagement() {
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
         <input
           type="text"
-          placeholder="Search students by name, email, department, or year..."
+          placeholder="Search students by name, email, roll number, department, or year..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
         />
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+        >
+          <Filter size={16} className="text-slate-600 dark:text-gray-400" />
+        </button>
       </div>
+
+      {/* Filters */}
+      {showFilters && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department</label>
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+              >
+                <option value="">All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Academic Year</label>
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+              >
+                <option value="">All Years</option>
+                {academicYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {(deptFilter || yearFilter) && (
+            <button
+              onClick={() => { setDeptFilter(''); setYearFilter(''); }}
+              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex items-center gap-4">
@@ -116,6 +189,7 @@ export default function StudentManagement() {
                 <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Student</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Roll Number</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Year</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
@@ -140,6 +214,9 @@ export default function StudentManagement() {
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-slate-900 dark:text-white text-sm font-mono">{student.rollNumber || '-'}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-slate-900 dark:text-white text-sm">{student.dept || '-'}</p>
@@ -201,6 +278,10 @@ export default function StudentManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-gray-500">Roll Number</p>
+                      <p className="text-slate-900 dark:text-white font-medium font-mono">{student.rollNumber || '-'}</p>
+                    </div>
                     <div>
                       <p className="text-xs text-slate-400 dark:text-gray-500">Department</p>
                       <p className="text-slate-900 dark:text-white font-medium">{student.dept || '-'}</p>

@@ -76,9 +76,12 @@ const UserSchema = new Schema(
 
     year:      { type: String, default: null },
     studentId: { type: String, default: null },
+    rollNumber: { type: String, default: null },
 
     designation: { type: String, default: null },
     employeeId:  { type: String, default: null },
+    verifiedBadge: { type: Boolean, default: false },
+    isHOD: { type: Boolean, default: false },
 
     followers: { type: Number, default: 0 },
     following: { type: Number, default: 0 },
@@ -94,6 +97,7 @@ const UserSchema = new Schema(
 )
 
 UserSchema.index({ collegeId: 1, role: 1 })
+UserSchema.index({ collegeId: 1, rollNumber: 1 }, { unique: true, partialFilterExpression: { rollNumber: { $ne: null } } })
 UserSchema.index({ 'preferences.privacy.private': 1 })
 // Performance indexes for search, explore, and feed queries
 UserSchema.index({ followers: -1, createdAt: -1 })

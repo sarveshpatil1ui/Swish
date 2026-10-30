@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import {
   Users, GraduationCap, Building2, Megaphone,
   TrendingUp, Activity, Calendar, ArrowRight,
-  AlertCircle, RefreshCw, Clock, MessageSquare, AlertTriangle
+  AlertCircle, RefreshCw, Clock, MessageSquare, AlertTriangle,
+  BarChart, LineChart
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { apiGetUserStats, apiGetNotices, apiGetActivityLogs, apiGetAnalyticsDashboard } from '../../utils/auth'
+import { LineChart as RechartsLineChart, Line, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
   return (
@@ -75,29 +77,37 @@ export default function CollegeAdminDashboard() {
   const { currentUser } = useSwish()
   const [stats, setStats] = useState(null)
   const [todayStats, setTodayStats] = useState(null)
+  const [analyticsData, setAnalyticsData] = useState(null)
   const [recentNotices, setRecentNotices] = useState([])
   const [activityLogs, setActivityLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [period, setPeriod] = useState('today')
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
     fetchDashboardData()
     // Update clock every minute
     const clockInterval = setInterval(() => setCurrentTime(new Date()), 60000)
-    return () => clearInterval(clockInterval)
-  }, [])
+    // Refresh analytics every 5 minutes
+    const refreshInterval = setInterval(() => fetchDashboardData(), 300000)
+    return () => {
+      clearInterval(clockInterval)
+      clearInterval(refreshInterval)
+    }
+  }, [period])
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const [statsRes, noticesRes, logsRes, todayRes] = await Promise.all([
+      const [statsRes, noticesRes, logsRes, analyticsRes] = await Promise.all([
         apiGetUserStats(),
         apiGetNotices(),
         apiGetActivityLogs({ limit: 10 }),
-        apiGetAnalyticsDashboard({ period: 'today' }),
+        apiGetAnalyticsDashboard({ period }),
       ])
 
       if (!statsRes.ok) {
@@ -115,12 +125,14 @@ export default function CollegeAdminDashboard() {
         activeNotices: statsRes.stats.activeNotices ?? 0,
       })
 
-      if (todayRes.ok && todayRes.analytics) {
+      if (analyticsRes.ok && analyticsRes.analytics) {
+        setAnalyticsData(analyticsRes.analytics)
         setTodayStats({
-          newUsers: todayRes.analytics.users.newToday ?? 0,
-          newPosts: todayRes.analytics.content.postsToday ?? 0,
-          newComments: todayRes.analytics.content.commentsToday ?? 0,
-          pendingReports: todayRes.analytics.reports.pending ?? 0,
+          newUsers: analyticsRes.analytics.users.newToday ?? 0,
+          newPosts: analyticsRes.analytics.content.postsToday ?? 0,
+          newComments: analyticsRes.analytics.content.commentsToday ?? 0,
+          pendingReports: analyticsRes.analytics.reports.pending ?? 0,
+          activeGrievances: analyticsRes.analytics.reports.reviewed ?? 0,
         })
       }
 
@@ -131,6 +143,8 @@ export default function CollegeAdminDashboard() {
       if (logsRes.ok && Array.isArray(logsRes.logs)) {
         setActivityLogs(logsRes.logs)
       }
+
+      setLastUpdated(new Date())
     } catch (err) {
       console.error('[Dashboard] Error fetching data:', err)
       setError(err.message || 'Unable to connect to the dashboard service. Please try again.')
@@ -203,6 +217,12 @@ export default function CollegeAdminDashboard() {
               {formatDate(currentTime)} • {formatTime(currentTime)}
             </p>
           </div>
+          <div className="flex items-center gap-2 mt-1">
+            <Calendar size={14} className="text-slate-400" />
+            <p className="text-slate-500 dark:text-gray-500 text-sm">
+              Academic Year 2024-2025 • Semester 2
+            </p>
+          </div>
           <p className="text-slate-500 dark:text-gray-500 mt-1">
             Here's what's happening at {currentUser?.college || 'your college'}
           </p>
@@ -235,7 +255,7 @@ export default function CollegeAdminDashboard() {
 
       {/* Today's Overview */}
       <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-200/60 dark:border-indigo-800/60 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
@@ -245,8 +265,23 @@ export default function CollegeAdminDashboard() {
               Activity from {formatDate(currentTime)}
             </p>
           </div>
+          <div className="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-lg">
+            {['today', '7days', '30days'].map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                  period === p
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {p === 'today' ? 'Today' : p === '7days' ? '7 Days' : '30 Days'}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <TodayStatCard
             icon={Users}
             label="New Registrations"
@@ -273,7 +308,26 @@ export default function CollegeAdminDashboard() {
             onClick={() => navigate('/college-admin/reports')}
             clickable
           />
+          <TodayStatCard
+            icon={AlertCircle}
+            label="Active Grievances"
+            value={todayStats?.activeGrievances ?? 0}
+            color="rose"
+            onClick={() => navigate('/college-admin/reports')}
+            clickable
+          />
+          <TodayStatCard
+            icon={TrendingUp}
+            label="Moderation Actions"
+            value={analyticsData?.reports?.resolved ?? 0}
+            color="violet"
+          />
         </div>
+        {lastUpdated && (
+          <p className="text-xs text-slate-400 dark:text-gray-500 mt-3">
+            Last updated: {formatTime(lastUpdated)}
+          </p>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -346,6 +400,104 @@ export default function CollegeAdminDashboard() {
           trend="down"
           trendVal="Suspended"
         />
+      </div>
+
+      {/* Activity Trends Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Post/Comment Activity */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Activity size={20} className="text-indigo-600 dark:text-indigo-400" />
+              Post & Comment Activity
+            </h2>
+            <span className="text-xs text-slate-400 dark:text-gray-500">
+              {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
+            </span>
+          </div>
+          {analyticsData?.postTrends && analyticsData.postTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <RechartsLineChart data={analyticsData.postTrends}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#6366f1" 
+                  strokeWidth={2}
+                  dot={{ fill: '#6366f1', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </RechartsLineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
+              No activity data available for this period
+            </div>
+          )}
+        </div>
+
+        {/* User Registration Trends */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Users size={20} className="text-emerald-600 dark:text-emerald-400" />
+              User Registrations
+            </h2>
+            <span className="text-xs text-slate-400 dark:text-gray-500">
+              {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
+            </span>
+          </div>
+          {analyticsData?.userTrends && analyticsData.userTrends.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <RechartsBarChart data={analyticsData.userTrends}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#10b981" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
+              No registration data available for this period
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Actions */}

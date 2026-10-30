@@ -380,6 +380,10 @@ router.put(
       .optional()
       .trim()
       .isLength({ max: 50 }).withMessage('Year value too long.'),
+    body('rollNumber')
+      .optional()
+      .trim()
+      .isLength({ max: 50 }).withMessage('Roll number too long.'),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -390,7 +394,7 @@ router.put(
         return res.status(403).json({ ok: false, error: 'You can only edit your own profile.' })
       }
 
-      const { name, username, bio, designation, year } = req.body
+      const { name, username, bio, designation, year, rollNumber } = req.body
       if (name !== undefined) req.user.name = name
       if (username !== undefined && username.toLowerCase() !== req.user.username) {
         const existing = await User.findOne({ username: username.toLowerCase(), _id: { $ne: req.user.id } })
@@ -403,6 +407,19 @@ router.put(
       }
       if (year !== undefined && req.user.role === 'student') {
         req.user.year = year
+      }
+      if (rollNumber !== undefined && req.user.role === 'student') {
+        if (rollNumber && rollNumber !== req.user.rollNumber) {
+          const existing = await User.findOne({ 
+            rollNumber: rollNumber, 
+            collegeId: req.user.collegeId,
+            _id: { $ne: req.user.id } 
+          })
+          if (existing) {
+            return res.status(409).json({ ok: false, error: 'Roll number already exists in this college.' })
+          }
+        }
+        req.user.rollNumber = rollNumber
       }
       await req.user.save()
 
@@ -800,6 +817,159 @@ router.post('/upload-photo', requireAuth, (req, res, next) => {
 
 
 
+
+// ── PATCH /api/users/:id/verified-badge ─────────────────────────────────────
+// Grant or revoke verified badge for faculty
+router.patch('/:id/verified-badge', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { verified } = req.body
+
+    if (id === req.user.id || id === req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'You cannot modify your own badge.' })
+    }
+
+    const targetUser = await User.findById(id)
+    if (!targetUser) {
+      return res.status(404).json({ ok: false, error: 'User not found.' })
+    }
+
+    if (targetUser.role !== 'faculty') {
+      return res.status(400).json({ ok: false, error: 'Verified badge can only be assigned to faculty.' })
+    }
+
+    // College admin can only manage faculty from their college
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'You can only manage faculty from your college.' })
+      }
+    }
+
+    targetUser.verifiedBadge = Boolean(verified)
+    await targetUser.save()
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: verified ? 'badge_granted' : 'badge_revoked',
+      resourceType: 'user',
+      resourceId: targetUser._id,
+      resourceName: targetUser.name,
+      details: verified ? 'Granted verified badge to faculty' : 'Revoked verified badge from faculty',
+      ipAddress: req.ip,
+    })
+
+    res.json({ ok: true, user: targetUser.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/users/:id/verified-badge] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to update verified badge.' })
+  }
+})
+
+// ── PATCH /api/users/:id/hod ───────────────────────────────────────────────
+// Designate or remove HOD status for faculty
+router.patch('/:id/hod', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { isHOD, departmentId } = req.body
+
+    if (id === req.user.id || id === req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'You cannot modify your own HOD status.' })
+    }
+
+    const targetUser = await User.findById(id)
+    if (!targetUser) {
+      return res.status(404).json({ ok: false, error: 'User not found.' })
+    }
+
+    if (targetUser.role !== 'faculty') {
+      return res.status(400).json({ ok: false, error: 'HOD status can only be assigned to faculty.' })
+    }
+
+    // College admin can only manage faculty from their college
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'You can only manage faculty from your college.' })
+      }
+    }
+
+    // If assigning HOD, validate department
+    if (isHOD) {
+      if (!departmentId) {
+        return res.status(400).json({ ok: false, error: 'Department ID is required when assigning HOD.' })
+      }
+
+      const department = await Department.findById(departmentId)
+      if (!department) {
+        return res.status(404).json({ ok: false, error: 'Department not found.' })
+      }
+
+      // Validate faculty belongs to the same college and department
+      if (!targetUser.collegeId || !targetUser.collegeId.equals(department.collegeId)) {
+        return res.status(400).json({ ok: false, error: 'Faculty must belong to the same college as the department.' })
+      }
+
+      if (targetUser.departmentId && !targetUser.departmentId.equals(department._id)) {
+        return res.status(400).json({ ok: false, error: 'Faculty must belong to the same department they are being assigned as HOD.' })
+      }
+
+      // Check if department already has an HOD
+      const existingHOD = await User.findOne({ 
+        departmentId, 
+        isHOD: true, 
+        _id: { $ne: targetUser._id },
+        deactivated: false
+      })
+      if (existingHOD) {
+        return res.status(400).json({ ok: false, error: 'This department already has an HOD. Remove the existing HOD first.' })
+      }
+
+      // Update user's department if not set
+      if (!targetUser.departmentId) {
+        targetUser.departmentId = department._id
+        targetUser.dept = department.name
+      }
+    }
+
+    targetUser.isHOD = Boolean(isHOD)
+    await targetUser.save()
+
+    // Update department's headOfDepartment field
+    if (isHOD && targetUser.departmentId) {
+      await Department.findByIdAndUpdate(targetUser.departmentId, { 
+        headOfDepartment: targetUser.name 
+      })
+    } else if (!isHOD && targetUser.departmentId) {
+      await Department.findByIdAndUpdate(targetUser.departmentId, { 
+        headOfDepartment: null 
+      })
+    }
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: isHOD ? 'hod_assigned' : 'hod_removed',
+      resourceType: 'user',
+      resourceId: targetUser._id,
+      resourceName: targetUser.name,
+      details: isHOD ? `Assigned as HOD of ${targetUser.dept}` : `Removed as HOD of ${targetUser.dept}`,
+      ipAddress: req.ip,
+    })
+
+    res.json({ ok: true, user: targetUser.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/users/:id/hod] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to update HOD status.' })
+  }
+})
 
 router.patch('/:id/status', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
   try {
