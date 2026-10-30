@@ -606,6 +606,53 @@ router.post(
   }
 )
 
+// ── PATCH /api/posts/:postId/hide ───────────────────────────────────────────────
+// Hide a post (admin/college admin only)
+router.patch('/:postId/hide', requireAuth, async (req, res) => {
+  try {
+    const { reason } = req.body
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ ok: false, error: 'Reason is required to hide a post.' })
+    }
+
+    const post = await Post.findById(req.params.postId)
+    if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    // Only admins and college admins can hide posts
+    if (req.user.role !== 'admin' && req.user.role !== 'college_admin' && req.user.role !== 'main_admin') {
+      return res.status(403).json({ ok: false, error: 'Only admins can hide posts.' })
+    }
+
+    // College admin can only hide posts from their college
+    if (req.user.role === 'college_admin') {
+      const postAuthor = await User.findById(post.user)
+      if (postAuthor?.collegeId?.toString() !== req.user.collegeId?.toString()) {
+        return res.status(403).json({ ok: false, error: 'You can only hide posts from your college.' })
+      }
+    }
+
+    post.hidden = true
+    post.hiddenReason = reason.trim()
+    post.hiddenBy = req.user.id
+    post.hiddenAt = new Date()
+    await post.save()
+
+    // Broadcast real-time hide event
+    const collegeId = post.user?.collegeId || req.user.collegeId
+    broadcastEvent('post:hide', { postId: req.params.postId }, { collegeId })
+
+    res.json({ ok: true, post: post.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/posts/:postId/hide] Error:', err)
+    if (err.name === 'CastError') {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+    res.status(500).json({ ok: false, error: 'Failed to hide post.' })
+  }
+})
+
 // ── DELETE POST ────────────────────────────────────────────────────────────────
 router.delete('/:postId', requireAuth, async (req, res) => {
   try {
@@ -634,7 +681,7 @@ router.delete('/:postId', requireAuth, async (req, res) => {
 
     // Decrement author's post count atomically
     await User.findByIdAndUpdate(post.user, [
-      { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } }
+      { $set: { posts: { $max: [0, { $subtract: ['$posts', 1] }] } } } }
     ])
 
     // Broadcast real-time deletion event scoped to college room
@@ -648,6 +695,54 @@ router.delete('/:postId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
     res.status(500).json({ ok: false, error: 'Failed to delete post.' })
+  }
+})
+
+// ── PATCH /api/posts/:postId/comments/:commentId/hide ───────────────────────────
+// Hide a comment (admin/college admin only)
+router.patch('/:postId/comments/:commentId/hide', requireAuth, async (req, res) => {
+  try {
+    const { reason } = req.body
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ ok: false, error: 'Reason is required to hide a comment.' })
+    }
+
+    const comment = await Comment.findById(req.params.commentId)
+    if (!comment) {
+      return res.status(404).json({ ok: false, error: 'Comment not found.' })
+    }
+
+    // Only admins and college admins can hide comments
+    if (req.user.role !== 'admin' && req.user.role !== 'college_admin' && req.user.role !== 'main_admin') {
+      return res.status(403).json({ ok: false, error: 'Only admins can hide comments.' })
+    }
+
+    // College admin can only hide comments from their college
+    if (req.user.role === 'college_admin') {
+      const commentAuthor = await User.findById(comment.user)
+      if (commentAuthor?.collegeId?.toString() !== req.user.collegeId?.toString()) {
+        return res.status(403).json({ ok: false, error: 'You can only hide comments from your college.' })
+      }
+    }
+
+    comment.hidden = true
+    comment.hiddenReason = reason.trim()
+    comment.hiddenBy = req.user.id
+    comment.hiddenAt = new Date()
+    await comment.save()
+
+    // Broadcast real-time hide event
+    const post = await Post.findById(req.params.postId)
+    const collegeId = post?.user?.collegeId || req.user.collegeId
+    broadcastEvent('comment:hide', { commentId: req.params.commentId }, { collegeId })
+
+    res.json({ ok: true, comment: comment.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/posts/:postId/comments/:commentId/hide] Error:', err)
+    if (err.name === 'CastError') {
+      return res.status(404).json({ ok: false, error: 'Comment not found.' })
+    }
+    res.status(500).json({ ok: false, error: 'Failed to hide comment.' })
   }
 })
 

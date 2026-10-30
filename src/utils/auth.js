@@ -157,6 +157,14 @@ export async function apiToggleHOD(userId, isHOD, departmentId) {
   return apiFetch(`/api/users/${userId}/hod`, { method: 'PATCH', body: { isHOD, departmentId } })
 }
 
+export async function apiHidePost(postId, reason) {
+  return apiFetch(`/api/posts/${postId}/hide`, { method: 'PATCH', body: { reason } })
+}
+
+export async function apiHideComment(commentId, reason) {
+  return apiFetch(`/api/comments/${commentId}/hide`, { method: 'PATCH', body: { reason } })
+}
+
 export async function apiGetProfile(userId) {
   return apiFetch(`/api/users/${userId}`)
 }

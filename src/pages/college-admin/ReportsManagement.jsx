@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, CheckCircle, XCircle, Clock, Filter, Search, Eye, MessageSquare, User as UserIcon } from 'lucide-react'
-import { apiGetReports, apiUpdateReportStatus } from '../../utils/auth'
+import { AlertTriangle, CheckCircle, XCircle, Clock, Filter, Search, Eye, MessageSquare, User as UserIcon, Ban, EyeOff, ShieldAlert } from 'lucide-react'
+import { apiGetReports, apiUpdateReportStatus, apiHidePost, apiHideComment, apiToggleUserStatus } from '../../utils/auth'
 
 const STATUS_COLORS = {
   pending: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
@@ -40,6 +40,10 @@ export default function ReportsManagement() {
   const [showResolveModal, setShowResolveModal] = useState(false)
   const [resolutionNotes, setResolutionNotes] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [showActionModal, setShowActionModal] = useState(false)
+  const [actionType, setActionType] = useState('')
+  const [actionReason, setActionReason] = useState('')
+  const [actioning, setActioning] = useState(false)
 
   useEffect(() => {
     fetchReports()
@@ -80,6 +84,53 @@ export default function ReportsManagement() {
     setSelectedReport(report)
     setResolutionNotes(report.resolutionNotes || '')
     setShowResolveModal(true)
+  }
+
+  const openActionModal = (report, action) => {
+    setSelectedReport(report)
+    setActionType(action)
+    setActionReason('')
+    setShowActionModal(true)
+  }
+
+  const handleModerationAction = async () => {
+    if (!actionReason.trim()) {
+      alert('Please provide a reason for this action')
+      return
+    }
+
+    setActioning(true)
+    try {
+      if (actionType === 'hide_post' && selectedReport.reportedPostId) {
+        const res = await apiHidePost(selectedReport.reportedPostId, actionReason)
+        if (res.ok) {
+          alert('Post hidden successfully')
+        } else {
+          alert(res.error || 'Failed to hide post')
+        }
+      } else if (actionType === 'hide_comment' && selectedReport.reportedCommentId) {
+        const res = await apiHideComment(selectedReport.reportedCommentId, actionReason)
+        if (res.ok) {
+          alert('Comment hidden successfully')
+        } else {
+          alert(res.error || 'Failed to hide comment')
+        }
+      } else if (actionType === 'suspend_user' && selectedReport.reportedUserId) {
+        const res = await apiToggleUserStatus(selectedReport.reportedUserId)
+        if (res.ok) {
+          alert('User suspended successfully')
+        } else {
+          alert(res.error || 'Failed to suspend user')
+        }
+      }
+      setShowActionModal(false)
+      setActionReason('')
+    } catch (err) {
+      console.error('[ReportsManagement] Error performing action:', err)
+      alert('Failed to perform action')
+    } finally {
+      setActioning(false)
+    }
   }
 
   const filteredReports = reports.filter(r => {
@@ -271,20 +322,51 @@ export default function ReportsManagement() {
               )}
 
               {selectedReport.status === 'pending' && (
-                <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <button
-                    onClick={() => openResolveModal(selectedReport)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    <CheckCircle size={16} /> Resolve
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(selectedReport._id || selectedReport.id, 'dismissed')}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-gray-300 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                  >
-                    <XCircle size={16} /> Dismiss
-                  </button>
-                </div>
+                <>
+                  <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      onClick={() => openResolveModal(selectedReport)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      <CheckCircle size={16} /> Resolve
+                    </button>
+                    <button
+                      onClick={() => handleStatusUpdate(selectedReport._id || selectedReport.id, 'dismissed')}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-gray-300 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      <XCircle size={16} /> Dismiss
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-gray-500 mb-3">Moderation Actions</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedReport.reportedPostId && (
+                        <button
+                          onClick={() => openActionModal(selectedReport, 'hide_post')}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
+                        >
+                          <EyeOff size={14} /> Hide Post
+                        </button>
+                      )}
+                      {selectedReport.reportedCommentId && (
+                        <button
+                          onClick={() => openActionModal(selectedReport, 'hide_comment')}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+                        >
+                          <MessageSquare size={14} /> Hide Comment
+                        </button>
+                      )}
+                      {selectedReport.reportedUserId && (
+                        <button
+                          onClick={() => openActionModal(selectedReport, 'suspend_user')}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 text-xs font-medium rounded-lg hover:bg-violet-100 dark:hover:bg-violet-950/60 transition-colors"
+                        >
+                          <Ban size={14} /> Suspend User
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -320,6 +402,49 @@ export default function ReportsManagement() {
                   className="flex-1 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
                 >
                   {updating ? 'Resolving...' : 'Mark as Resolved'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Moderation Action Modal */}
+      {showActionModal && selectedReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowActionModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+              {actionType === 'hide_post' && 'Hide Post'}
+              {actionType === 'hide_comment' && 'Hide Comment'}
+              {actionType === 'suspend_user' && 'Suspend User'}
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">
+                  Reason <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  rows={3}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 resize-none"
+                  placeholder="Please provide a reason for this action..."
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowActionModal(false)}
+                  disabled={actioning}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-gray-300 text-sm font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModerationAction}
+                  disabled={actioning}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50"
+                >
+                  {actioning ? 'Processing...' : 'Confirm'}
                 </button>
               </div>
             </div>
