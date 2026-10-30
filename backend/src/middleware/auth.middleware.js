@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import College from '../models/College.js'
+import { getPlatformConfig } from '../services/platform-config.service.js'
 
 // In-process TTL cache: domain -> { active, expiresAt }
 const _collegeCache = new Map()
@@ -66,6 +67,22 @@ export async function requireAuth(req, res, next) {
         return res.status(401).json({
           ok: false,
           error: 'Password was recently changed. Please log in again.',
+        })
+      }
+    }
+
+    // Check platform maintenance mode for non-admin users
+    if (user.role !== 'admin' && user.role !== 'main_admin') {
+      const config = await getPlatformConfig()
+      if (config?.maintenance?.enabled) {
+        return res.status(503).json({
+          ok: false,
+          maintenance: true,
+          error: 'Platform is currently undergoing scheduled maintenance.',
+          maintenanceInfo: {
+            note: config.maintenance.note || '',
+            expectedBack: config.maintenance.expectedBack || '',
+          },
         })
       }
     }

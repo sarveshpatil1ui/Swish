@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import { SwishProvider } from './context/SwishContext'
 import { SocketProvider, useSocket } from './context/SocketContext'
@@ -31,6 +31,10 @@ import ProtectedRoute from './pages/ProtectedRoute'
 // ── Authenticated app shell ───────────────────────────────────────────────────
 import AppLayout from './components/app/AppLayout'
 import GlobalToast from './components/app/GlobalToast'
+import MaintenancePage from './pages/app/MaintenancePage'
+import AdminMaintenanceAlertBar from './components/admin/AdminMaintenanceAlertBar'
+import GlobalBroadcastBanner from './components/common/GlobalBroadcastBanner'
+import { apiUpdateMaintenanceMode } from './utils/auth'
 
 // ── App pages (Lazy) ──────────────────────────────────────────────────────────
 const HomePage = lazy(() => import('./pages/app/HomePage'))
@@ -66,7 +70,7 @@ const ChangePassword = lazy(() => import('./pages/college-admin/ChangePassword')
 // Synchronizes real-time socket events with global SwishContext state
 function RealtimeListener() {
   const { on, off } = useSocket()
-  const { updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime } = useSwish()
+  const { updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime, updatePlatformConfigRealtime } = useSwish()
 
   useEffect(() => {
     if (!on || !off) return
@@ -100,13 +104,21 @@ function RealtimeListener() {
     on('notification:new', handleNewNotification)
     on('story:reply', handleStoryReply)
 
+    const handlePlatformConfigUpdate = (data) => {
+      if (data) {
+        updatePlatformConfigRealtime(data)
+      }
+    }
+    on('platform:config:update', handlePlatformConfigUpdate)
+
     return () => {
       off('post:like:update', handleLikeUpdate)
       off('post:comment:update', handleCommentUpdate)
       off('notification:new', handleNewNotification)
       off('story:reply', handleStoryReply)
+      off('platform:config:update', handlePlatformConfigUpdate)
     }
-  }, [on, off, updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime])
+  }, [on, off, updatePostLikeRealtime, updatePostCommentRealtime, addNotificationRealtime, updateStoryReplyRealtime, updatePlatformConfigRealtime])
 
   return null
 }
@@ -122,15 +134,46 @@ function SocketBridge({ children }) {
   )
 }
 
-export default function App() {
+function AppContent() {
+  const { currentUser, authLoading, platformConfig, fetchPlatformConfig } = useSwish()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const isMaintenanceActive = Boolean(platformConfig?.maintenance?.enabled)
+  const isAdminUser = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
+  const isLoginPage = location.pathname === '/login'
+
+  // If maintenance is active, regular users (and unauthenticated users not on /login) see MaintenancePage
+  if (isMaintenanceActive && !isAdminUser && !isLoginPage) {
+    if (authLoading) return <PageFallback />
+    return (
+      <MaintenancePage
+        config={platformConfig?.maintenance}
+        onCheckAgain={fetchPlatformConfig}
+      />
+    )
+  }
+
   return (
-    <ThemeProvider>
-      <SwishProvider>
-        <SocketBridge>
-          <BrowserRouter>
-            <GlobalToast />
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
+    <>
+      {/* If maintenance is active and user is admin, show persistent alert bar */}
+      {isMaintenanceActive && isAdminUser && (
+        <AdminMaintenanceAlertBar
+          config={platformConfig?.maintenance}
+          onConfigure={() => navigate('/admin')}
+          onTurnOff={async () => {
+            await apiUpdateMaintenanceMode({ enabled: false })
+            fetchPlatformConfig()
+          }}
+        />
+      )}
+
+      {/* Global Broadcast Announcement Banner */}
+      <GlobalBroadcastBanner broadcast={platformConfig?.broadcast} />
+
+      <GlobalToast />
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
                 {/* ── Public ─────────────────────────────────────────────── */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -240,7 +283,18 @@ export default function App() {
                 {/* ── Fallback ────────────────────────────────────────────── */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </Suspense>
+      </Suspense>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <SwishProvider>
+        <SocketBridge>
+          <BrowserRouter>
+            <AppContent />
           </BrowserRouter>
         </SocketBridge>
       </SwishProvider>

@@ -25,6 +25,7 @@ import {
 } from '../services/otp.service.js'
 import { createProofUploadSignature } from '../services/cloudinary.service.js'
 import { requireTurnstile } from '../middleware/turnstile.middleware.js'
+import { getPlatformConfig } from '../services/platform-config.service.js'
 
 const onboardingOtpLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -67,6 +68,13 @@ router.post(
     if (validationError) return
 
     try {
+      const platformConfig = await getPlatformConfig()
+      if (platformConfig?.features?.allowRegistration === false || platformConfig?.maintenance?.enabled) {
+        return res.status(503).json({
+          ok: false,
+          error: 'New college onboarding registrations are temporarily paused by platform administration.',
+        })
+      }
       const { officialEmail, emailDomain, collegeName, collegeCode, adminName, hp_field } = req.body
 
       // ── Honeypot bot protection ───────────────────────────────────────────
@@ -358,6 +366,13 @@ router.post(
     if (validationError) return
 
     try {
+      const platformConfig = await getPlatformConfig()
+      if (platformConfig?.features?.allowRegistration === false || platformConfig?.maintenance?.enabled) {
+        return res.status(503).json({
+          ok: false,
+          error: 'New college onboarding registrations are temporarily paused by platform administration.',
+        })
+      }
       const {
         collegeName,
         collegeCode,

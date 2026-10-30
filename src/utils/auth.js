@@ -53,25 +53,40 @@ export function isTokenExpired(token) {
  * @returns {Promise<object>} parsed JSON response body
  */
 export async function apiFetch(path, options = {}) {
-  const token = getStoredToken()
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  try {
+    const token = getStoredToken()
+    const headers = { 'Content-Type': 'application/json', ...options.headers }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const res = await fetch(`${BASE_URL}${path}`, {
+      credentials: 'include', // send httpOnly cookie on every request
+      ...options,
+      headers,
+      body: options.body
+        ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body))
+        : undefined,
+    })
+
+    const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
+    // Attach HTTP status to the result for callers to inspect if needed
+    data._status = res.status
+    if (!res.ok && data.ok !== false) {
+      data.ok = false
+    }
+    return data
+  } catch (err) {
+    console.error(`[apiFetch] Request to ${BASE_URL}${path} failed:`, err)
+    return {
+      ok: false,
+      error:
+        err?.message === 'Failed to fetch' || err?.name === 'TypeError'
+          ? `Backend server is unreachable at ${BASE_URL}. Please ensure the backend is running.`
+          : (err?.message || 'Connection error.'),
+      isNetworkError: true,
+    }
   }
-
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers,
-    credentials: 'include', // send httpOnly cookie on every request
-    ...options,
-    body: options.body
-      ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body))
-      : undefined,
-  })
-
-  const data = await res.json().catch(() => ({ ok: false, error: 'Unexpected server response.' }))
-  // Attach HTTP status to the result for callers to inspect if needed
-  data._status = res.status
-  return data
 }
 
 export async function apiRegister(userData) {
@@ -695,4 +710,25 @@ export async function apiGetAdminReports() {
 
 export async function apiUpdateAdminReportStatus(id, data) {
   return apiFetch(`/api/admin/reports/${id}/status`, { method: 'PATCH', body: data })
+}
+
+// ── Platform Configuration & Maintenance API ─────────────────────────────────
+export async function apiGetPlatformConfig() {
+  return apiFetch('/api/platform/config')
+}
+
+export async function apiGetAdminPlatformConfig() {
+  return apiFetch('/api/platform/admin/config')
+}
+
+export async function apiUpdateMaintenanceMode(data) {
+  return apiFetch('/api/platform/admin/maintenance', { method: 'PATCH', body: data })
+}
+
+export async function apiUpdateFeatureFlags(features) {
+  return apiFetch('/api/platform/admin/features', { method: 'PATCH', body: { features } })
+}
+
+export async function apiUpdateBroadcastBanner(broadcast) {
+  return apiFetch('/api/platform/admin/broadcast', { method: 'PATCH', body: { broadcast } })
 }

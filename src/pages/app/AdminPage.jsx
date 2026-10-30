@@ -34,7 +34,9 @@ import {
   Plus,
   Moon,
   Sun,
+  Sliders,
 } from 'lucide-react'
+import PlatformControls from '../../components/admin/PlatformControls'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSwish } from '../../context/SwishContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -564,6 +566,13 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
             label="Reports"
             active={activeSection === 'Reports'}
             onClick={() => navigateSection('Reports')}
+          />
+
+          <SidebarItem
+            icon={Sliders}
+            label="Platform Controls"
+            active={activeSection === 'Platform Controls' || activeSection === 'Controls' || activeSection === 'Maintenance'}
+            onClick={() => navigateSection('Platform Controls')}
           />
 
           <SidebarItem
@@ -1499,6 +1508,14 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
               transition={{ duration: 0.2 }}
             >
               <AdminReports />
+            </motion.div>
+          ) : activeSection === 'Platform Controls' || activeSection === 'Controls' || activeSection === 'Maintenance' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PlatformControls />
             </motion.div>
           ) : activeSection === 'My Profile' || activeSection === 'Profile' ? (
             <motion.div

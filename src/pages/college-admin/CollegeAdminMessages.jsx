@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Send, Smile,
   ChevronLeft, CheckCheck, Check,
-  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff, ExternalLink,
+  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff, ExternalLink, Lock,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -450,7 +450,9 @@ function NewChatModal({ onClose, onStart }) {
 
 // ─── Main CollegeAdminMessages ─────────────────────────────────────────────────
 export default function CollegeAdminMessages() {
-  const { currentUser, setUnreadMsgCount, setActiveChatConvId } = useSwish()
+  const { currentUser, setUnreadMsgCount, setActiveChatConvId, platformConfig } = useSwish()
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
+  const isMessagingPaused = platformConfig?.features?.allowDirectMessaging === false && !isAdmin
   const { emit, on, off, isOnline, connected }     = useSocket()
   const [searchParams]                             = useSearchParams()
   const queryConvId                                = searchParams.get('convId')
@@ -700,6 +702,10 @@ export default function CollegeAdminMessages() {
   }, [])
 
   const sendMessage = () => {
+    if (isMessagingPaused) {
+      alert('Direct messaging is temporarily paused by platform administration.')
+      return
+    }
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
@@ -748,6 +754,7 @@ export default function CollegeAdminMessages() {
         ))
       } else {
         setMessages(prev => prev.filter(m => m.id !== tempId))
+        if (ack?.error) alert(ack.error)
       }
     })
   }
@@ -964,6 +971,13 @@ export default function CollegeAdminMessages() {
 
                 {/* Input bar */}
                 <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
+                  {isMessagingPaused ? (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                      <Lock size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                      <span>Direct messaging is temporarily paused for routine platform maintenance.</span>
+                    </div>
+                  ) : (
+                    <>
                   {/* Replying preview banner (WhatsApp style) */}
                   <AnimatePresence>
                     {replyingTo && (
@@ -1042,6 +1056,8 @@ export default function CollegeAdminMessages() {
                       )}
                     </AnimatePresence>
                   </div>
+                    </>
+                  )}
                 </div>
 
               </div>

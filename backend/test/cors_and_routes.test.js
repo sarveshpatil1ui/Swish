@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { isOriginAllowed, getAllowedOrigins } from '../src/config/cors.js'
 import messagesRouter from '../src/routes/messages.routes.js'
 import usersRouter from '../src/routes/users.routes.js'
+import platformRouter from '../src/routes/platform.routes.js'
 import { isCollegeActive, invalidateCollegeCache } from '../src/middleware/auth.middleware.js'
 
 describe('CORS & Route Integrity', () => {
@@ -49,6 +50,25 @@ describe('CORS & Route Integrity', () => {
       .map(layer => layer.route.path)
 
     assert.ok(routeLayers.includes('/:userId/follow'), '/:userId/follow route must exist')
+  })
+
+  test('platform router registers public and admin maintenance/broadcast routes', () => {
+    const routeLayers = platformRouter.stack
+      .filter(layer => layer.route)
+      .map(layer => ({
+        path: layer.route.path,
+        methods: Object.keys(layer.route.methods),
+      }))
+
+    const paths = routeLayers.map(r => r.path)
+    assert.ok(paths.includes('/config'), 'GET /config must exist')
+    assert.ok(paths.includes('/admin/config'), 'GET /admin/config must exist')
+    assert.ok(paths.includes('/admin/maintenance'), 'PATCH /admin/maintenance must exist')
+    assert.ok(paths.includes('/admin/features'), 'PATCH /admin/features must exist')
+    assert.ok(paths.includes('/admin/broadcast'), 'PATCH /admin/broadcast must exist')
+
+    const broadcastRoute = routeLayers.find(r => r.path === '/admin/broadcast')
+    assert.ok(broadcastRoute.methods.includes('patch'), '/admin/broadcast must accept PATCH')
   })
 
   test('in-process college cache handles caching and invalidation', () => {

@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import { Conversation } from '../models/Conversation.js'
 import User from '../models/User.js'
 import { emitToUser, getIO } from '../services/socket.service.js'
+import { getPlatformConfig } from '../services/platform-config.service.js'
 
 const router = Router()
 
@@ -183,6 +184,11 @@ router.get('/:convId', async (req, res) => {
 // ── POST /api/messages — start or get a conversation with a user ──────────────
 router.post('/', async (req, res) => {
   try {
+    const platformConfig = await getPlatformConfig()
+    if (platformConfig?.features?.allowDirectMessaging === false && req.user?.role !== 'admin' && req.user?.role !== 'main_admin') {
+      return res.status(503).json({ ok: false, error: 'Direct messaging is temporarily paused for routine maintenance.' })
+    }
+
     const { participantId } = req.body
     if (!participantId) return res.status(400).json({ ok: false, error: 'participantId required.' })
     if (participantId === req.user._id.toString()) return res.status(400).json({ ok: false, error: 'Cannot message yourself.' })
@@ -243,6 +249,11 @@ router.patch('/:convId/read', async (req, res) => {
 // ── POST /api/messages/:convId/send — send a message ─────────────────────────
 router.post('/:convId/send', async (req, res) => {
   try {
+    const platformConfig = await getPlatformConfig()
+    if (platformConfig?.features?.allowDirectMessaging === false && req.user?.role !== 'admin' && req.user?.role !== 'main_admin') {
+      return res.status(503).json({ ok: false, error: 'Direct messaging is temporarily paused for routine maintenance.' })
+    }
+
     const { text, storyReply, postShare, replyTo } = req.body
     const cleanText = (text && typeof text === 'string' ? text.trim() : '') || (postShare ? 'Shared a post' : (storyReply ? 'Replied to story' : ''))
     if (!cleanText) return res.status(400).json({ ok: false, error: 'Message text is required.' })

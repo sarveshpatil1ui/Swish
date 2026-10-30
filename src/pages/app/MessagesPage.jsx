@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Edit, Info, Send, Smile,
   ChevronLeft, CheckCheck, Check,
-  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff, ExternalLink,
+  X, Reply, MessageSquare, Loader2, UserSearch, Wifi, WifiOff, ExternalLink, Lock,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { useSocket } from '../../context/SocketContext'
@@ -547,7 +547,9 @@ function NewChatModal({ onClose, onStart }) {
 
 // ─── Main MessagesPage ─────────────────────────────────────────────────────────
 export default function MessagesPage() {
-  const { currentUser, setUnreadMsgCount, setActiveChatConvId } = useSwish()
+  const { currentUser, setUnreadMsgCount, setActiveChatConvId, platformConfig } = useSwish()
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
+  const isMessagingPaused = platformConfig?.features?.allowDirectMessaging === false && !isAdmin
   const { emit, on, off, isOnline, connected }     = useSocket()
   const [searchParams]                             = useSearchParams()
   const queryConvId                                = searchParams.get('convId')
@@ -782,6 +784,10 @@ export default function MessagesPage() {
   // ── Start new chat ──────────────────────────────────────────────────────────
   const startNewChat = async (participantId) => {
     setShowNewChat(false)
+    if (isMessagingPaused) {
+      alert('Direct messaging is temporarily paused by platform administration.')
+      return
+    }
     const data = await api('/api/messages', { method: 'POST', body: { participantId } })
     if (data.ok) {
       await loadConvs()
@@ -792,6 +798,8 @@ export default function MessagesPage() {
         else openConv(conv)
         return exists ? prev : [conv, ...prev]
       })
+    } else {
+      alert(data.error || 'Failed to start conversation.')
     }
   }
 
@@ -826,6 +834,10 @@ export default function MessagesPage() {
 
   // ── Send message via Socket.io ──────────────────────────────────────────────
   const sendMessage = () => {
+    if (isMessagingPaused) {
+      alert('Direct messaging is temporarily paused by platform administration.')
+      return
+    }
     const text = inputText.trim()
     if (!text || !activeConvId || sending) return
 
@@ -879,6 +891,9 @@ export default function MessagesPage() {
       } else {
         // Remove optimistic bubble on failure
         setMessages(prev => prev.filter(m => m.id !== tempId))
+        if (ack?.error) {
+          alert(ack.error)
+        }
       }
     })
   }
@@ -1122,84 +1137,93 @@ export default function MessagesPage() {
 
             {/* Input bar */}
             <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
-              {/* Replying preview banner (WhatsApp style) */}
-              <AnimatePresence>
-                {replyingTo && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, y: 8 }}
-                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                    exit={{ opacity: 0, height: 0, y: 8 }}
-                    transition={{ duration: 0.16 }}
-                    className="mb-2 bg-slate-100 dark:bg-gray-800/90 border-l-4 border-indigo-600 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-sm overflow-hidden"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
-                        <Reply size={13} className="inline-block" />
-                        <span>Replying to {replyingTo.senderName}</span>
-                      </div>
-                      <p className="text-slate-600 dark:text-gray-300 truncate mt-0.5 max-w-full">
-                        {replyingTo.text}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setReplyingTo(null)}
-                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
-                      aria-label="Cancel reply"
-                    >
-                      <X size={14} />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex items-end gap-2">
-                <div className="flex-1 relative">
-                  <textarea
-                    ref={el => { inputRef.current = el; textareaRef.current = el }}
-                    rows={1}
-                    value={inputText}
-                    onChange={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Message…"
-                    className="w-full bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 transition-all leading-relaxed"
-                    style={{ maxHeight: 120 }}
-                  />
+              {isMessagingPaused ? (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                  <Lock size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Direct messaging is temporarily paused for routine platform maintenance.</span>
                 </div>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(v => !v)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 ${
-                      showEmojiPicker
-                        ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                        : 'hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400'
-                    }`}
-                    aria-label="Insert emoji"
-                  >
-                    <Smile size={18} />
-                  </button>
-
+              ) : (
+                <>
+                  {/* Replying preview banner (WhatsApp style) */}
                   <AnimatePresence>
-                    {showEmojiPicker && (
-                      <EmojiPicker
-                        onSelect={handleSelectEmoji}
-                        onClose={() => setShowEmojiPicker(false)}
-                      />
+                    {replyingTo && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, y: 8 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0, y: 8 }}
+                        transition={{ duration: 0.16 }}
+                        className="mb-2 bg-slate-100 dark:bg-gray-800/90 border-l-4 border-indigo-600 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-sm overflow-hidden"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
+                            <Reply size={13} className="inline-block" />
+                            <span>Replying to {replyingTo.senderName}</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-gray-300 truncate mt-0.5 max-w-full">
+                            {replyingTo.text}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReplyingTo(null)}
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                          aria-label="Cancel reply"
+                        >
+                          <X size={14} />
+                        </button>
+                      </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
-                <AnimatePresence mode="wait">
-                  {inputText.trim() && (
-                    <motion.button key="send"
-                      initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.14 }}
-                      onClick={sendMessage} disabled={sending || !connected}
-                      className="w-9 h-9 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-60 rounded-xl transition-all flex-shrink-0">
-                      {sending ? <Loader2 size={15} className="text-white animate-spin" /> : <Send size={15} className="text-white" />}
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </div>
+
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 relative">
+                      <textarea
+                        ref={el => { inputRef.current = el; textareaRef.current = el }}
+                        rows={1}
+                        value={inputText}
+                        onChange={handleInput}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Message…"
+                        className="w-full bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 transition-all leading-relaxed"
+                        style={{ maxHeight: 120 }}
+                      />
+                    </div>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(v => !v)}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 ${
+                          showEmojiPicker
+                            ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                            : 'hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400'
+                        }`}
+                        aria-label="Insert emoji"
+                      >
+                        <Smile size={18} />
+                      </button>
+
+                      <AnimatePresence>
+                        {showEmojiPicker && (
+                          <EmojiPicker
+                            onSelect={handleSelectEmoji}
+                            onClose={() => setShowEmojiPicker(false)}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {inputText.trim() && (
+                        <motion.button key="send"
+                          initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.14 }}
+                          onClick={sendMessage} disabled={sending || !connected}
+                          className="w-9 h-9 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-60 rounded-xl transition-all flex-shrink-0">
+                          {sending ? <Loader2 size={15} className="text-white animate-spin" /> : <Send size={15} className="text-white" />}
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </>
+              )}
             </div>
 
           </div>

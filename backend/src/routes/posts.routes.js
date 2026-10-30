@@ -13,6 +13,7 @@ import User from '../models/User.js'
 import Follow from '../models/Follow.js'
 import { broadcastEvent } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
+import { getPlatformConfig } from '../services/platform-config.service.js'
 
 const router = Router()
 
@@ -108,6 +109,10 @@ router.post(
     body('caption').optional().trim().isLength({ max: 2200 }).withMessage('Caption too long.'),
   ],
   async (req, res) => {
+    const platformConfig = await getPlatformConfig()
+    if (platformConfig?.features?.allowPostCreation === false && req.user?.role !== 'admin' && req.user?.role !== 'main_admin') {
+      return res.status(503).json({ ok: false, error: 'New post creation is temporarily paused for routine maintenance.' })
+    }
     const validationError = handleValidationErrors(req, res)
     if (validationError) {
       if (req.file?.buffer) {

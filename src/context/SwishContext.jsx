@@ -29,6 +29,7 @@ import {
   apiGetColleges, apiAddCollege, apiToggleCollege,
   apiChangePassword,
   apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
+  apiGetPlatformConfig,
   apiGetUnreadMessagesCount,
   loadColleges, saveColleges,
   loadReports, saveReports,
@@ -130,6 +131,34 @@ export function SwishProvider({ children }) {
     saveReports([])
     return []
   })
+
+  // ── Global Platform Config (Maintenance & Features) ─────────────────────────
+  const [platformConfig, setPlatformConfig] = useState({
+    maintenance: { enabled: false, note: '', expectedBack: '' },
+    features: { allowRegistration: true, allowPostCreation: true, allowDirectMessaging: true },
+    broadcast: { active: false, title: '', message: '', type: 'info', dismissible: true },
+  })
+
+  const fetchPlatformConfig = useCallback(async () => {
+    try {
+      const res = await apiGetPlatformConfig()
+      if (res?.ok && res.config) {
+        setPlatformConfig(res.config)
+      }
+    } catch (err) {
+      console.warn('[SwishContext] Could not fetch platform config:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPlatformConfig()
+  }, [fetchPlatformConfig])
+
+  const updatePlatformConfigRealtime = useCallback((newConfig) => {
+    if (newConfig) {
+      setPlatformConfig(newConfig)
+    }
+  }, [])
 
   // ── Notifications ──────────────────────────────────────────────────────────
   const [notifications, setNotifications] = useState(() => {
@@ -1108,6 +1137,11 @@ const domainApproved = async (email) => {
         updatePostLikeRealtime,
         updatePostCommentRealtime,
         addNotificationRealtime,
+        // Platform Config & Maintenance
+        platformConfig,
+        setPlatformConfig,
+        fetchPlatformConfig,
+        updatePlatformConfigRealtime,
       }}
     >
       {children}

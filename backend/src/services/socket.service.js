@@ -6,6 +6,7 @@ import mongoose from 'mongoose'
 import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
 import { isOriginAllowed } from '../config/cors.js'
+import { getPlatformConfig } from './platform-config.service.js'
 
 // ── In-memory online users: userId → Set<socketId> (handles multiple tabs) ────
 const onlineUsers = new Map()
@@ -150,6 +151,18 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     // ── Send a message ────────────────────────────────────────────────────────
     socket.on('msg:send', async ({ convId, text, storyReply, postShare, replyTo }, ack) => {
       try {
+        const platformConfig = await getPlatformConfig()
+        const userRole = socket.user?.role
+        const isAdmin = userRole === 'admin' || userRole === 'main_admin'
+
+        if (platformConfig?.maintenance?.enabled && !isAdmin) {
+          return ack?.({ ok: false, error: 'Platform is currently undergoing scheduled maintenance.' })
+        }
+
+        if (platformConfig?.features?.allowDirectMessaging === false && !isAdmin) {
+          return ack?.({ ok: false, error: 'Direct messaging is temporarily paused by platform administration.' })
+        }
+
         const cleanText = (text && typeof text === 'string' ? text.trim() : '') || (postShare ? 'Shared a post' : (storyReply ? 'Replied to story' : ''))
         if (!cleanText || !convId) return ack?.({ ok: false, error: 'Invalid message.' })
 
