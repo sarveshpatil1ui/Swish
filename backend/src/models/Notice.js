@@ -17,15 +17,20 @@ const NoticeSchema = new Schema(
     college: { type: String, required: true }, // Denormalized for easier filtering
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', default: null },
     department: { type: String, default: null }, // If specific to a department
-    targetAudience: { 
-      type: String, 
+    targetAudience: {
+      type: String,
       enum: ['all', 'students', 'faculty', 'department'],
       default: 'all'
     },
-    priority: { 
-      type: String, 
+    priority: {
+      type: String,
       enum: ['low', 'medium', 'high', 'urgent'],
       default: 'medium'
+    },
+    category: {
+      type: String,
+      enum: ['Examinations', 'Placements', 'Holiday', 'Administrative', 'Sports', 'General'],
+      default: 'General'
     },
     published: { type: Boolean, default: false },
     publishedAt: { type: Date, default: null },

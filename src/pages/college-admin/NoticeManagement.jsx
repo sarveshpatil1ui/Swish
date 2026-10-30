@@ -10,6 +10,7 @@ export default function NoticeManagement() {
   const [departments, setDepartments] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPriority, setSelectedPriority] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [scopeFilter, setScopeFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingNotice, setEditingNotice] = useState(null)
@@ -19,8 +20,10 @@ export default function NoticeManagement() {
     content: '',
     targetAudience: 'all',
     priority: 'medium',
+    category: 'General',
     departmentId: '',
     department: '',
+    expiresAt: '',
     published: false
   })
   const [errors, setErrors] = useState({})
@@ -42,6 +45,9 @@ export default function NoticeManagement() {
     if (selectedPriority !== 'all') {
       filtered = filtered.filter(n => n.priority === selectedPriority)
     }
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(n => n.category === selectedCategory)
+    }
     if (scopeFilter === 'mine' && currentUser) {
       const currentId = (currentUser.id || currentUser._id)?.toString()
       filtered = filtered.filter(n => {
@@ -50,7 +56,7 @@ export default function NoticeManagement() {
       })
     }
     setFilteredNotices(filtered)
-  }, [searchQuery, selectedPriority, scopeFilter, notices, currentUser])
+  }, [searchQuery, selectedPriority, selectedCategory, scopeFilter, notices, currentUser])
 
   const fetchData = async () => {
     try {
@@ -107,8 +113,10 @@ export default function NoticeManagement() {
       content: '',
       targetAudience: 'all',
       priority: 'medium',
+      category: 'General',
       departmentId: defaultDeptId,
       department: defaultDeptName,
+      expiresAt: '',
       published: false
     })
     setErrors({})
@@ -237,8 +245,10 @@ export default function NoticeManagement() {
       content: notice.content,
       targetAudience: notice.targetAudience,
       priority: notice.priority,
+      category: notice.category || 'General',
       departmentId: notice.departmentId || '',
       department: notice.department || '',
+      expiresAt: notice.expiresAt ? notice.expiresAt.slice(0, 16) : '',
       published: notice.published
     })
   }
@@ -249,8 +259,10 @@ export default function NoticeManagement() {
       content: '',
       targetAudience: 'all',
       priority: 'medium',
+      category: 'General',
       departmentId: '',
       department: '',
+      expiresAt: '',
       published: false
     })
     setErrors({})
@@ -375,6 +387,39 @@ export default function NoticeManagement() {
         </div>
       </div>
 
+      {/* Category Filters */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {['all', 'Examinations', 'Placements', 'Holiday', 'Administrative', 'Sports', 'General'].map(cat => {
+          const count = cat === 'all'
+            ? notices.length
+            : notices.filter(n => n.category === cat).length
+
+          const isActive = selectedCategory === cat
+
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-400 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {cat}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-gray-400'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* Add/Edit Form */}
       {(showAddForm || editingNotice) && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 md:p-6">
@@ -404,7 +449,7 @@ export default function NoticeManagement() {
               />
               {errors.content && <p className="text-rose-500 text-xs mt-1">{errors.content}</p>}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Target Audience</label>
                 <select
@@ -432,26 +477,50 @@ export default function NoticeManagement() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Category</label>
                 <select
-                  value={formData.departmentId}
-                  onChange={(e) => {
-                    const dept = departments.find(d => d.id === e.target.value)
-                    setFormData({ 
-                      ...formData, 
-                      departmentId: e.target.value,
-                      department: dept?.name || ''
-                    })
-                  }}
-                  disabled={formData.targetAudience !== 'department'}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
                 >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
+                  <option value="General">General</option>
+                  <option value="Examinations">Examinations</option>
+                  <option value="Placements">Placements</option>
+                  <option value="Holiday">Holiday</option>
+                  <option value="Administrative">Administrative</option>
+                  <option value="Sports">Sports</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Expires At</label>
+                <input
+                  type="datetime-local"
+                  value={formData.expiresAt}
+                  onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department</label>
+              <select
+                value={formData.departmentId}
+                onChange={(e) => {
+                  const dept = departments.find(d => d.id === e.target.value)
+                  setFormData({ 
+                    ...formData, 
+                    departmentId: e.target.value,
+                    department: dept?.name || ''
+                  })
+                }}
+                disabled={formData.targetAudience !== 'department'}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-4 py-3 text-base focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Select Department</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
             </div>
             <div className="flex items-center gap-3">
               <input
