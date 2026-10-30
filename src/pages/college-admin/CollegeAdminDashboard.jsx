@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import {
   Users, GraduationCap, Building2, Megaphone,
   TrendingUp, Activity, Calendar, ArrowRight,
-  AlertCircle, RefreshCw
+  AlertCircle, RefreshCw, Clock, MessageSquare, AlertTriangle
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiGetUserStats, apiGetNotices, apiGetActivityLogs } from '../../utils/auth'
+import { apiGetUserStats, apiGetNotices, apiGetActivityLogs, apiGetAnalyticsDashboard } from '../../utils/auth'
 
 function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
   return (
@@ -44,17 +44,48 @@ function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal
   )
 }
 
+function TodayStatCard({ icon: Icon, label, value, color, onClick, clickable }) {
+  const colorClasses = {
+    indigo: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
+    emerald: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
+    blue: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400',
+    amber: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400',
+  }
+
+  const colors = colorClasses[color] || colorClasses.indigo
+
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 rounded-xl p-4 ${clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+    >
+      <div className={`w-8 h-8 ${colors} rounded-lg flex items-center justify-center mb-3`}>
+        <Icon size={16} />
+      </div>
+      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+        {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
+      </p>
+      <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">{label}</p>
+    </div>
+  )
+}
+
 export default function CollegeAdminDashboard() {
   const navigate = useNavigate()
   const { currentUser } = useSwish()
   const [stats, setStats] = useState(null)
+  const [todayStats, setTodayStats] = useState(null)
   const [recentNotices, setRecentNotices] = useState([])
   const [activityLogs, setActivityLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
     fetchDashboardData()
+    // Update clock every minute
+    const clockInterval = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(clockInterval)
   }, [])
 
   const fetchDashboardData = async () => {
@@ -62,10 +93,11 @@ export default function CollegeAdminDashboard() {
       setLoading(true)
       setError(null)
 
-      const [statsRes, noticesRes, logsRes] = await Promise.all([
+      const [statsRes, noticesRes, logsRes, todayRes] = await Promise.all([
         apiGetUserStats(),
         apiGetNotices(),
         apiGetActivityLogs({ limit: 10 }),
+        apiGetAnalyticsDashboard({ period: 'today' }),
       ])
 
       if (!statsRes.ok) {
@@ -83,6 +115,15 @@ export default function CollegeAdminDashboard() {
         activeNotices: statsRes.stats.activeNotices ?? 0,
       })
 
+      if (todayRes.ok && todayRes.analytics) {
+        setTodayStats({
+          newUsers: todayRes.analytics.users.newToday ?? 0,
+          newPosts: todayRes.analytics.content.postsToday ?? 0,
+          newComments: todayRes.analytics.content.commentsToday ?? 0,
+          pendingReports: todayRes.analytics.reports.pending ?? 0,
+        })
+      }
+
       if (noticesRes.ok && Array.isArray(noticesRes.notices)) {
         setRecentNotices(noticesRes.notices.slice(0, 5))
       }
@@ -96,6 +137,29 @@ export default function CollegeAdminDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   if (loading && !stats) {
@@ -127,12 +191,18 @@ export default function CollegeAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
+      {/* Welcome Header with Dynamic Date/Time */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Welcome back, {currentUser?.name}
+            {getGreeting()}, {currentUser?.name}
           </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Clock size={14} className="text-slate-400" />
+            <p className="text-slate-500 dark:text-gray-500 text-sm">
+              {formatDate(currentTime)} • {formatTime(currentTime)}
+            </p>
+          </div>
           <p className="text-slate-500 dark:text-gray-500 mt-1">
             Here's what's happening at {currentUser?.college || 'your college'}
           </p>
@@ -162,6 +232,49 @@ export default function CollegeAdminDashboard() {
           </button>
         </div>
       )}
+
+      {/* Today's Overview */}
+      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-200/60 dark:border-indigo-800/60 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+              Today's Overview
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+              Activity from {formatDate(currentTime)}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <TodayStatCard
+            icon={Users}
+            label="New Registrations"
+            value={todayStats?.newUsers ?? 0}
+            color="indigo"
+          />
+          <TodayStatCard
+            icon={Activity}
+            label="New Posts"
+            value={todayStats?.newPosts ?? 0}
+            color="emerald"
+          />
+          <TodayStatCard
+            icon={MessageSquare}
+            label="New Comments"
+            value={todayStats?.newComments ?? 0}
+            color="blue"
+          />
+          <TodayStatCard
+            icon={AlertTriangle}
+            label="Pending Reports"
+            value={todayStats?.pendingReports ?? 0}
+            color="amber"
+            onClick={() => navigate('/college-admin/reports')}
+            clickable
+          />
+        </div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

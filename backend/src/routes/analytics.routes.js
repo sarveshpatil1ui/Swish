@@ -24,19 +24,44 @@ async function requireCollegeAccess(req, res, next) {
 }
 
 // ── GET /api/analytics/dashboard ─────────────────────────────────────────────────
+// Query params: period (today|7days|30days|all), startDate, endDate
 router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'main_admin'), requireCollegeAccess, async (req, res) => {
   try {
     const collegeId = req.user.role === 'college_admin' ? req.user.collegeId : null
     const filter = collegeId ? { collegeId } : {}
 
     // Get all user IDs in the college for post/comment filtering
-    const collegeUserIds = collegeId 
+    const collegeUserIds = collegeId
       ? (await User.find({ collegeId }).select('_id').lean()).map(u => u._id)
       : null
 
     const now = new Date()
+    const period = req.query.period || 'all'
+    let startDate, endDate
+
+    // Calculate date range based on period
+    if (period === 'today') {
+      // Today from midnight to next midnight in UTC
+      startDate = new Date(now)
+      startDate.setUTCHours(0, 0, 0, 0)
+      endDate = new Date(now)
+      endDate.setUTCHours(23, 59, 59, 999)
+    } else if (period === '7days') {
+      startDate = new Date(now - 7 * 24 * 60 * 60 * 1000)
+      endDate = now
+    } else if (period === '30days') {
+      startDate = new Date(now - 30 * 24 * 60 * 60 * 1000)
+      endDate = now
+    } else if (req.query.startDate && req.query.endDate) {
+      startDate = new Date(req.query.startDate)
+      endDate = new Date(req.query.endDate)
+    }
+
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
+
+    // Date filter for queries
+    const dateFilter = (startDate && endDate) ? { createdAt: { $gte: startDate, $lte: endDate } } : {}
 
     // Parallel queries for metrics
     const [
@@ -45,14 +70,18 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       suspendedUsers,
       newUsers7Days,
       newUsers30Days,
+      newUsersToday,
       totalPosts,
       totalComments,
       totalLikes,
       posts7Days,
       posts30Days,
+      postsToday,
+      commentsToday,
       reports,
       departments,
       postTrends,
+      userTrends,
     ] = await Promise.all([
       // Total users
       User.countDocuments({ ...filter, deactivated: false }),
@@ -68,6 +97,9 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
 
       // New users in last 30 days
       User.countDocuments({ ...filter, deactivated: false, createdAt: { $gte: thirtyDaysAgo } }),
+
+      // New users today
+      User.countDocuments({ ...filter, deactivated: false, ...dateFilter }),
 
       // Total posts (college-scoped)
       collegeUserIds
@@ -102,6 +134,16 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
         ? Post.countDocuments({ user: { $in: collegeUserIds }, isDeleted: false, createdAt: { $gte: thirtyDaysAgo } })
         : Post.countDocuments({ isDeleted: false, createdAt: { $gte: thirtyDaysAgo } }),
 
+      // Posts today
+      collegeUserIds
+        ? Post.countDocuments({ user: { $in: collegeUserIds }, isDeleted: false, ...dateFilter })
+        : Post.countDocuments({ isDeleted: false, ...dateFilter }),
+
+      // Comments today
+      collegeUserIds
+        ? Comment.countDocuments({ user: { $in: collegeUserIds }, isDeleted: false, ...dateFilter })
+        : Comment.countDocuments({ isDeleted: false, ...dateFilter }),
+
       // Reports by status
       Report.aggregate([
         { $match: filter },
@@ -130,6 +172,27 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
           ])
         : Post.aggregate([
             { $match: { isDeleted: false, createdAt: { $gte: thirtyDaysAgo } } },
+            { $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ]),
+
+      // User registration trends over last 30 days (daily)
+      collegeId
+        ? User.aggregate([
+            { $match: { collegeId, deactivated: false, createdAt: { $gte: thirtyDaysAgo } } },
+            { $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ])
+        : User.aggregate([
+            { $match: { deactivated: false, createdAt: { $gte: thirtyDaysAgo } } },
             { $group: {
                 _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                 count: { $sum: 1 }
@@ -167,15 +230,24 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       count: t.count,
     }))
 
+    // Format user trends
+    const userTrendsData = userTrends.map(t => ({
+      date: t._id,
+      count: t.count,
+    }))
+
     res.json({
       ok: true,
       analytics: {
+        period,
+        dateRange: startDate && endDate ? { start: startDate.toISOString(), end: endDate.toISOString() } : null,
         users: {
           total: totalUsers,
           active: activeUsers,
           suspended: suspendedUsers,
           new7Days: newUsers7Days,
           new30Days: newUsers30Days,
+          newToday: newUsersToday,
         },
         content: {
           totalPosts: totalPosts,
@@ -183,10 +255,13 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
           totalLikes: totalLikesCount,
           posts7Days: posts7Days,
           posts30Days: posts30Days,
+          postsToday: postsToday,
+          commentsToday: commentsToday,
         },
         reports: reportStats,
         departmentDistribution,
         postTrends: postTrendsData,
+        userTrends: userTrendsData,
       },
     })
   } catch (err) {

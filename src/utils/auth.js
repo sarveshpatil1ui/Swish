@@ -541,8 +541,13 @@ export async function apiUpdateReportStatus(id, { status, resolutionNotes }) {
   return apiFetch(`/api/reports/${id}/status`, { method: 'PATCH', body: { status, resolutionNotes } })
 }
 
-export async function apiGetAnalyticsDashboard() {
-  return apiFetch('/api/analytics/dashboard')
+export async function apiGetAnalyticsDashboard({ period, startDate, endDate } = {}) {
+  const params = new URLSearchParams()
+  if (period) params.append('period', period)
+  if (startDate) params.append('startDate', startDate)
+  if (endDate) params.append('endDate', endDate)
+  const query = params.toString()
+  return apiFetch(`/api/analytics/dashboard${query ? `?${query}` : ''}`)
 }
 
 export async function apiPinNotice(id) {

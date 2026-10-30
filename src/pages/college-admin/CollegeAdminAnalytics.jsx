@@ -1,22 +1,31 @@
 import { useState, useEffect } from 'react'
-import { Users, MessageSquare, Heart, AlertTriangle, Shield, TrendingUp, Calendar, BarChart3, Loader2 } from 'lucide-react'
+import { Users, MessageSquare, Heart, AlertTriangle, Shield, TrendingUp, Calendar, BarChart3, Loader2, Clock } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { apiGetAnalyticsDashboard } from '../../utils/auth'
+
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
 export default function CollegeAdminAnalytics() {
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [period, setPeriod] = useState('all')
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
     fetchAnalytics()
-  }, [])
+    // Refresh analytics every 5 minutes
+    const refreshInterval = setInterval(() => fetchAnalytics(), 5 * 60 * 1000)
+    return () => clearInterval(refreshInterval)
+  }, [period])
 
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
-      const res = await apiGetAnalyticsDashboard()
+      const res = await apiGetAnalyticsDashboard({ period })
       if (res.ok) {
         setAnalytics(res.analytics)
+        setLastUpdated(new Date())
       } else {
         setError(res.error || 'Failed to load analytics')
       }
@@ -56,15 +65,57 @@ export default function CollegeAdminAnalytics() {
     )
   }
 
-  const { users, content, reports, departmentDistribution, postTrends } = analytics
+  const { users, content, reports, departmentDistribution, postTrends, userTrends, dateRange } = analytics
+
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return 'Never'
+    return lastUpdated.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Analytics Dashboard</h1>
-        <p className="text-slate-500 dark:text-gray-500 mt-1">Overview of your college's activity and engagement</p>
+      {/* Header with Time Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Analytics Dashboard</h1>
+          <p className="text-slate-500 dark:text-gray-500 mt-1">Overview of your college's activity and engagement</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-500">
+            <Clock size={14} />
+            <span>Last updated: {formatLastUpdated()}</span>
+          </div>
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+            {[
+              { value: 'today', label: 'Today' },
+              { value: '7days', label: '7 Days' },
+              { value: '30days', label: '30 Days' },
+              { value: 'all', label: 'All' },
+            ].map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPeriod(p.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  period === p.value
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {dateRange && (
+        <div className="text-xs text-slate-500 dark:text-gray-500">
+          Showing data from {new Date(dateRange.start).toLocaleDateString()} to {new Date(dateRange.end).toLocaleDateString()}
+        </div>
+      )}
 
       {/* User Metrics */}
       <div>
@@ -171,38 +222,97 @@ export default function CollegeAdminAnalytics() {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <Users size={20} className="text-indigo-600" /> Department Distribution
           </h2>
-          <div className="space-y-3">
-            {departmentDistribution.map((dept, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-sm text-slate-700 dark:text-gray-300">
-                  {dept.department || 'Unassigned'}
-                </span>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {dept.count}
-                </span>
-              </div>
-            ))}
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={departmentDistribution.map(d => ({ name: d.department || 'Unassigned', value: d.count }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {departmentDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {/* Post Trends */}
+      {/* Post Trends Chart */}
       {postTrends && postTrends.length > 0 && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-indigo-600" /> Post Trends (Last 30 Days)
+            <TrendingUp size={20} className="text-indigo-600" /> Post Activity Over Time
           </h2>
-          <div className="space-y-2">
-            {postTrends.map((trend, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-sm text-slate-700 dark:text-gray-300">
-                  {trend.date}
-                </span>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {trend.count} posts
-                </span>
-              </div>
-            ))}
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={postTrends}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-slate-500 dark:text-gray-500"
+                  tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                />
+                <YAxis className="text-xs text-slate-500 dark:text-gray-500" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                  }}
+                  labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ fill: '#6366f1', strokeWidth: 2 }}
+                  name="Posts"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* User Registration Trends Chart */}
+      {userTrends && userTrends.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Users size={20} className="text-indigo-600" /> User Registrations Over Time
+          </h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={userTrends}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-slate-500 dark:text-gray-500"
+                  tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                />
+                <YAxis className="text-xs text-slate-500 dark:text-gray-500" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                  }}
+                  labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                />
+                <Legend />
+                <Bar dataKey="count" fill="#10b981" name="New Users" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
