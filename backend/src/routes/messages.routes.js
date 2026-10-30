@@ -35,6 +35,8 @@ function formatConv(conv, myId) {
     initials:     other?.initials     ?? '??',
     avatarColor:  other?.avatarColor  ?? '#6366f1',
     profilePhoto: other?.profilePhoto ?? null,
+    dept:         other?.departmentName ?? null,
+    academicYear: other?.academicYear  ?? null,
     lastMessage:  conv.lastMessage    ?? '',
     lastMessageAt:conv.lastMessageAt  ?? conv.updatedAt,
     lastSenderId: conv.lastSender?._id ? conv.lastSender._id.toString() : conv.lastSender?.toString() ?? null,
@@ -59,7 +61,7 @@ router.get('/', async (req, res) => {
     )
       .sort({ lastMessageAt: -1 })
       .limit(limit)
-      .populate('participants', 'name username initials avatarColor profilePhoto')
+      .populate('participants', 'name username initials avatarColor profilePhoto departmentName academicYear')
       .lean({ virtuals: true })
 
     const result = convs.map(c => formatConv(c, req.user._id))

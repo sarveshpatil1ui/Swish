@@ -338,6 +338,18 @@ function ConvRow({ conv, myId, isActive, onClick, isOnline }) {
             {relativeTime(conv.lastMessageAt)}
           </span>
         </div>
+        <div className="flex items-center gap-2 mb-0.5">
+          {conv.dept && (
+            <span className="text-[10px] text-slate-500 dark:text-gray-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              {conv.dept}
+            </span>
+          )}
+          {conv.academicYear && (
+            <span className="text-[10px] text-slate-500 dark:text-gray-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+              {conv.academicYear}
+            </span>
+          )}
+        </div>
         <div className="flex items-center justify-between gap-2">
           <p className={`text-xs truncate ${conv.unread > 0 ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-400 dark:text-gray-500'}`}>
             {conv.lastSenderId === myId ? `You: ${conv.lastMessage}` : conv.lastMessage || 'Start a conversation'}
@@ -892,12 +904,18 @@ export default function CollegeAdminMessages() {
                       profilePhoto={activeConv.profilePhoto} size="sm" online={isOnline(activeConv.participantId)} />
                     <div className="min-w-0">
                       <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">{activeConv.name}</p>
-                      <p className="text-xs leading-tight">
+                      <div className="flex items-center gap-2 text-xs leading-tight">
                         {isOnline(activeConv.participantId)
                           ? <span className="text-emerald-500 font-medium">● Active now</span>
                           : <span className="text-slate-400 dark:text-gray-500">@{activeConv.username}</span>
                         }
-                      </p>
+                        {activeConv.dept && (
+                          <span className="text-slate-500 dark:text-gray-500">• {activeConv.dept}</span>
+                        )}
+                        {activeConv.academicYear && (
+                          <span className="text-slate-500 dark:text-gray-500">• {activeConv.academicYear}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
