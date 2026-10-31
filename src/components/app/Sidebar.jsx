@@ -11,10 +11,13 @@ import CreatePostModal from './CreatePostModal'
 import { resolveImageUrl } from '../../utils/posts'
 
 export default function Sidebar() {
-  const { currentUser: user, logout, notifications = [], unreadMsgCount = 0 } = useSwish()
+  const { currentUser: user, logout, notifications = [], unreadMsgCount = 0, platformConfig } = useSwish()
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'main_admin'
+  const isPostCreationPaused = platformConfig?.features?.allowPostCreation === false && !isAdmin
 
   const unreadCount = notifications.filter(n => !n.read).length
   const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount)
@@ -102,12 +105,27 @@ export default function Sidebar() {
 
           {/* 4. Create Button (Center Stage) */}
           <button
-            onClick={() => setShowCreate(true)}
-            title="Create"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all duration-150 group"
+            onClick={() => {
+              if (isPostCreationPaused) return
+              setShowCreate(true)
+            }}
+            disabled={isPostCreationPaused}
+            title={isPostCreationPaused ? 'Post creation is temporarily paused' : 'Create'}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group ${
+              isPostCreationPaused
+                ? 'opacity-50 cursor-not-allowed text-slate-400'
+                : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer'
+            }`}
           >
-            <PlusSquare size={20} className="flex-shrink-0 stroke-2 group-hover:scale-105 transition-transform" />
-            <span className="hidden lg:block text-sm font-medium">Create</span>
+            <div className="relative">
+              <PlusSquare size={20} className="flex-shrink-0 stroke-2 group-hover:scale-105 transition-transform" />
+              {isPostCreationPaused && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-gray-950" />
+              )}
+            </div>
+            <span className="hidden lg:block text-sm font-medium">
+              {isPostCreationPaused ? 'Create (Paused)' : 'Create'}
+            </span>
           </button>
 
           {/* 5. Messages */}

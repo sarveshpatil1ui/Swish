@@ -152,11 +152,58 @@ export function SwishProvider({ children }) {
 
   useEffect(() => {
     fetchPlatformConfig()
-  }, [fetchPlatformConfig])
+
+    const handleFocus = () => {
+      fetchPlatformConfig()
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPlatformConfig()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    let guestInterval = null
+    if (!currentUser) {
+      guestInterval = setInterval(fetchPlatformConfig, 15000)
+    }
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (guestInterval) clearInterval(guestInterval)
+    }
+  }, [fetchPlatformConfig, currentUser])
 
   const updatePlatformConfigRealtime = useCallback((newConfig) => {
     if (newConfig) {
-      setPlatformConfig(newConfig)
+      setPlatformConfig((prev) => ({
+        ...prev,
+        ...newConfig,
+        maintenance: {
+          enabled: Boolean(newConfig.maintenance?.enabled),
+          note: newConfig.maintenance?.note || '',
+          expectedBack: newConfig.maintenance?.expectedBack || '',
+          ...newConfig.maintenance,
+        },
+        features: {
+          allowRegistration: newConfig.features?.allowRegistration !== false,
+          allowPostCreation: newConfig.features?.allowPostCreation !== false,
+          allowDirectMessaging: newConfig.features?.allowDirectMessaging !== false,
+          ...newConfig.features,
+        },
+        broadcast: {
+          active: Boolean(newConfig.broadcast?.active),
+          title: newConfig.broadcast?.title || '',
+          message: newConfig.broadcast?.message || '',
+          type: newConfig.broadcast?.type || 'info',
+          link: newConfig.broadcast?.link || '',
+          dismissible: newConfig.broadcast?.dismissible !== false,
+          ...newConfig.broadcast,
+        },
+      }))
     }
   }, [])
 

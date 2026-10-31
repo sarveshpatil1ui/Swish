@@ -68,7 +68,8 @@ function LinkedInIcon({ size = 18 }) {
 }
 
 export default function SharePostModal({ post, onClose }) {
-  const { currentUser } = useSwish()
+  const { currentUser, platformConfig } = useSwish()
+  const isMessagingPaused = platformConfig?.features?.allowDirectMessaging === false
   const [conversations, setConversations] = useState([])
   const [searchResults, setSearchResults] = useState([])
   const [loadingChats, setLoadingChats] = useState(true)
@@ -139,7 +140,7 @@ export default function SharePostModal({ post, onClose }) {
   const handleSendToUser = async (target) => {
     // target can be a conversation or a searched user
     const targetKey = target.id || target._id
-    if (sendingMap[targetKey] || sentMap[targetKey]) return
+    if (isMessagingPaused || sendingMap[targetKey] || sentMap[targetKey]) return
 
     setSendingMap(prev => ({ ...prev, [targetKey]: true }))
 
@@ -313,6 +314,12 @@ export default function SharePostModal({ post, onClose }) {
             />
           </div>
 
+          {isMessagingPaused && (
+            <div className="mx-4 mt-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <span className="font-semibold">Direct messaging is paused for maintenance. You can still share via link or social apps below.</span>
+            </div>
+          )}
+
           {/* Search Contacts Bar */}
           <div className="px-4 py-2.5 flex-shrink-0">
             <div className="relative">
@@ -366,7 +373,7 @@ export default function SharePostModal({ post, onClose }) {
 
                     <button
                       onClick={() => handleSendToUser(item)}
-                      disabled={isSent || isSending}
+                      disabled={isSent || isSending || isMessagingPaused}
                       className={`text-xs font-semibold px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 flex-shrink-0 ${
                         isSent
                           ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'

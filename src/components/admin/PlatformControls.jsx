@@ -19,6 +19,7 @@ import {
   MessageSquare,
   FileText,
   Building2,
+  Sparkles,
 } from 'lucide-react'
 import {
   apiGetAdminPlatformConfig,
@@ -29,6 +30,33 @@ import {
 
 const adminCardClass =
   'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-xs'
+
+const BROADCAST_TEMPLATES = [
+  {
+    label: '🛠️ Scheduled Maintenance',
+    type: 'warning',
+    title: 'Maintenance Tonight',
+    message: 'Swish will undergo scheduled maintenance tonight at 2:00 AM IST for 30 minutes. All features will be temporarily paused.',
+  },
+  {
+    label: '🚀 New Features Live',
+    type: 'info',
+    title: 'New Update',
+    message: 'Exciting new campus features are now live! Check out your updated student portal and department tools.',
+  },
+  {
+    label: '⚠️ Campus Advisory',
+    type: 'critical',
+    title: 'Urgent Notice',
+    message: 'Important notice: Please ensure your college department credentials and email are up to date.',
+  },
+  {
+    label: '🎉 Welcome Back',
+    type: 'success',
+    title: 'Welcome Back',
+    message: 'Welcome to the new academic term! Wishing all students and faculty an amazing semester.',
+  },
+]
 
 export default function PlatformControls({ onShowToast }) {
   const [config, setConfig] = useState(null)
@@ -171,15 +199,55 @@ export default function PlatformControls({ onShowToast }) {
     }
   }
 
-  // ── Save Broadcast Banner ──────────────────────────────────────────────────
-  const handleSaveBroadcast = async (e) => {
-    e.preventDefault()
+  // ── Toggle Broadcast Active (Instant 1-Click Activate / Deactivate) ────────
+  const handleToggleBroadcastActive = async (targetActive) => {
+    if (targetActive && !broadcastMessage.trim()) {
+      setError('Please enter an announcement message before activating the broadcast banner.')
+      return
+    }
     setError('')
     setSuccessMessage('')
     setSavingBroadcast(true)
     try {
       const res = await apiUpdateBroadcastBanner({
-        active: broadcastActive,
+        active: targetActive,
+        title: broadcastTitle,
+        message: broadcastMessage,
+        type: broadcastType,
+        link: broadcastLink,
+        dismissible: broadcastDismissible,
+      })
+      if (res && res.ok) {
+        setBroadcastActive(targetActive)
+        notifySuccess(
+          targetActive
+            ? 'Global broadcast banner is now LIVE across all campuses!'
+            : 'Global broadcast banner turned OFF.'
+        )
+      } else {
+        setError(res?.error || 'Failed to update broadcast banner.')
+      }
+    } catch (err) {
+      console.error('[PlatformControls] Toggle broadcast error:', err)
+      setError(err?.message || 'Connection error while updating broadcast banner.')
+    } finally {
+      setSavingBroadcast(false)
+    }
+  }
+
+  // ── Publish or Update Live Announcement ────────────────────────────────────
+  const handlePublishOrUpdateBroadcast = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!broadcastMessage.trim()) {
+      setError('Please enter an announcement message.')
+      return
+    }
+    setError('')
+    setSuccessMessage('')
+    setSavingBroadcast(true)
+    try {
+      const res = await apiUpdateBroadcastBanner({
+        active: true, // Always activates when published/updated
         title: broadcastTitle,
         message: broadcastMessage,
         type: broadcastType,
@@ -188,10 +256,11 @@ export default function PlatformControls({ onShowToast }) {
       })
 
       if (res && res.ok) {
+        setBroadcastActive(true)
         notifySuccess(
           broadcastActive
-            ? 'Global broadcast banner published across all campuses.'
-            : 'Broadcast banner deactivated.'
+            ? 'Live announcement updated successfully across all campuses.'
+            : 'Announcement published! Broadcast banner is now LIVE on all campuses.'
         )
       } else {
         setError(res?.error || 'Failed to update broadcast banner.')
@@ -474,123 +543,275 @@ export default function PlatformControls({ onShowToast }) {
       </div>
 
       {/* ── SECTION 3: GLOBAL BROADCAST BANNER ───────────────────────────────── */}
-      <form onSubmit={handleSaveBroadcast} className={`${adminCardClass} p-6 space-y-4`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-gray-800">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-              Global Broadcast Banner
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-              Display an immediate announcement bar at the top of all user apps across all campuses
-            </p>
+      <div className={`${adminCardClass} p-6 border-l-4 ${broadcastActive ? 'border-l-indigo-600' : 'border-l-slate-300 dark:border-l-gray-700'} space-y-5`}>
+        {/* Section Header with Status Pill and Instant Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-gray-800">
+          <div className="flex items-start gap-3.5">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+              broadcastActive
+                ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
+            }`}>
+              <Radio size={24} className={broadcastActive ? 'animate-pulse' : ''} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Global Broadcast Announcement
+                </h3>
+                {broadcastActive ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/50">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>LIVE ON ALL CAMPUSES</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-400 border border-slate-200 dark:border-gray-700">
+                    <span className="h-2 w-2 rounded-full bg-slate-400" />
+                    <span>BANNER OFF (INACTIVE)</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                Display an immediate announcement bar across all student, faculty, and college portals in real time
+              </p>
+            </div>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={broadcastActive}
-              onChange={(e) => setBroadcastActive(e.target.checked)}
-              className="w-4 h-4 text-indigo-600 rounded-sm focus:ring-indigo-500"
-            />
-            <span className="text-xs font-bold text-slate-800 dark:text-gray-200">
-              {broadcastActive ? 'Banner Active (Broadcasting)' : 'Banner Deactivated'}
+          {/* Instant 1-Click Toggle Switch in Header */}
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-center bg-slate-50 dark:bg-gray-800/60 p-2 rounded-2xl border border-slate-200/80 dark:border-gray-700">
+            <span className="text-xs font-bold text-slate-700 dark:text-gray-300">
+              {broadcastActive ? 'Broadcast Live' : 'Broadcast Off'}
             </span>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
-              Banner Type / Theme
-            </label>
-            <select
-              value={broadcastType}
-              onChange={(e) => setBroadcastType(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden"
+            <button
+              type="button"
+              role="switch"
+              aria-checked={broadcastActive}
+              disabled={savingBroadcast}
+              onClick={() => handleToggleBroadcastActive(!broadcastActive)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 ${
+                broadcastActive ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-gray-600'
+              }`}
+              title={broadcastActive ? 'Click to deactivate banner immediately' : 'Click to activate broadcast banner'}
             >
-              <option value="info">Info (Indigo / Blue)</option>
-              <option value="warning">Warning (Amber)</option>
-              <option value="success">Success (Emerald / Green)</option>
-              <option value="critical">Critical / Emergency (Rose / Red)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
-              Title Prefix (Optional)
-            </label>
-            <input
-              type="text"
-              value={broadcastTitle}
-              onChange={(e) => setBroadcastTitle(e.target.value)}
-              placeholder="e.g. Maintenance Scheduled"
-              maxLength={60}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
-              Action Link (Optional URL)
-            </label>
-            <input
-              type="url"
-              value={broadcastLink}
-              onChange={(e) => setBroadcastLink(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden"
-            />
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                  broadcastActive ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
-            Announcement Message
-          </label>
-          <input
-            type="text"
-            value={broadcastMessage}
-            onChange={(e) => setBroadcastMessage(e.target.value)}
-            placeholder="e.g. Swish will undergo scheduled maintenance tonight at 2 AM. All features will be temporarily paused."
-            maxLength={250}
-            required={broadcastActive}
-            className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden"
-          />
-        </div>
+        {/* When Banner is Currently LIVE: Dedicated Active Banner Card */}
+        {broadcastActive && (
+          <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                  Currently Broadcasting to Students & Faculty:
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-indigo-200/70 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300">
+                  Theme: {broadcastType}
+                </span>
+              </div>
 
-        {/* Live Banner Preview */}
-        {broadcastMessage && (
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Eye size={12} />
-              <span>Broadcast Live Preview</span>
-            </p>
+              {/* 1-Click Immediate Turn Off Button */}
+              <button
+                type="button"
+                onClick={() => handleToggleBroadcastActive(false)}
+                disabled={savingBroadcast}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+              >
+                <Power size={13} />
+                <span>{savingBroadcast ? 'Deactivating...' : 'Turn Off Banner Immediately'}</span>
+              </button>
+            </div>
+
+            {/* Exact Live Appearance Preview */}
             <div
-              className={`p-2.5 rounded-xl text-white text-xs font-medium flex items-center justify-between gap-3 ${broadcastType === 'warning' ? 'bg-amber-600' : broadcastType === 'success' ? 'bg-emerald-600' : broadcastType === 'critical' ? 'bg-rose-600' : 'bg-indigo-600'}`}
+              className={`p-3 rounded-xl text-white text-xs font-medium flex items-center justify-between gap-3 shadow-xs ${
+                broadcastType === 'warning'
+                  ? 'bg-amber-600'
+                  : broadcastType === 'success'
+                  ? 'bg-emerald-600'
+                  : broadcastType === 'critical'
+                  ? 'bg-rose-600'
+                  : 'bg-indigo-600'
+              }`}
             >
-              <div className="flex items-center gap-2 truncate">
+              <div className="flex items-center gap-2.5 truncate">
                 <Radio size={14} className="shrink-0 animate-pulse" />
                 <span className="truncate">
-                  {broadcastTitle && <strong>{broadcastTitle}: </strong>}
-                  {broadcastMessage}
+                  {broadcastTitle && <strong className="font-bold">{broadcastTitle}: </strong>}
+                  {broadcastMessage || '(No message set)'}
                 </span>
+                {broadcastLink && (
+                  <span className="underline underline-offset-2 opacity-90 text-[11px] font-semibold shrink-0">
+                    Learn more ↗
+                  </span>
+                )}
               </div>
               <span className="text-[10px] opacity-75 shrink-0">[X]</span>
             </div>
           </div>
         )}
 
-        <div className="flex justify-end pt-2">
-          <button
-            type="submit"
-            disabled={savingBroadcast}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
-          >
-            <Send size={13} />
-            <span>{savingBroadcast ? 'Publishing...' : 'Save & Publish Banner'}</span>
-          </button>
-        </div>
-      </form>
+        {/* Form Container */}
+        <form onSubmit={handlePublishOrUpdateBroadcast} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 dark:text-gray-300 flex items-center gap-1.5">
+              <Sparkles size={13} className="text-indigo-500" />
+              <span>Announcement Message & Settings</span>
+            </label>
+            <span className="text-[11px] text-slate-400">
+              {broadcastMessage.length}/250 characters
+            </span>
+          </div>
+
+          {/* Quick 1-Click Template Pills */}
+          <div>
+            <p className="text-[11px] font-semibold text-slate-400 mb-1.5">
+              Quick Templates (Click to auto-fill):
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {BROADCAST_TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.label}
+                  type="button"
+                  onClick={() => {
+                    setBroadcastTitle(tmpl.title)
+                    setBroadcastMessage(tmpl.message)
+                    setBroadcastType(tmpl.type)
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer border border-slate-200 dark:border-gray-700"
+                >
+                  {tmpl.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Inputs Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Theme Selector */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
+                Banner Theme
+              </label>
+              <select
+                value={broadcastType}
+                onChange={(e) => setBroadcastType(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden"
+              >
+                <option value="info">🔵 Info (Indigo / Blue)</option>
+                <option value="warning">🟡 Warning (Amber / Yellow)</option>
+                <option value="success">🟢 Success (Emerald / Green)</option>
+                <option value="critical">🔴 Critical (Rose / Red)</option>
+              </select>
+            </div>
+
+            {/* Title Prefix */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
+                Title Prefix (Optional)
+              </label>
+              <input
+                type="text"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                placeholder="e.g. Maintenance Scheduled"
+                maxLength={60}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden"
+              />
+            </div>
+
+            {/* Action Link */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
+                Action Link (Optional URL)
+              </label>
+              <input
+                type="url"
+                value={broadcastLink}
+                onChange={(e) => setBroadcastLink(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden"
+              />
+            </div>
+          </div>
+
+          {/* Message Text Input */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1">
+              Announcement Message <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              placeholder="e.g. Swish will undergo scheduled maintenance tonight at 2 AM. All features will be temporarily paused."
+              maxLength={250}
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden focus:border-indigo-500"
+            />
+          </div>
+
+          {/* Dismissible Toggle & Action Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={broadcastDismissible}
+                onChange={(e) => setBroadcastDismissible(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded-sm focus:ring-indigo-500"
+              />
+              <span className="text-xs text-slate-600 dark:text-gray-400">
+                Allow students and faculty to dismiss this banner
+              </span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2.5">
+              {broadcastActive && (
+                <button
+                  type="button"
+                  onClick={() => handleToggleBroadcastActive(false)}
+                  disabled={savingBroadcast}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  <Power size={13} />
+                  <span>Turn Off Banner</span>
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={savingBroadcast || !broadcastMessage.trim()}
+                className={`flex items-center gap-2 px-5 py-2.5 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                  broadcastActive
+                    ? 'bg-indigo-600 hover:bg-indigo-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {broadcastActive ? (
+                  <>
+                    <RefreshCw size={13} className={savingBroadcast ? 'animate-spin' : ''} />
+                    <span>{savingBroadcast ? 'Updating...' : 'Update Live Banner'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={13} />
+                    <span>{savingBroadcast ? 'Publishing...' : 'Publish Live Announcement'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
 
       {/* Confirmation Modal for Entering Maintenance Mode */}
       {showConfirmModal && (

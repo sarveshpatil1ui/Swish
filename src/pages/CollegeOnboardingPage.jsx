@@ -9,6 +9,7 @@ import {
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import TurnstileWidget from '../components/common/TurnstileWidget'
+import { useSwish } from '../context/SwishContext'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -41,6 +42,8 @@ const DESIGNATIONS = [
 
 export default function CollegeOnboardingPage() {
   const navigate = useNavigate()
+  const { platformConfig } = useSwish()
+  const isRegistrationPaused = platformConfig?.features?.allowRegistration === false
 
   // Form state
   const [form, setForm] = useState({
@@ -293,6 +296,10 @@ export default function CollegeOnboardingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError('')
+    if (isRegistrationPaused) {
+      setSubmitError('College onboarding requests are temporarily paused for routine platform maintenance.')
+      return
+    }
     const errs = {}
 
     // ── Field validation with precise reasons ──
@@ -657,6 +664,16 @@ export default function CollegeOnboardingPage() {
                     <div className="flex items-center gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl px-4 py-3 mb-6 text-rose-600 dark:text-rose-400 text-sm">
                       <AlertCircle size={16} className="flex-shrink-0" />
                       {submitError}
+                    </div>
+                  )}
+
+                  {isRegistrationPaused && (
+                    <div className="p-4 mb-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-3">
+                      <AlertCircle size={18} className="shrink-0 text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-sm">College Registrations Temporarily Paused</p>
+                        <p className="text-xs mt-0.5">Institution onboarding requests are temporarily paused for scheduled maintenance. Please check back shortly.</p>
+                      </div>
                     </div>
                   )}
 
@@ -1174,10 +1191,12 @@ export default function CollegeOnboardingPage() {
 
                       <button
                         type="submit"
-                        disabled={isSubmitting || !isEmailVerified}
+                        disabled={isSubmitting || !isEmailVerified || isRegistrationPaused}
                         className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-2xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-base shadow-sm flex items-center justify-center gap-2"
                       >
-                        {isSubmitting ? (
+                        {isRegistrationPaused ? (
+                          'Onboarding Requests Temporarily Paused'
+                        ) : isSubmitting ? (
                           <>
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             Submitting Onboarding Request…

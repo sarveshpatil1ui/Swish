@@ -12,7 +12,7 @@ import { NoticeDetailModal } from '../../components/app/CollegeNoticePanel'
 
 
 // ── Empty feed ────────────────────────────────────────────────────────────────
-function EmptyFeed({ onCreatePost }) {
+function EmptyFeed({ onCreatePost, isPostCreationPaused }) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-12 text-center">
       <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center mx-auto mb-4">
@@ -20,13 +20,16 @@ function EmptyFeed({ onCreatePost }) {
       </div>
       <h3 className="text-slate-900 dark:text-white font-semibold text-base mb-1">Your feed is empty</h3>
       <p className="text-slate-400 dark:text-gray-500 text-sm mb-5">
-        Follow people or create your first post to get started.
+        {isPostCreationPaused
+          ? 'Post creation is temporarily paused for routine platform maintenance.'
+          : 'Follow people or create your first post to get started.'}
       </p>
       <button
         onClick={onCreatePost}
-        className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+        disabled={isPostCreationPaused}
+        className="px-5 py-2.5 bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
       >
-        Create your first post
+        {isPostCreationPaused ? 'Posting Paused' : 'Create your first post'}
       </button>
     </div>
   )
@@ -52,7 +55,9 @@ function NoResults({ query }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { currentUser: user, posts, postsLoading, fetchPosts } = useSwish()
+  const { currentUser: user, posts, postsLoading, fetchPosts, platformConfig } = useSwish()
+  const isAdmin = user?.role === 'admin' || user?.role === 'main_admin'
+  const isPostCreationPaused = platformConfig?.features?.allowPostCreation === false && !isAdmin
   const [showCreate,  setShowCreate]  = useState(false)
   const [searchParams]               = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') ?? '')
@@ -156,6 +161,17 @@ export default function HomePage() {
             </AnimatePresence>
           </div>
 
+          {/* ── Post Creation Paused Amber Notice ──────────────────── */}
+          {isPostCreationPaused && (
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-amber-800 dark:text-amber-300 shadow-xs">
+              <ShieldAlert size={16} className="text-amber-600 shrink-0" />
+              <div>
+                <span className="font-bold">Post Creation Paused: </span>
+                <span>Publishing new posts is temporarily paused for routine platform maintenance. You can still browse and interact with campus updates.</span>
+              </div>
+            </div>
+          )}
+
           {/* ── Urgent Campus Alert Banner ────────────────────────── */}
           <AnimatePresence>
             {urgentNotice && !isUrgentDismissed && !hasSearch && (
@@ -255,7 +271,7 @@ export default function HomePage() {
           ) : noResults ? (
             <NoResults query={searchQuery} />
           ) : filteredPosts.length === 0 && !hasSearch ? (
-            <EmptyFeed onCreatePost={() => setShowCreate(true)} />
+            <EmptyFeed onCreatePost={() => setShowCreate(true)} isPostCreationPaused={isPostCreationPaused} />
           ) : (
             filteredPosts.map(post => (
               <PostCard key={post.id || post._id} post={post} />

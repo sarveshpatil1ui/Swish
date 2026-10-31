@@ -7,7 +7,9 @@ import { useSwish } from '../../context/SwishContext'
 
 export default function BottomNav() {
   const [showCreate, setShowCreate] = useState(false)
-  const { currentUser, unreadMsgCount = 0 } = useSwish()
+  const { currentUser, unreadMsgCount = 0, platformConfig } = useSwish()
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
+  const isPostCreationPaused = platformConfig?.features?.allowPostCreation === false && !isAdmin
   const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
   const tabs = [
@@ -34,11 +36,22 @@ export default function BottomNav() {
               return (
                 <button
                   key="create"
-                  onClick={() => setShowCreate(true)}
-                  aria-label="Create post"
-                  className="flex items-center justify-center w-10 h-10 rounded-[12px] bg-indigo-600 active:scale-90 transition-transform duration-150 shadow-lg shadow-indigo-500/25 flex-shrink-0"
+                  onClick={() => {
+                    if (isPostCreationPaused) return
+                    setShowCreate(true)
+                  }}
+                  disabled={isPostCreationPaused}
+                  aria-label={isPostCreationPaused ? 'Post creation paused' : 'Create post'}
+                  className={`flex items-center justify-center w-10 h-10 rounded-[12px] active:scale-90 transition-transform duration-150 flex-shrink-0 relative ${
+                    isPostCreationPaused
+                      ? 'bg-slate-400 dark:bg-gray-700 cursor-not-allowed opacity-60'
+                      : 'bg-indigo-600 shadow-lg shadow-indigo-500/25'
+                  }`}
                 >
                   <PlusSquare size={20} className="text-white" strokeWidth={2} />
+                  {isPostCreationPaused && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-black" />
+                  )}
                 </button>
               )
             }

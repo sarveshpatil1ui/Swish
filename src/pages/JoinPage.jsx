@@ -91,7 +91,8 @@ const blankForm = (role) => ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function JoinPage() {
-  const { register, onVerified } = useSwish()
+  const { register, onVerified, platformConfig } = useSwish()
+  const isRegistrationPaused = platformConfig?.features?.allowRegistration === false
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -213,6 +214,10 @@ useEffect(() => {
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isRegistrationPaused) {
+      setSubmitError('Account registrations are temporarily paused for routine platform maintenance.')
+      return
+    }
     setSubmitError('')
     const errs = {}
 
@@ -290,6 +295,10 @@ useEffect(() => {
   // ── OTP submit ─────────────────────────────────────────────────────────────
   const handleOtpSubmit = async (e) => {
     e.preventDefault()
+    if (isRegistrationPaused) {
+      setSubmitError('Account registrations are temporarily paused for routine platform maintenance.')
+      return
+    }
     setOtpError('')
     if (otp.trim().length !== 6 || !/^\d{6}$/.test(otp.trim())) {
       setOtpError('Please enter the 6-digit code from your email.')
@@ -712,6 +721,16 @@ useEffect(() => {
             )}
           </AnimatePresence>
 
+          {isRegistrationPaused && (
+            <div className="p-3.5 mb-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+              <AlertCircle size={16} className="shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <p className="font-bold">Registrations Temporarily Paused</p>
+                <p className="text-[11px] mt-0.5">Account creation is temporarily paused for routine platform maintenance. Please check back shortly.</p>
+              </div>
+            </div>
+          )}
+
           {/* ── Form ── */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate aria-label="Registration form">
 
@@ -1060,10 +1079,12 @@ useEffect(() => {
             <button
               id="join-submit"
               type="submit"
-              disabled={loading}
+              disabled={loading || isRegistrationPaused}
               className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-sm flex items-center justify-center gap-2 mt-1"
             >
-              {loading ? (
+              {isRegistrationPaused ? (
+                'Registrations Temporarily Paused'
+              ) : loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Creating account…

@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { X, ImagePlus, Trash2, Smile, Music2 } from 'lucide-react'
+import { X, ImagePlus, Trash2, Smile, Music2, AlertTriangle } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { resolveImageUrl } from '../../utils/posts'
 import EmojiPicker from './EmojiPicker'
 import MusicPickerModal from './MusicPickerModal'
 
 export default function CreatePostModal({ onClose }) {
-  const { currentUser, createPost } = useSwish()
+  const { currentUser, createPost, platformConfig } = useSwish()
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'main_admin'
+  const isPostCreationPaused = platformConfig?.features?.allowPostCreation === false && !isAdmin
   const [image, setImage] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [caption, setCaption] = useState('')
@@ -31,6 +33,10 @@ export default function CreatePostModal({ onClose }) {
 
   const handleDrop = (e) => {
     e.preventDefault()
+    if (isPostCreationPaused) {
+      setPublishError('Post creation is temporarily paused by platform administrators.')
+      return
+    }
     setDragging(false)
     const file = e.dataTransfer.files[0]
     handleFile(file)
@@ -55,6 +61,10 @@ export default function CreatePostModal({ onClose }) {
 
   const handlePublish = async (e) => {
     e.preventDefault()
+    if (isPostCreationPaused) {
+      setPublishError('Post creation is temporarily paused by platform administrators.')
+      return
+    }
     if (!image && !caption.trim()) return
 
     setPublishing(true)
@@ -115,6 +125,14 @@ export default function CreatePostModal({ onClose }) {
           </div>
 
           <div className="p-5 flex-1 overflow-y-auto">
+            {isPostCreationPaused && (
+              <div className="mb-4 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle size={16} className="shrink-0 text-amber-600" />
+                <span className="font-semibold">
+                  Post & media creation is temporarily paused by platform administrators.
+                </span>
+              </div>
+            )}
             {/* Image drop zone */}
             {!image ? (
               <div
@@ -276,7 +294,7 @@ export default function CreatePostModal({ onClose }) {
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={(!image && !caption.trim()) || publishing || published}
+                disabled={(!image && !caption.trim()) || publishing || published || isPostCreationPaused}
                 className="flex-1 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {publishing ? (
@@ -284,7 +302,11 @@ export default function CreatePostModal({ onClose }) {
                 ) : published ? (
                   '✓ Published!'
                 ) : (
-                  'Post'
+                  isPostCreationPaused ? (
+                    'Posting Paused'
+                  ) : (
+                    'Post'
+                  )
                 )}
               </button>
             </div>
