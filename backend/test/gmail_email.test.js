@@ -352,21 +352,25 @@ describe('Gmail API OAuth 2.0 Email Delivery Service', () => {
   })
 
   // ── 14. No Old Provider or SMTP Fallback ────────────────────────────────────
-  test('14. Old provider variables (Resend, Brevo, Mailgun, SMTP) DO NOT activate email provider', () => {
+  // ── 14. Brevo Support & Non-Supported Providers ─────────────────────────────
+  test('14. Brevo activates email provider while unconfigured providers do not', () => {
     delete process.env.GMAIL_CLIENT_ID
     delete process.env.GMAIL_CLIENT_SECRET
     delete process.env.GMAIL_REFRESH_TOKEN
     delete process.env.GMAIL_SENDER_EMAIL
+    delete process.env.BREVO_API_KEY
 
-    // Set old provider envs
+    // Set unsupported provider envs
     process.env.RESEND_API_KEY = 're_old_resend_key'
-    process.env.BREVO_API_KEY = 'xkeysib-old-brevo-key'
     process.env.MAILGUN_API_KEY = 'old-mailgun-key'
     process.env.SMTP_USER = 'old-smtp@gmail.com'
     process.env.SMTP_PASS = 'old-app-pass'
 
-    // Must be FALSE because Gmail API is the sole delivery provider
-    assert.equal(hasEmailProvider(), false, 'Old providers must not satisfy hasEmailProvider')
+    assert.equal(hasEmailProvider(), false, 'Unsupported providers must not satisfy hasEmailProvider')
+
+    // Brevo activation
+    process.env.BREVO_API_KEY = 'xkeysib-test-brevo-key'
+    assert.equal(hasEmailProvider(), true, 'BREVO_API_KEY must satisfy hasEmailProvider')
   })
 
   // ── 15. Regression Tests for Previous Security Fixes ────────────────────────

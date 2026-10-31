@@ -41,12 +41,13 @@ function _log(level, event, extra = {}) {
   const entry = {
     ts:       new Date().toISOString(),
     svc:      'email',
-    provider: 'gmail_api',
+    provider: extra.provider || 'brevo',
     event,
     ...extra,
   }
   // Guarantee sensitive credentials and bodies are never logged
   delete entry.apiKey
+  delete entry.brevoApiKey
   delete entry.otp
   delete entry.password
   delete entry.temporaryPassword
@@ -63,8 +64,9 @@ function _log(level, event, extra = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// hasEmailProvider
-// Returns true if all required Gmail API OAuth 2.0 credentials are configured.
+// Email Provider Detection
+// Supports Brevo (REST API over HTTPS, static non-expiring API key) and Gmail API (OAuth 2.0).
+// ─────────────────────────────────────────────────────────────────────────────
 const UNCONFIGURED_GMAIL_PLACEHOLDERS = new Set([
   'your-google-oauth-client-id',
   'your-google-oauth-client-secret',
@@ -73,9 +75,18 @@ const UNCONFIGURED_GMAIL_PLACEHOLDERS = new Set([
   'your-google-oauth2-client-id.apps.googleusercontent.com',
   'gocspx-your-google-oauth2-client-secret',
   '1//0g-your-google-oauth2-refresh-token',
+  'xkeysib-your-brevo-api-key',
+  'your-brevo-api-key',
 ])
 
-export function hasEmailProvider() {
+export function hasBrevoProvider() {
+  const key = (process.env.BREVO_API_KEY || '').trim()
+  if (!key) return false
+  const lower = key.toLowerCase()
+  return !lower.startsWith('your-') && !UNCONFIGURED_GMAIL_PLACEHOLDERS.has(lower)
+}
+
+export function hasGmailProvider() {
   const clientId     = (process.env.GMAIL_CLIENT_ID || '').trim()
   const clientSecret = (process.env.GMAIL_CLIENT_SECRET || '').trim()
   const refreshToken = (process.env.GMAIL_REFRESH_TOKEN || '').trim()
@@ -90,6 +101,10 @@ export function hasEmailProvider() {
     v => UNCONFIGURED_GMAIL_PLACEHOLDERS.has(v.toLowerCase()) || v.toLowerCase().startsWith('your-')
   )
   return !isPlaceholder
+}
+
+export function hasEmailProvider() {
+  return hasBrevoProvider() || hasGmailProvider()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,21 +175,86 @@ export function encodeBase64Url(str) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// dispatchEmail
+// dispatchBrevoEmail
+// Sends an email using the Brevo HTTP REST API (v3 / smtp/email).
+// Static API key, HTTPS Port 443 (works on Render free tier), no 7-day expiration.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function dispatchBrevoEmail({ to, subject, html, text }) {
+  const startedAt = Date.now()
+  const apiKey = (process.env.BREVO_API_KEY || '').trim()
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_SENDER_EMAIL || 'swishh.project@gmail.com').trim()
+  const senderName = (process.env.BREVO_SENDER_NAME || process.env.GMAIL_SENDER_NAME || 'Swish Campus').trim()
+  const recipient = Array.isArray(to) ? to[0] : to
+
+  _log('info', 'dispatch_start', { recipient, provider: 'brevo' })
+
+  const timeoutMs = requestTimeoutMs()
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: recipient }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+
+    const durationMs = Date.now() - startedAt
+    const data = await res.json().catch(() => ({}))
+
+    if (res.status >= 200 && res.status < 300) {
+      const messageId = data?.messageId || `brevo_${Date.now()}`
+      _log('info', 'accepted', { messageId, durationMs, provider: 'brevo' })
+      return { ok: true, provider: 'brevo', messageId }
+    }
+
+    _log('warn', 'rejected', { status: res.status, durationMs, provider: 'brevo', error: data?.message })
+
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`Brevo API authentication failed (${res.status}): verify that BREVO_API_KEY is correct.`)
+    }
+    if (res.status === 400 && data?.message?.toLowerCase().includes('sender')) {
+      throw new Error(`Brevo sender not verified: verify "${senderEmail}" in your Brevo Senders dashboard.`)
+    }
+    throw new Error(data?.message || `Brevo API returned status ${res.status}`)
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    const isTimeout =
+      err.name === 'TimeoutError' ||
+      err.name === 'AbortError' ||
+      err.code === 'ECONNABORTED' ||
+      err.code === 'ETIMEDOUT' ||
+      err.message?.toLowerCase().includes('timeout')
+
+    if (isTimeout) {
+      _log('warn', 'timeout', { timeoutMs, durationMs, provider: 'brevo' })
+      const timeoutErr = new Error('Email delivery timed out; delivery status is uncertain.')
+      timeoutErr.category = 'uncertain'
+      timeoutErr.uncertain = true
+      throw timeoutErr
+    }
+
+    _log('error', 'dispatch_error', { status: err.status, durationMs, provider: 'brevo', message: err.message })
+    throw err
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// dispatchGmailEmail
 // Sends an email using the Gmail REST API (v1 / users.messages.send).
 // ─────────────────────────────────────────────────────────────────────────────
-export async function dispatchEmail({ to, subject, html, text }) {
+export async function dispatchGmailEmail({ to, subject, html, text }) {
   const startedAt = Date.now()
   const senderEmail = (process.env.GMAIL_SENDER_EMAIL || '').trim()
-
-  if (!hasEmailProvider()) {
-    _log('error', 'dispatch_failed_missing_config')
-    throw new Error(
-      'Gmail API is not configured. Missing required environment variables: ' +
-      'GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL.'
-    )
-  }
-
   const senderName = (process.env.GMAIL_SENDER_NAME || 'Swish Campus').trim()
   const from = `"${senderName}" <${senderEmail}>`
 
@@ -191,7 +271,7 @@ export async function dispatchEmail({ to, subject, html, text }) {
   const auth = createOAuth2Client()
   const gmail = google.gmail({ version: 'v1', auth })
 
-  _log('info', 'dispatch_start', { recipient: Array.isArray(to) ? to[0] : to })
+  _log('info', 'dispatch_start', { recipient: Array.isArray(to) ? to[0] : to, provider: 'gmail_api' })
 
   const timeoutMs = requestTimeoutMs()
 
@@ -213,6 +293,7 @@ export async function dispatchEmail({ to, subject, html, text }) {
       _log('info', 'accepted', {
         messageId,
         durationMs,
+        provider: 'gmail_api',
       })
       return { ok: true, provider: 'gmail_api', messageId }
     }
@@ -220,12 +301,12 @@ export async function dispatchEmail({ to, subject, html, text }) {
     _log('warn', 'rejected', {
       status: res?.status,
       durationMs,
+      provider: 'gmail_api',
     })
     throw new Error(`Gmail API returned status ${res?.status}`)
   } catch (err) {
     const durationMs = Date.now() - startedAt
 
-    // Timeout detection (Axios/Gaxios ECONNABORTED, ETIMEDOUT, or AbortError)
     const isTimeout =
       err.code === 'ECONNABORTED' ||
       err.code === 'ETIMEDOUT' ||
@@ -233,22 +314,21 @@ export async function dispatchEmail({ to, subject, html, text }) {
       err.message?.toLowerCase().includes('timeout')
 
     if (isTimeout) {
-      _log('warn', 'timeout', { timeoutMs, durationMs })
+      _log('warn', 'timeout', { timeoutMs, durationMs, provider: 'gmail_api' })
       const timeoutErr = new Error('Email delivery timed out; delivery status is uncertain.')
       timeoutErr.category = 'uncertain'
       timeoutErr.uncertain = true
       throw timeoutErr
     }
 
-    // Google API HTTP status code classification
     const status = err.response?.status || err.status
     if (status === 401 || status === 403) {
-      _log('error', 'auth_failure', { status, durationMs })
+      _log('error', 'auth_failure', { status, durationMs, provider: 'gmail_api' })
       throw new Error(`Gmail API authentication failed (${status}): check client credentials and refresh token.`)
     }
 
     if (status === 429) {
-      _log('warn', 'rate_limit', { status, durationMs })
+      _log('warn', 'rate_limit', { status, durationMs, provider: 'gmail_api' })
       throw new Error('Gmail API rate limit exceeded. Please retry after a brief delay.')
     }
 
@@ -256,9 +336,29 @@ export async function dispatchEmail({ to, subject, html, text }) {
       errCode: err.code,
       status,
       durationMs,
+      provider: 'gmail_api',
     })
     throw new Error(err.message || 'Failed to dispatch email via Gmail API.')
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// dispatchEmail
+// Routes email delivery to configured provider (Brevo preferred, then Gmail API).
+// ─────────────────────────────────────────────────────────────────────────────
+export async function dispatchEmail({ to, subject, html, text }) {
+  if (hasBrevoProvider()) {
+    return dispatchBrevoEmail({ to, subject, html, text })
+  }
+
+  if (hasGmailProvider()) {
+    return dispatchGmailEmail({ to, subject, html, text })
+  }
+
+  _log('error', 'dispatch_failed_missing_config')
+  throw new Error(
+    'Email delivery service is not configured. Gmail API is not configured and BREVO_API_KEY is missing.'
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
