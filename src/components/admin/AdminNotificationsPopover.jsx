@@ -50,7 +50,25 @@ export default function AdminNotificationsPopover({
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState(null)
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('swish_admin_sound_enabled')
+      return saved !== null ? saved === 'true' : true
+    } catch {
+      return true
+    }
+  })
+
+  // Synchronize sound toggle with Admin Settings
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (typeof e.detail?.enabled === 'boolean') {
+        setSoundEnabled(e.detail.enabled)
+      }
+    }
+    window.addEventListener('swish:sound-toggle', handleSync)
+    return () => window.removeEventListener('swish:sound-toggle', handleSync)
+  }, [])
 
   const popoverRef = useRef(null)
   const socketCtx = useSocket()
@@ -337,6 +355,12 @@ export default function AdminNotificationsPopover({
                 onClick={() => {
                   const nextState = !soundEnabled
                   setSoundEnabled(nextState)
+                  try {
+                    localStorage.setItem('swish_admin_sound_enabled', String(nextState))
+                  } catch {}
+                  window.dispatchEvent(
+                    new CustomEvent('swish:sound-toggle', { detail: { enabled: nextState } })
+                  )
                   if (nextState) playNotificationSound()
                 }}
                 className={`p-1 rounded-md transition-colors ${

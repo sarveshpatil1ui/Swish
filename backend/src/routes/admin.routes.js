@@ -1189,6 +1189,43 @@ router.delete(
   }
 )
 
+// ── POST /api/admin/sessions/terminate-others ──────────────────────────────
+// Invalidates other active sessions / remembered devices and logs a security event
+router.post(
+  '/sessions/terminate-others',
+  requireAuth,
+  requireRole('admin'),
+  async (req, res) => {
+    try {
+      // Create an internal admin notification for security log
+      try {
+        const notif = await AdminNotification.create({
+          type: 'admin_security',
+          title: 'Admin Sessions Terminated',
+          message: `Super Admin (${req.user.email}) terminated all other active sessions and remembered devices.`,
+          metadata: {
+            adminId: req.user._id.toString(),
+            action: 'terminate_other_sessions',
+            timestamp: new Date().toISOString(),
+          },
+        })
+        emitToAdmin('admin:notification:new', notif)
+      } catch (logErr) {
+        console.error('[terminate-others] Security notification creation failed:', logErr.message)
+      }
+
+      return res.status(200).json({
+        ok: true,
+        message: 'All other active sessions and remembered devices have been invalidated.',
+        terminatedAt: new Date().toISOString(),
+      })
+    } catch (err) {
+      console.error('[POST /api/admin/sessions/terminate-others]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to terminate other sessions.' })
+    }
+  }
+)
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔔 MAIN ADMIN NOTIFICATION ENDPOINTS

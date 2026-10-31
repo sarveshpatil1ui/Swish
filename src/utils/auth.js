@@ -732,3 +732,11 @@ export async function apiUpdateFeatureFlags(features) {
 export async function apiUpdateBroadcastBanner(broadcast) {
   return apiFetch('/api/platform/admin/broadcast', { method: 'PATCH', body: { broadcast } })
 }
+
+export async function apiTerminateOtherSessions() {
+  return apiFetch('/api/admin/sessions/terminate-others', { method: 'POST' })
+}
+
+export async function apiGetSystemHealth() {
+  return apiFetch('/api/health')
+}

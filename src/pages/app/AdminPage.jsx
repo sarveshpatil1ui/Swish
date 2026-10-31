@@ -47,6 +47,7 @@ import AdminProfile from '../../components/admin/AdminProfile'
 import AdminPendingRequests from '../../components/admin/AdminPendingRequests'
 import AdminNotificationsPopover from '../../components/admin/AdminNotificationsPopover'
 import AdminReports from '../../components/admin/AdminReports'
+import AdminSettings from '../../components/admin/AdminSettings'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -612,7 +613,11 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
         <button
           onClick={() => navigateSection('Settings')}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white ${adminInteractiveClass}`}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold ${
+            activeSection === 'Settings'
+              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+          } ${adminInteractiveClass}`}
         >
           <Settings size={15} />
           <span>Settings</span>
@@ -686,6 +691,8 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
                   ? 'All Colleges'
                   : activeSection === 'Pending Requests'
                   ? (pendingReviewId ? 'Review College Request' : 'Pending Requests')
+                  : activeSection === 'Settings'
+                  ? 'Platform Settings'
                   : activeSection}
               </h2>
             </div>
@@ -1524,6 +1531,14 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
               transition={{ duration: 0.2 }}
             >
               <AdminProfile onOpenSidebar={() => setMobileSidebarOpen(true)} />
+            </motion.div>
+          ) : activeSection === 'Settings' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminSettings onNavigate={navigateSection} />
             </motion.div>
           ) : (
             /* Temporary placeholder for future dedicated pages */
