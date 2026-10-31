@@ -135,7 +135,7 @@ function SocketBridge({ children }) {
 }
 
 function AppContent() {
-  const { currentUser, authLoading, platformConfig, fetchPlatformConfig } = useSwish()
+  const { currentUser, authLoading, platformConfig, fetchPlatformConfig, isAuthenticated } = useSwish()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -168,8 +168,10 @@ function AppContent() {
         />
       )}
 
-      {/* Global Broadcast Announcement Banner */}
-      <GlobalBroadcastBanner broadcast={platformConfig?.broadcast} />
+      {/* Global Broadcast Announcement Banner (Only rendered for logged-in accounts) */}
+      {isAuthenticated && Boolean(currentUser) && (
+        <GlobalBroadcastBanner broadcast={platformConfig?.broadcast} />
+      )}
 
       <GlobalToast />
       <Suspense fallback={<PageFallback />}>

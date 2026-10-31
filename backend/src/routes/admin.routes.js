@@ -104,64 +104,70 @@ router.get(
   requireRole('admin'),
   async (_req, res) => {
     try {
-      const colleges = await College.find().sort({ name: 1 }).lean()
+      const [colleges, allAdmins, userStats] = await Promise.all([
+        College.find().sort({ name: 1 }).lean(),
+        User.find({ role: 'college_admin' })
+          .select('name email designation phone collegeId')
+          .lean(),
+        User.aggregate([
+          { $match: { role: { $in: ['student', 'faculty', 'college_admin'] } } },
+          { $group: { _id: { collegeId: '$collegeId', role: '$role' }, count: { $sum: 1 } } }
+        ])
+      ])
 
-      const enrichedColleges = await Promise.all(
-        colleges.map(async (college) => {
-          const domainRegex = new RegExp(`@${college.domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+      const adminByCollegeId = new Map()
+      const adminByDomain = new Map()
+      for (const a of allAdmins) {
+        if (a.collegeId) adminByCollegeId.set(a.collegeId.toString(), a)
+        if (a.email) {
+          const dom = a.email.split('@')[1]?.toLowerCase()
+          if (dom) adminByDomain.set(dom, a)
+        }
+      }
 
-          const [adminUser, totalUsers, studentCount, facultyCount] = await Promise.all([
-            User.findOne({
-              role: 'college_admin',
-              $or: [
-                { email: domainRegex },
-                { collegeId: college._id },
-              ],
-            }).select('name email designation phone').lean(),
+      const countByCollegeAndRole = new Map()
+      for (const item of userStats) {
+        if (item._id?.collegeId) {
+          const cid = item._id.collegeId.toString()
+          const role = item._id.role || 'other'
+          countByCollegeAndRole.set(`${cid}:${role}`, item.count)
+        }
+      }
 
-            User.countDocuments({
-              $or: [
-                { email: domainRegex },
-                { collegeId: college._id },
-              ],
-            }),
+      const enrichedColleges = colleges.map((college) => {
+        const cIdStr = college._id.toString()
+        const cDomain = college.domain?.toLowerCase()
 
-            User.countDocuments({
-              role: 'student',
-              $or: [
-                { email: domainRegex },
-                { collegeId: college._id },
-              ],
-            }),
+        const adminUser = adminByCollegeId.get(cIdStr) || (cDomain && adminByDomain.get(cDomain)) || null
 
-            User.countDocuments({
-              role: 'faculty',
-              $or: [
-                { email: domainRegex },
-                { collegeId: college._id },
-              ],
-            }),
-          ])
+        const studentCount = countByCollegeAndRole.get(`${cIdStr}:student`) || 0
+        const facultyCount = countByCollegeAndRole.get(`${cIdStr}:faculty`) || 0
+        const adminCount = countByCollegeAndRole.get(`${cIdStr}:college_admin`) || 0
+        const totalUsers = studentCount + facultyCount + adminCount
 
-          return {
-            id: college._id.toString(),
-            name: college.name,
-            code: college.code || '',
-            domain: college.domain,
-            location: college.location || '',
-            active: Boolean(college.active),
-            createdAt: college.createdAt,
-            collegeAdmin: adminUser
-              ? { name: adminUser.name, email: adminUser.email, designation: adminUser.designation || '', phone: adminUser.phone || '' }
-              : null,
-            stats: {
-              totalUsers,
-              students: studentCount,
-              faculty: facultyCount,
-            },
-          }
-        })
-      )
+        return {
+          id: cIdStr,
+          name: college.name,
+          code: college.code || '',
+          domain: college.domain,
+          location: college.location || '',
+          active: Boolean(college.active),
+          createdAt: college.createdAt,
+          collegeAdmin: adminUser
+            ? {
+                name: adminUser.name,
+                email: adminUser.email,
+                designation: adminUser.designation || '',
+                phone: adminUser.phone || '',
+              }
+            : null,
+          stats: {
+            totalUsers,
+            students: studentCount,
+            faculty: facultyCount,
+          },
+        }
+      })
 
       return res.status(200).json({
         ok: true,
@@ -217,67 +223,67 @@ router.get(
   requireRole('admin'),
   async (_req, res) => {
     try {
-      const admins = await User.find({ role: 'college_admin' })
-        .sort({ createdAt: -1 })
-        .lean()
+      const [admins, allColleges, userStats] = await Promise.all([
+        User.find({ role: 'college_admin' }).sort({ createdAt: -1 }).lean(),
+        College.find().lean(),
+        User.aggregate([
+          { $match: { role: { $in: ['student', 'faculty', 'college_admin'] } } },
+          { $group: { _id: { collegeId: '$collegeId', role: '$role' }, count: { $sum: 1 } } }
+        ])
+      ])
 
-      const enrichedAdmins = await Promise.all(
-        admins.map(async (admin) => {
-          const emailDomain = admin.email ? admin.email.split('@')[1] : ''
+      const collegeById = new Map()
+      const collegeByDomain = new Map()
+      for (const c of allColleges) {
+        collegeById.set(c._id.toString(), c)
+        if (c.domain) collegeByDomain.set(c.domain.toLowerCase(), c)
+      }
 
-          let college = null
-          if (admin.collegeId) {
-            college = await College.findById(admin.collegeId).lean()
-          } else if (emailDomain) {
-            college = await College.findOne({ domain: emailDomain.toLowerCase() }).lean()
-          }
+      const countByCollegeAndRole = new Map()
+      for (const item of userStats) {
+        if (item._id?.collegeId) {
+          const cid = item._id.collegeId.toString()
+          const role = item._id.role || 'other'
+          countByCollegeAndRole.set(`${cid}:${role}`, item.count)
+        }
+      }
 
-          let stats = { totalUsers: 0, students: 0, faculty: 0 }
+      const enrichedAdmins = admins.map((admin) => {
+        const emailDomain = admin.email ? admin.email.split('@')[1]?.toLowerCase() : ''
+        const college = (admin.collegeId && collegeById.get(admin.collegeId.toString())) || (emailDomain && collegeByDomain.get(emailDomain)) || null
 
-          if (college) {
-            const domainRegex = new RegExp(`@${college.domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+        let stats = { totalUsers: 0, students: 0, faculty: 0 }
+        if (college) {
+          const cIdStr = college._id.toString()
+          const students = countByCollegeAndRole.get(`${cIdStr}:student`) || 0
+          const faculty = countByCollegeAndRole.get(`${cIdStr}:faculty`) || 0
+          const ca = countByCollegeAndRole.get(`${cIdStr}:college_admin`) || 0
+          stats = { totalUsers: students + faculty + ca, students, faculty }
+        }
 
-            const [totalUsers, students, faculty] = await Promise.all([
-              User.countDocuments({
-                $or: [{ collegeId: college._id }, { email: domainRegex }],
-              }),
-              User.countDocuments({
-                role: 'student',
-                $or: [{ collegeId: college._id }, { email: domainRegex }],
-              }),
-              User.countDocuments({
-                role: 'faculty',
-                $or: [{ collegeId: college._id }, { email: domainRegex }],
-              }),
-            ])
-
-            stats = { totalUsers, students, faculty }
-          }
-
-          return {
-            id: admin._id.toString(),
-            name: admin.name,
-            email: admin.email,
-            designation: admin.designation || '',
-            phone: admin.phone || '',
-            active: !admin.deactivated,
-            deactivated: Boolean(admin.deactivated),
-            createdAt: admin.createdAt,
-            college: college
-              ? {
-                  id: college._id.toString(),
-                  name: college.name,
-                  code: college.code || '',
-                  domain: college.domain,
-                  location: college.location || '',
-                  active: Boolean(college.active),
-                  createdAt: college.createdAt,
-                }
-              : null,
-            stats,
-          }
-        })
-      )
+        return {
+          id: admin._id.toString(),
+          name: admin.name,
+          email: admin.email,
+          designation: admin.designation || '',
+          phone: admin.phone || '',
+          active: !admin.deactivated,
+          deactivated: Boolean(admin.deactivated),
+          createdAt: admin.createdAt,
+          college: college
+            ? {
+                id: college._id.toString(),
+                name: college.name,
+                code: college.code || '',
+                domain: college.domain,
+                location: college.location || '',
+                active: Boolean(college.active),
+                createdAt: college.createdAt,
+              }
+            : null,
+          stats,
+        }
+      })
 
       return res.status(200).json({
         ok: true,
@@ -413,6 +419,29 @@ router.patch(
 
       adminUser.deactivated = !adminUser.deactivated
       await adminUser.save()
+
+      // Create Admin Notification for security audit
+      try {
+        const notif = await AdminNotification.create({
+          type: 'admin_security',
+          title: adminUser.deactivated ? 'College Admin Deactivated' : 'College Admin Activated',
+          message: `College Admin ${adminUser.name} (${adminUser.email}) was ${adminUser.deactivated ? 'deactivated' : 'reactivated'} by ${req.user.name}.`,
+          data: {
+            adminUserId: adminUser._id.toString(),
+            adminUserName: adminUser.name,
+            deactivated: Boolean(adminUser.deactivated),
+            updatedBy: req.user.name,
+          },
+          link: '/admin/college-admins',
+          priority: 'high',
+        })
+        emitToAdmin('admin:notification:new', {
+          ...notif.toObject(),
+          id: notif._id.toString(),
+        })
+      } catch (notifErr) {
+        console.error('[toggle-admin] Failed to create AdminNotification:', notifErr)
+      }
 
       return res.status(200).json({
         ok: true,
@@ -711,6 +740,29 @@ router.post(
 
         await request.save()
 
+        // Create Admin Notification for college approval
+        try {
+          const notif = await AdminNotification.create({
+            type: 'college_status',
+            title: `College Approved: ${request.collegeName}`,
+            message: `${request.collegeName} (${request.collegeCode}) was approved and onboarded to Swish network by ${req.user.name}.`,
+            data: {
+              collegeId: college._id.toString(),
+              collegeName: college.name,
+              collegeCode: college.code,
+              approvedBy: req.user.name,
+            },
+            link: '/admin/colleges',
+            priority: 'medium',
+          })
+          emitToAdmin('admin:notification:new', {
+            ...notif.toObject(),
+            id: notif._id.toString(),
+          })
+        } catch (notifErr) {
+          console.error('[approve] Failed to create AdminNotification:', notifErr)
+        }
+
         // ------------------------------------------------------------
         // 7. Send College Admin credentials email (non-fatal)
         // ------------------------------------------------------------
@@ -815,6 +867,29 @@ router.post(
 
       await request.save()
 
+      // Create Admin Notification for college rejection
+      try {
+        const notif = await AdminNotification.create({
+          type: 'college_status',
+          title: `College Request Rejected: ${request.collegeName}`,
+          message: `Request for ${request.collegeName} was rejected by ${req.user.name}. Reason: "${trimmedReason}"`,
+          data: {
+            requestId: request._id.toString(),
+            collegeName: request.collegeName,
+            rejectedBy: req.user.name,
+            reason: trimmedReason,
+          },
+          link: '/admin/pending-requests',
+          priority: 'low',
+        })
+        emitToAdmin('admin:notification:new', {
+          ...notif.toObject(),
+          id: notif._id.toString(),
+        })
+      } catch (notifErr) {
+        console.error('[reject] Failed to create AdminNotification:', notifErr)
+      }
+
       // ------------------------------------------------------------
       // 2. Send rejection email
       // ------------------------------------------------------------
@@ -853,46 +928,48 @@ router.get(
   requireRole('admin'),
   async (_req, res) => {
     try {
-      const users = await User.find({ role: { $ne: 'admin' } })
-        .sort({ createdAt: -1 })
-        .lean()
+      const [users, allColleges] = await Promise.all([
+        User.find({ role: { $ne: 'admin' } })
+          .sort({ createdAt: -1 })
+          .lean(),
+        College.find().lean()
+      ])
 
-      const enrichedUsers = await Promise.all(
-        users.map(async (u) => {
-          const emailDomain = u.email ? u.email.split('@')[1] : ''
+      const collegeById = new Map()
+      const collegeByDomain = new Map()
+      for (const c of allColleges) {
+        collegeById.set(c._id.toString(), c)
+        if (c.domain) collegeByDomain.set(c.domain.toLowerCase(), c)
+      }
 
-          let college = null
-          if (u.collegeId) {
-            college = await College.findById(u.collegeId).lean()
-          } else if (emailDomain) {
-            college = await College.findOne({ domain: emailDomain.toLowerCase() }).lean()
-          }
+      const enrichedUsers = users.map((u) => {
+        const emailDomain = u.email ? u.email.split('@')[1]?.toLowerCase() : ''
+        const college = (u.collegeId && collegeById.get(u.collegeId.toString())) || (emailDomain && collegeByDomain.get(emailDomain)) || null
 
-          return {
-            id: u._id.toString(),
-            name: u.name,
-            email: u.email,
-            role: u.role,
-            designation: u.designation || '',
-            dept: u.dept || '',
-            year: u.year || '',
-            active: !u.deactivated,
-            deactivated: Boolean(u.deactivated),
-            suspended: Boolean(u.suspended),
-            createdAt: u.createdAt,
-            college: college
-              ? {
-                  id: college._id.toString(),
-                  name: college.name,
-                  domain: college.domain,
-                  code: college.code || '',
-                  location: college.location || '',
-                  active: Boolean(college.active),
-                }
-              : null,
-          }
-        })
-      )
+        return {
+          id: u._id.toString(),
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          designation: u.designation || '',
+          dept: u.dept || '',
+          year: u.year || '',
+          active: !u.deactivated,
+          deactivated: Boolean(u.deactivated),
+          suspended: Boolean(u.suspended),
+          createdAt: u.createdAt,
+          college: college
+            ? {
+                id: college._id.toString(),
+                name: college.name,
+                domain: college.domain,
+                code: college.code || '',
+                location: college.location || '',
+                active: Boolean(college.active),
+              }
+            : null,
+        }
+      })
 
       return res.status(200).json({ ok: true, users: enrichedUsers })
     } catch (err) {

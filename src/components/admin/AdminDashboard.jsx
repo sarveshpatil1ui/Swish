@@ -216,8 +216,11 @@ function DonutChart({ data, total, centerLabel, size = 125, strokeWidth = 14 }) 
   )
 }
 
-export default function AdminDashboard({ onNavigate, user }) {
-  const [loading, setLoading] = useState(true)
+// In-memory module cache for instant sub-second tab switching
+let _adminDashboardCache = null
+
+export default function AdminDashboard({ onNavigate, user, initialStats = null }) {
+  const [loading, setLoading] = useState(() => !_adminDashboardCache && !initialStats)
   const [error, setError] = useState('')
 
   const [growthTimeframe, setGrowthTimeframe] = useState('30')
@@ -225,15 +228,17 @@ export default function AdminDashboard({ onNavigate, user }) {
   const [growthMode, setGrowthMode] = useState('cumulative') // 'cumulative' | 'daily'
   const [distributionTimeframe, setDistributionTimeframe] = useState('all')
 
-  const [dashboardStats, setDashboardStats] = useState(null)
-  const [colleges, setColleges] = useState([])
-  const [users, setUsers] = useState([])
-  const [requests, setRequests] = useState([])
+  const [dashboardStats, setDashboardStats] = useState(() => _adminDashboardCache?.dashboardStats || initialStats || null)
+  const [colleges, setColleges] = useState(() => _adminDashboardCache?.colleges || [])
+  const [users, setUsers] = useState(() => _adminDashboardCache?.users || [])
+  const [requests, setRequests] = useState(() => _adminDashboardCache?.requests || [])
 
   const [growthTooltip, setGrowthTooltip] = useState(null)
 
   const fetchData = async () => {
-    setLoading(true)
+    if (!_adminDashboardCache && !dashboardStats) {
+      setLoading(true)
+    }
     setError('')
     try {
       const [dashRes, colRes, userRes, reqRes] = await Promise.allSettled([
@@ -243,9 +248,13 @@ export default function AdminDashboard({ onNavigate, user }) {
         adminFetch(`${API_BASE}/api/admin/pending-requests?status=all`),
       ])
 
+      let latestStats = dashboardStats
       if (dashRes.status === 'fulfilled' && dashRes.value.ok) {
         const d = await dashRes.value.json()
-        if (d.ok) setDashboardStats(d.stats)
+        if (d.ok) {
+          latestStats = d.stats
+          setDashboardStats(d.stats)
+        }
       }
 
       let fetchedColleges = []
@@ -257,9 +266,11 @@ export default function AdminDashboard({ onNavigate, user }) {
         }
       }
 
+      let fetchedUsers = []
       if (userRes.status === 'fulfilled' && userRes.value.ok) {
         const u = await userRes.value.json()
         if (u.ok && Array.isArray(u.users)) {
+          fetchedUsers = u.users
           setUsers(u.users)
         }
       } else {
@@ -267,6 +278,7 @@ export default function AdminDashboard({ onNavigate, user }) {
         if (fallbackRes.ok) {
           const f = await fallbackRes.json()
           if (f.ok && Array.isArray(f.users)) {
+            fetchedUsers = f.users
             setUsers(f.users)
           }
         }
@@ -289,6 +301,13 @@ export default function AdminDashboard({ onNavigate, user }) {
         }))
       }
       setRequests(fetchedRequests)
+      _adminDashboardCache = {
+        dashboardStats: latestStats,
+        colleges: fetchedColleges,
+        users: fetchedUsers,
+        requests: fetchedRequests,
+        timestamp: Date.now(),
+      }
     } catch (err) {
       console.error('[AdminDashboard] Fetch error:', err)
       setError('Unable to load dashboard data. Please try again.')

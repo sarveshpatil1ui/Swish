@@ -207,7 +207,7 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
   const loadDashboardStats = async (isRetry = false) => {
     try {
-      setDashboardLoading(true)
+      if (!dashboardStats?.totalColleges) setDashboardLoading(true)
 
       const response = await adminFetch(
         `${API_BASE}/api/admin/dashboard`,
@@ -238,7 +238,7 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
   const fetchColleges = async (isRetry = false) => {
     try {
-      setCollegesLoading(true)
+      if (collegesList.length === 0) setCollegesLoading(true)
 
       const response = await adminFetch(
         `${API_BASE}/api/admin/colleges`,
@@ -336,7 +336,7 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
   const fetchCollegeAdmins = async (isRetry = false) => {
     try {
-      setAdminsLoading(true)
+      if (collegeAdminsList.length === 0) setAdminsLoading(true)
       const response = await adminFetch(`${API_BASE}/api/admin/college-admins`, {
         method: 'GET',
       })
@@ -418,7 +418,7 @@ export default function AdminPage({ initialSection = null, initialReviewId = nul
 
   const fetchUsers = async (isRetry = false) => {
     try {
-      setUsersLoading(true)
+      if (usersList.length === 0) setUsersLoading(true)
       const response = await adminFetch(`${API_BASE}/api/admin/users`, {
         method: 'GET',
       })

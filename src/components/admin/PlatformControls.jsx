@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Wrench,
   Power,
@@ -20,6 +21,7 @@ import {
   FileText,
   Building2,
   Sparkles,
+  X,
 } from 'lucide-react'
 import {
   apiGetAdminPlatformConfig,
@@ -303,37 +305,71 @@ export default function PlatformControls({ onShowToast }) {
         </button>
       </div>
 
-      {error && (
-        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-400 flex items-center justify-between gap-2 shadow-xs">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={15} className="shrink-0 text-rose-500" />
-            <span>{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setError('')}
-            className="text-rose-600 hover:text-rose-800 dark:hover:text-rose-300 text-[11px] font-bold cursor-pointer"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      {/* ── Fixed Floating Alert Toast (Option 1: Bottom-Right, Always in View) ── */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-4 sm:px-0">
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              key="platform-error"
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="pointer-events-auto p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-rose-200 dark:border-rose-900/70 shadow-2xl shadow-rose-950/15 flex items-start justify-between gap-3"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle size={17} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Action Failed</h4>
+                  <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5 font-medium leading-relaxed">{error}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss alert"
+              >
+                <X size={15} />
+              </button>
+            </motion.div>
+          )}
 
-      {successMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2 shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-semibold">{successMessage}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessMessage('')}
-            className="text-emerald-600 hover:text-emerald-800 dark:hover:text-emerald-300 text-[11px] font-bold cursor-pointer"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+          {successMessage && (
+            <motion.div
+              key="platform-success"
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="pointer-events-auto p-4 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-emerald-200/90 dark:border-emerald-800/80 shadow-2xl shadow-emerald-950/15 flex items-start justify-between gap-3"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 size={17} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    Platform Control Updated
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-gray-300 mt-0.5 font-medium leading-relaxed">{successMessage}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuccessMessage('')}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 rounded-lg transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss alert"
+              >
+                <X size={15} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── SECTION 1: MAINTENANCE MODE (THE BIG SWITCH) ──────────────────────── */}
       <div className={`${adminCardClass} p-6 border-l-4 ${maintenanceEnabled ? 'border-l-amber-500' : 'border-l-emerald-500'} space-y-6`}>

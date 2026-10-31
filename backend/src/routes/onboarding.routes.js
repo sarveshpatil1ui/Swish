@@ -520,6 +520,32 @@ router.post(
       otpRecord.verificationTokenExpiresAt = null
       await otpRecord.save()
 
+      // 6. Create high-priority Admin Notification and broadcast to Main Admin in real time
+      try {
+        const notif = await AdminNotification.create({
+          type: 'college_request',
+          title: 'New College Onboarding Request',
+          message: `${onboardingRequest.collegeName} (${onboardingRequest.officialEmail}) has submitted an onboarding request.`,
+          data: {
+            requestId: onboardingRequest._id.toString(),
+            collegeName: onboardingRequest.collegeName,
+            officialEmail: onboardingRequest.officialEmail,
+            adminName: onboardingRequest.adminName,
+            collegeCode: onboardingRequest.collegeCode,
+            location: onboardingRequest.location,
+          },
+          link: `/admin/pending-requests/${onboardingRequest._id.toString()}`,
+          priority: 'high',
+        })
+
+        emitToAdmin('admin:notification:new', {
+          ...notif.toObject(),
+          id: notif._id.toString(),
+        })
+      } catch (notifErr) {
+        console.error('[POST /api/onboarding/submit] Failed to create AdminNotification:', notifErr)
+      }
+
       return res.status(201).json({
         ok: true,
         message: 'College onboarding request submitted successfully and is pending review.',

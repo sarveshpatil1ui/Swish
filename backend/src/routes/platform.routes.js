@@ -107,7 +107,7 @@ router.patch(
         return res.status(400).json({ ok: false, error: 'Features object is required.' })
       }
 
-      const updated = await setFeatureFlags(features)
+      const updated = await setFeatureFlags(features, req.user)
       return res.status(200).json({
         ok: true,
         message: 'Platform feature flags updated successfully.',
@@ -132,7 +132,7 @@ router.patch(
         return res.status(400).json({ ok: false, error: 'Broadcast object is required.' })
       }
 
-      const updated = await setBroadcastBanner(broadcast)
+      const updated = await setBroadcastBanner(broadcast, req.user)
       return res.status(200).json({
         ok: true,
         message: broadcast.active

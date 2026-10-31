@@ -1,5 +1,6 @@
 // backend/src/services/platform-config.service.js
 import PlatformConfig from '../models/PlatformConfig.js'
+import AdminNotification from '../models/AdminNotification.js'
 import { broadcastEvent, emitToAdmin } from './socket.service.js'
 
 let _cachedConfig = null
@@ -108,13 +109,42 @@ export async function setMaintenanceMode({ enabled, note, expectedBack }, adminU
     timestamp: new Date(),
   })
 
+  // Create persistent AdminNotification for Main Admin Bell Popover
+  try {
+    const isMaintenanceOn = Boolean(enabled)
+    const adminName = adminUser?.name || 'Admin'
+    const notif = await AdminNotification.create({
+      type: 'platform_control',
+      title: isMaintenanceOn ? 'Platform Maintenance Activated' : 'Platform Maintenance Deactivated',
+      message: isMaintenanceOn
+        ? `Platform Maintenance Mode was activated by ${adminName}${note ? `: "${note}"` : ''}. Regular users are blocked.`
+        : `Platform Maintenance Mode was deactivated by ${adminName}. Normal platform operations restored.`,
+      data: {
+        controlType: 'maintenance',
+        enabled: isMaintenanceOn,
+        note: note || '',
+        expectedBack: expectedBack || '',
+        updatedBy: adminName,
+      },
+      link: '/admin/platform-controls',
+      priority: isMaintenanceOn ? 'urgent' : 'medium',
+    })
+
+    emitToAdmin('admin:notification:new', {
+      ...notif.toObject(),
+      id: notif._id.toString(),
+    })
+  } catch (notifErr) {
+    console.error('[setMaintenanceMode] Failed to create AdminNotification:', notifErr)
+  }
+
   return updated
 }
 
 /**
  * Updates feature flags
  */
-export async function setFeatureFlags(features = {}) {
+export async function setFeatureFlags(features = {}, adminUser = null) {
   const updateData = {}
   if (typeof features.allowRegistration === 'boolean') {
     updateData['features.allowRegistration'] = features.allowRegistration
@@ -136,13 +166,51 @@ export async function setFeatureFlags(features = {}) {
   _cacheExpiresAt = Date.now() + CONFIG_CACHE_TTL_MS
 
   broadcastEvent('platform:config:update', updated)
+
+  // Create persistent AdminNotification for feature changes
+  try {
+    const adminName = adminUser?.name || 'Admin'
+    const changes = []
+    if (typeof features.allowRegistration === 'boolean') {
+      changes.push(features.allowRegistration ? 'Student Registration RESUMED' : 'Student Registration PAUSED')
+    }
+    if (typeof features.allowPostCreation === 'boolean') {
+      changes.push(features.allowPostCreation ? 'Post Creation RESUMED' : 'Post Creation PAUSED')
+    }
+    if (typeof features.allowDirectMessaging === 'boolean') {
+      changes.push(features.allowDirectMessaging ? 'Direct Messaging RESUMED' : 'Direct Messaging PAUSED')
+    }
+
+    if (changes.length > 0) {
+      const notif = await AdminNotification.create({
+        type: 'platform_control',
+        title: 'Platform Feature Controls Updated',
+        message: `${changes.join(' • ')} (updated by ${adminName}).`,
+        data: {
+          controlType: 'features',
+          features,
+          updatedBy: adminName,
+        },
+        link: '/admin/platform-controls',
+        priority: 'medium',
+      })
+
+      emitToAdmin('admin:notification:new', {
+        ...notif.toObject(),
+        id: notif._id.toString(),
+      })
+    }
+  } catch (notifErr) {
+    console.error('[setFeatureFlags] Failed to create AdminNotification:', notifErr)
+  }
+
   return updated
 }
 
 /**
  * Updates global broadcast banner
  */
-export async function setBroadcastBanner(broadcast = {}) {
+export async function setBroadcastBanner(broadcast = {}, adminUser = null) {
   const updateData = {
     'broadcast.updatedAt': new Date(),
   }
@@ -163,6 +231,36 @@ export async function setBroadcastBanner(broadcast = {}) {
   _cacheExpiresAt = Date.now() + CONFIG_CACHE_TTL_MS
 
   broadcastEvent('platform:config:update', updated)
+
+  // Create persistent AdminNotification for global broadcast updates
+  try {
+    const adminName = adminUser?.name || 'Admin'
+    const isActive = broadcast.active === true
+    const bannerTitle = broadcast.title || broadcast.message || 'Global Announcement'
+
+    const notif = await AdminNotification.create({
+      type: 'platform_control',
+      title: isActive ? 'Global Broadcast Banner Published' : 'Global Broadcast Deactivated',
+      message: isActive
+        ? `Broadcast banner is now live across all campuses: "${bannerTitle}" (by ${adminName}).`
+        : `Global broadcast banner was taken down by ${adminName}.`,
+      data: {
+        controlType: 'broadcast',
+        active: Boolean(isActive),
+        bannerTitle,
+        updatedBy: adminName,
+      },
+      link: '/admin/platform-controls',
+      priority: isActive ? 'medium' : 'low',
+    })
+
+    emitToAdmin('admin:notification:new', {
+      ...notif.toObject(),
+      id: notif._id.toString(),
+    })
+  } catch (notifErr) {
+    console.error('[setBroadcastBanner] Failed to create AdminNotification:', notifErr)
+  }
+
   return updated
 }
-

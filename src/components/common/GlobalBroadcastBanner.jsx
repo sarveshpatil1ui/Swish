@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { useSwish } from '../../context/SwishContext'
 import { Info, AlertTriangle, CheckCircle, AlertOctagon, X, ExternalLink } from 'lucide-react'
 
 export default function GlobalBroadcastBanner({ broadcast }) {
+  const { isAuthenticated, currentUser } = useSwish()
   const [dismissed, setDismissed] = useState(false)
 
   const updatedAtKey = broadcast?.updatedAt || 'latest'
@@ -16,7 +18,9 @@ export default function GlobalBroadcastBanner({ broadcast }) {
     }
   }, [storageKey, broadcast?.updatedAt])
 
-  if (!broadcast?.active || !broadcast?.message || dismissed) {
+  // Banner is strictly visible ONLY to logged-in users (student, faculty, clg-admin, admin)
+  // Hidden from public pages (landing, login, join, signup, onboarding, forgot-password)
+  if (!isAuthenticated || !currentUser || !broadcast?.active || !broadcast?.message || dismissed) {
     return null
   }
 

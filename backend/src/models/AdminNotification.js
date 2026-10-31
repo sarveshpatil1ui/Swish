@@ -5,7 +5,7 @@ const AdminNotificationSchema = new Schema(
   {
     type: {
       type: String,
-      enum: ['college_request', 'platform_report', 'admin_security', 'college_status'],
+      enum: ['college_request', 'platform_report', 'admin_security', 'college_status', 'platform_control'],
       required: true,
       index: true,
     },

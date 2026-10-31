@@ -6,6 +6,7 @@ import {
   Building2,
   AlertTriangle,
   ShieldCheck,
+  Sliders,
   Clock,
   Trash2,
   ExternalLink,
@@ -198,6 +199,27 @@ export default function AdminNotificationsPopover({
       }
     }
 
+    if (notif.type === 'platform_control') {
+      if (onNavigateToSection) {
+        onNavigateToSection('Platform Controls')
+        return
+      }
+    }
+
+    if (notif.type === 'college_status') {
+      if (onNavigateToSection) {
+        onNavigateToSection('All Colleges')
+        return
+      }
+    }
+
+    if (notif.type === 'admin_security') {
+      if (onNavigateToSection) {
+        onNavigateToSection('College Admins')
+        return
+      }
+    }
+
     if (onNavigateToSection) {
       onNavigateToSection('Dashboard')
     }
@@ -224,12 +246,26 @@ export default function AdminNotificationsPopover({
           badge: 'Grievance / Bug',
           badgeClass: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60',
         }
+      case 'platform_control':
+        return {
+          icon: Sliders,
+          bgClass: 'bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400',
+          badge: 'Platform Control',
+          badgeClass: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/60',
+        }
+      case 'college_status':
+        return {
+          icon: CheckCheck,
+          bgClass: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
+          badge: 'College Update',
+          badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60',
+        }
       case 'admin_security':
         return {
           icon: ShieldCheck,
-          bgClass: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
+          bgClass: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400',
           badge: 'Security',
-          badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60',
+          badgeClass: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60',
         }
       default:
         return {
