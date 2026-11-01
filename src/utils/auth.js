@@ -519,11 +519,7 @@ export async function apiGetNoticeById(id) {
 }
 
 export async function apiCreateNotice(data) {
-  const headers = {}
-  if (data?.idempotencyKey) {
-    headers['X-Idempotency-Key'] = data.idempotencyKey
-  }
-  return apiFetch('/api/notices', { method: 'POST', body: data, headers })
+  return apiFetch('/api/notices', { method: 'POST', body: data })
 }
 
 export async function apiUpdateNotice(id, data) {

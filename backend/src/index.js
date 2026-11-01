@@ -84,15 +84,26 @@ const globalApiLimiter = rateLimit({
 })
 app.use('/api', globalApiLimiter)
 
+// ── Root and Health Check Endpoints ──────────────────────────────────────────
+const getHealthStatus = () => ({
+  ok: true,
+  service: 'swish-backend',
+  status: 'healthy',
+  uptime: process.uptime(),
+  timestamp: new Date().toISOString(),
+  cors: getAllowedOrigins(),
+})
+
+app.get('/', (_req, res) => {
+  res.json(getHealthStatus())
+})
+
+app.get('/health', (_req, res) => {
+  res.json(getHealthStatus())
+})
+
 app.get('/api/health', (_req, res) => {
-  res.json({
-    ok: true,
-    service: 'swish-backend',
-    status: 'healthy',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    cors: getAllowedOrigins(),
-  })
+  res.json(getHealthStatus())
 })
 
 app.use('/api/auth', authRoutes)

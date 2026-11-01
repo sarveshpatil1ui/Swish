@@ -6,6 +6,7 @@
 const HARDCODED_ORIGINS = new Set([
   'https://swish2-six.vercel.app',
   'https://swish1.onrender.com',
+  'https://swish3.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
@@ -26,6 +27,9 @@ export function isOriginAllowed(origin) {
   if (HARDCODED_ORIGINS.has(normalized)) return true
   if (/^https?:\/\/localhost(:\d+)?$/.test(normalized)) return true
   if (/^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(normalized)) return true
+  // Allow all Vercel and Render deployments for Swish (production, preview, staging)
+  if (/^https:\/\/[a-zA-Z0-9_.-]+\.vercel\.app$/.test(normalized)) return true
+  if (/^https:\/\/[a-zA-Z0-9_.-]+\.onrender\.com$/.test(normalized)) return true
   return false
 }
 
@@ -44,7 +48,15 @@ export const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'X-Idempotency-Key',
+    'x-idempotency-key',
+  ],
   exposedHeaders: ['Set-Cookie'],
   optionsSuccessStatus: 204,
 }

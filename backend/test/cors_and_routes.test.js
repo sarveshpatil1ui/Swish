@@ -1,19 +1,24 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { isOriginAllowed, getAllowedOrigins } from '../src/config/cors.js'
+import { isOriginAllowed, getAllowedOrigins, corsOptions } from '../src/config/cors.js'
 import messagesRouter from '../src/routes/messages.routes.js'
 import usersRouter from '../src/routes/users.routes.js'
 import platformRouter from '../src/routes/platform.routes.js'
 import { isCollegeActive, invalidateCollegeCache } from '../src/middleware/auth.middleware.js'
 
 describe('CORS & Route Integrity', () => {
-  test('isOriginAllowed permits localhost and production Vercel origins', () => {
+  test('isOriginAllowed permits localhost, Render backend, and production/preview Vercel origins', () => {
     assert.equal(isOriginAllowed('http://localhost:5173'), true)
     assert.equal(isOriginAllowed('http://localhost:3000'), true)
     assert.equal(isOriginAllowed('https://swish2-six.vercel.app'), true)
+    assert.equal(isOriginAllowed('https://swish-preview-123.vercel.app'), true)
     assert.equal(isOriginAllowed('https://swish1.onrender.com'), true)
+    assert.equal(isOriginAllowed('https://swish3.onrender.com'), true)
+  })
 
-
+  test('corsOptions includes idempotency headers in allowedHeaders', () => {
+    assert.ok(corsOptions.allowedHeaders.includes('X-Idempotency-Key'))
+    assert.ok(corsOptions.allowedHeaders.includes('x-idempotency-key'))
   })
 
   test('isOriginAllowed rejects untrusted third-party origins', () => {
