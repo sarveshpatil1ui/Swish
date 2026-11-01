@@ -25,6 +25,12 @@ import { emitToUser } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
 import { logActivity } from '../services/activity-log.service.js'
 import bcrypt from 'bcryptjs'
+import {
+  resolveUserCollege,
+  buildCollegeUserFilter,
+  autoHealCollegeUsers,
+  isUserInCollege,
+} from '../services/college-reconciliation.service.js'
 
 const router = Router()
 
@@ -155,32 +161,47 @@ router.get('/all', requireAuth, async (req, res) => {
 // ── GET /api/users ───────────────────────────────────────────────────────────
 router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), async (req, res) => {
   try {
-    const filter = {}
-    
+    let filter = {}
+
     // College admin & faculty can only see users from their college
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId) {
+      const college = await resolveUserCollege(req.user)
+      if (!college) {
         return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
       }
-      filter.collegeId = req.user.collegeId
+      autoHealCollegeUsers(college).catch(() => {})
+
+      const additional = {}
+      if (req.query.role) {
+        additional.role = req.query.role
+      }
+      filter = buildCollegeUserFilter(college, additional)
     } else if (req.user.role === 'faculty') {
-      if (!req.user.collegeId) {
+      const college = await resolveUserCollege(req.user)
+      if (!college) {
         return res.status(403).json({ ok: false, error: 'Access denied: Faculty has no associated college.' })
       }
-      filter.collegeId = req.user.collegeId
-      filter.role = 'student' // Faculty can only view students in their college
+      const additional = { role: 'student' }
       if (req.query.dept) {
-        filter.dept = req.query.dept
+        additional.dept = req.query.dept
       }
+      filter = buildCollegeUserFilter(college, additional)
     } else if (req.user.role === 'admin' && req.query.collegeId) {
-      filter.collegeId = req.query.collegeId
-    }
-    
-    if (req.query.role && req.user.role !== 'faculty') {
+      const college = await College.findById(req.query.collegeId)
+      if (college) {
+        const additional = req.query.role ? { role: req.query.role } : {}
+        filter = buildCollegeUserFilter(college, additional)
+      } else {
+        filter.collegeId = req.query.collegeId
+        if (req.query.role) filter.role = req.query.role
+      }
+    } else if (req.query.role) {
       filter.role = req.query.role
     }
-    
-    const users = await User.find(filter).sort({ createdAt: -1 })
+
+    const users = await User.find(filter)
+      .populate('departmentId', 'name code')
+      .sort({ createdAt: -1 })
     res.json({ ok: true, users })
   } catch (err) {
     console.error('[GET /api/users] Error:', err)
@@ -192,22 +213,30 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), a
 // Get dynamic statistics for college dashboard
 router.get('/stats', requireAuth, requireRole('admin', 'college_admin', 'faculty'), async (req, res) => {
   try {
-    const filter = {}
-    const deptFilter = {}
-    const noticeFilter = {}
-    
+    let filter = {}
+    let deptFilter = {}
+    let noticeFilter = {}
+
     // College admin and faculty can only see stats from their college
     if (req.user.role === 'college_admin' || req.user.role === 'faculty') {
-      if (!req.user.collegeId) {
+      const college = await resolveUserCollege(req.user)
+      if (!college) {
         return res.status(403).json({ ok: false, error: 'Access denied: User has no associated college.' })
       }
-      filter.collegeId = req.user.collegeId
-      deptFilter.collegeId = req.user.collegeId
-      noticeFilter.collegeId = req.user.collegeId
+      filter = buildCollegeUserFilter(college)
+      deptFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+      noticeFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
     } else if (req.user.role === 'admin' && req.query.collegeId) {
-      filter.collegeId = req.query.collegeId
-      deptFilter.collegeId = req.query.collegeId
-      noticeFilter.collegeId = req.query.collegeId
+      const college = await College.findById(req.query.collegeId)
+      if (college) {
+        filter = buildCollegeUserFilter(college)
+        deptFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+        noticeFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+      } else {
+        filter.collegeId = req.query.collegeId
+        deptFilter.collegeId = req.query.collegeId
+        noticeFilter.collegeId = req.query.collegeId
+      }
     }
     
     const now = new Date()
@@ -862,7 +891,8 @@ router.patch('/:id/verified-badge', requireAuth, requireRole('admin', 'college_a
 
     // College admin can only manage faculty from their college
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+      const adminCollege = await resolveUserCollege(req.user)
+      if (!adminCollege || !isUserInCollege(targetUser, adminCollege)) {
         return res.status(403).json({ ok: false, error: 'You can only manage faculty from your college.' })
       }
     }
@@ -914,7 +944,8 @@ router.patch('/:id/hod', requireAuth, requireRole('admin', 'college_admin'), asy
 
     // College admin can only manage faculty from their college
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+      const adminCollege = await resolveUserCollege(req.user)
+      if (!adminCollege || !isUserInCollege(targetUser, adminCollege)) {
         return res.status(403).json({ ok: false, error: 'You can only manage faculty from your college.' })
       }
     }
@@ -1008,7 +1039,8 @@ router.patch('/:id/status', requireAuth, requireRole('admin', 'college_admin'), 
 
     // College admin can only manage users from their college
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+      const adminCollege = await resolveUserCollege(req.user)
+      if (!adminCollege || !isUserInCollege(targetUser, adminCollege)) {
         return res.status(403).json({ ok: false, error: 'You can only manage users from your college.' })
       }
       // College admin cannot manage other college admins or super admins
@@ -1475,7 +1507,8 @@ router.patch('/students/:id/suspend', requireAuth, requireRole('admin', 'college
 
     // College admin can only manage students from their college
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+      const adminCollege = await resolveUserCollege(req.user)
+      if (!adminCollege || !isUserInCollege(targetUser, adminCollege)) {
         return res.status(403).json({ ok: false, error: 'You can only manage students from your college.' })
       }
     }
@@ -1760,35 +1793,46 @@ router.post('/faculty/accept-invitation', async (req, res) => {
 // List faculty with pagination and filtering
 router.get('/faculty', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
   try {
-    const collegeId = req.user.collegeId
-    if (!collegeId && req.user.role === 'college_admin') {
-      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    let targetCollege = null
+    if (req.user.role === 'college_admin') {
+      targetCollege = await resolveUserCollege(req.user)
+      if (!targetCollege) {
+        return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+      }
+      autoHealCollegeUsers(targetCollege).catch(() => {})
+    } else if (req.user.role === 'admin') {
+      const cId = req.query.collegeId || req.user.collegeId
+      if (cId) {
+        targetCollege = await College.findById(cId)
+      }
     }
 
-    const targetCollegeId = req.user.role === 'admin' ? (req.query.collegeId || collegeId) : collegeId
-    if (!targetCollegeId) {
+    if (!targetCollege) {
       return res.status(400).json({ ok: false, error: 'College ID is required.' })
     }
 
     const { search, department, limit = 50, skip = 0 } = req.query
 
-    const filter = { collegeId: targetCollegeId, role: 'faculty', deactivated: false }
+    const additionalFilter = { role: 'faculty', deactivated: false }
 
     if (search) {
       const searchRegex = new RegExp(search, 'i')
-      filter.$or = [
+      additionalFilter.$or = [
         { name: searchRegex },
         { email: searchRegex },
-        { designation: searchRegex }
+        { designation: searchRegex },
       ]
     }
 
     if (department) {
-      filter.dept = department
+      additionalFilter.dept = department
     }
 
+    const filter = buildCollegeUserFilter(targetCollege, additionalFilter)
+
     const faculty = await User.find(filter)
-      .select('name email designation dept verifiedBadge isHOD suspended invitationStatus invitedAt')
+      .populate('departmentId', 'name code')
+      .select('name email designation dept departmentId verifiedBadge isHOD suspended invitationStatus invitedAt')
       .sort({ name: 1 })
       .limit(Number(limit))
       .skip(Number(skip))

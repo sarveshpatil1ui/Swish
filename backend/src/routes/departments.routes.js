@@ -12,6 +12,11 @@ import {
   cacheKey,
 } from '../services/cache.service.js'
 import { logActivity } from '../services/activity-log.service.js'
+import {
+  resolveUserCollege,
+  reconcileCollegeDepartments,
+  buildCollegeUserFilter,
+} from '../services/college-reconciliation.service.js'
 
 const router = Router()
 
@@ -39,24 +44,18 @@ async function requireCollegeAccess(req, res, next) {
       return next()
     }
 
-    if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId) {
+    if (req.user.role === 'college_admin' || req.user.role === 'faculty') {
+      const college = await resolveUserCollege(req.user)
+      if (!college) {
         return res.status(403).json({
           ok: false,
           error: 'College admin has no associated college.',
         })
       }
 
-      req.collegeId = req.user.collegeId
-
-      let collegeName = req.user.college
-
-      if (!collegeName || collegeName === req.user.collegeId.toString()) {
-        const college = await College.findById(req.user.collegeId)
-        if (college) collegeName = college.name
-      }
-
-      req.collegeName = collegeName || ''
+      req.college = college
+      req.collegeId = college._id
+      req.collegeName = college.name || ''
       return next()
     }
 
@@ -159,10 +158,21 @@ router.get(
   requireCollegeAccess,
   async (req, res) => {
     try {
+      if (req.college) {
+        // Auto-reconcile departments from user profiles if needed
+        await reconcileCollegeDepartments(req.college).catch(() => {})
+      }
+
       const filter =
         req.user.role === 'admin'
           ? {}
-          : { collegeId: req.collegeId }
+          : {
+              $or: [
+                { collegeId: req.collegeId },
+                { collegeId: req.collegeId.toString() },
+                ...(req.collegeName ? [{ college: req.collegeName }] : []),
+              ],
+            }
 
       const departments = await Department.find(filter)
         .sort({ name: 1 })
@@ -172,22 +182,38 @@ router.get(
         departments.map(async (dept) => {
           const studentCount = await User.countDocuments({
             $or: [
+              { departmentId: dept._id },
               { dept: dept.name },
-              { departmentId: dept._id }
             ],
-            collegeId: dept.collegeId,
-            role: 'student',
-            deactivated: false,
+            $and: [
+              {
+                $or: [
+                  { collegeId: dept.collegeId },
+                  { collegeId: dept.collegeId.toString() },
+                  { college: dept.college },
+                ],
+              },
+              { role: 'student' },
+              { deactivated: false },
+            ],
           })
 
           const facultyCount = await User.countDocuments({
             $or: [
+              { departmentId: dept._id },
               { dept: dept.name },
-              { departmentId: dept._id }
             ],
-            collegeId: dept.collegeId,
-            role: 'faculty',
-            deactivated: false,
+            $and: [
+              {
+                $or: [
+                  { collegeId: dept.collegeId },
+                  { collegeId: dept.collegeId.toString() },
+                  { college: dept.college },
+                ],
+              },
+              { role: 'faculty' },
+              { deactivated: false },
+            ],
           })
 
           return { ...dept, studentCount, facultyCount }

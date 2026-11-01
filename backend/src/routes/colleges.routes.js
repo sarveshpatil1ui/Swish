@@ -24,6 +24,11 @@ import { getOrSet, del, cacheKey } from '../services/cache.service.js'
 import { sendCollegeAdminCredentialsEmail } from '../services/email.service.js'
 import { uploadPostImage, deletePostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
 import { logActivity } from '../services/activity-log.service.js'
+import {
+  resolveUserCollege,
+  buildCollegeUserFilter,
+  autoHealCollegeUsers,
+} from '../services/college-reconciliation.service.js'
 
 const router = Router()
 
@@ -84,13 +89,9 @@ router.get('/', async (_req, res) => {
 // College admin only — get their own college
 router.get('/my-college', requireAuth, requireRole('college_admin'), async (req, res) => {
   try {
-    if (!req.user.collegeId) {
-      return res.status(404).json({ ok: false, error: 'College not found for this user.' })
-    }
-
-    const college = await College.findById(req.user.collegeId)
+    const college = await resolveUserCollege(req.user)
     if (!college) {
-      return res.status(404).json({ ok: false, error: 'College not found.' })
+      return res.status(404).json({ ok: false, error: 'College not found for this user.' })
     }
 
     return res.status(200).json({ ok: true, college: college.toJSON() })
@@ -104,21 +105,30 @@ router.get('/my-college', requireAuth, requireRole('college_admin'), async (req,
 // College admin dashboard statistics
 router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
   try {
-    const filter = {}
-    const deptFilter = {}
-    const noticeFilter = {}
-    
+    let filter = {}
+    let deptFilter = {}
+    let noticeFilter = {}
+
     if (req.user.role === 'college_admin') {
-      if (!req.user.collegeId) {
+      const college = await resolveUserCollege(req.user)
+      if (!college) {
         return res.status(403).json({ ok: false, error: 'Access denied: College admin has no associated college.' })
       }
-      filter.collegeId = req.user.collegeId
-      deptFilter.collegeId = req.user.collegeId
-      noticeFilter.collegeId = req.user.collegeId
+      autoHealCollegeUsers(college).catch(() => {})
+      filter = buildCollegeUserFilter(college)
+      deptFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+      noticeFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
     } else if (req.user.role === 'admin' && req.query.collegeId) {
-      filter.collegeId = req.query.collegeId
-      deptFilter.collegeId = req.query.collegeId
-      noticeFilter.collegeId = req.query.collegeId
+      const college = await College.findById(req.query.collegeId)
+      if (college) {
+        filter = buildCollegeUserFilter(college)
+        deptFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+        noticeFilter = { $or: [{ collegeId: college._id }, { collegeId: college._id.toString() }, { college: college.name }] }
+      } else {
+        filter.collegeId = req.query.collegeId
+        deptFilter.collegeId = req.query.collegeId
+        noticeFilter.collegeId = req.query.collegeId
+      }
     }
     
     const now = new Date()

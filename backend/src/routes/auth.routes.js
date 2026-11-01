@@ -30,6 +30,7 @@ import {
   isOtpResendOnCooldown,
 } from '../services/otp.service.js'
 import { requireTurnstile } from '../middleware/turnstile.middleware.js'
+import { generateDeptCode } from '../services/college-reconciliation.service.js'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -336,14 +337,40 @@ router.post(
         collegeName = 'Swish Admin'
       }
 
-      // ── Department lookup — validate and store departmentId ───────────────────
+      // ── Department lookup & auto-creation ──────────────────────────────────
       let departmentId = null
-      if (collegeId && dept) {
-        const department = await Department.findOne({
+      if (collegeId && dept && typeof dept === 'string' && dept.trim()) {
+        const trimmedDept = dept.trim()
+        let department = await Department.findOne({
           collegeId,
-          name: dept,
-          active: true
+          $or: [
+            { name: new RegExp(`^${trimmedDept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+            { code: trimmedDept.toUpperCase() },
+          ],
         })
+
+        if (!department) {
+          try {
+            const existingDeptCodes = new Set(
+              (await Department.find({ collegeId }).select('code').lean()).map(d => d.code)
+            )
+            const code = generateDeptCode(trimmedDept, existingDeptCodes)
+            department = await Department.create({
+              name: trimmedDept,
+              code,
+              collegeId,
+              college: collegeName,
+              description: `${trimmedDept} Department at ${collegeName}`,
+              active: true,
+            })
+          } catch (deptErr) {
+            department = await Department.findOne({
+              collegeId,
+              name: new RegExp(`^${trimmedDept.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+            })
+          }
+        }
+
         if (department) {
           departmentId = department._id
         }
