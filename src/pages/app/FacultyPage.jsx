@@ -137,10 +137,19 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
       apiGetNotices()
         .then(res => {
           if (mounted && res?.ok && Array.isArray(res.notices)) {
-            _noticeCache = res.notices
+            const seen = new Set()
+            const unique = []
+            for (const n of res.notices) {
+              const id = (n.id || n._id)?.toString()
+              if (id && !seen.has(id)) {
+                seen.add(id)
+                unique.push(n)
+              }
+            }
+            _noticeCache = unique
             _noticeCacheAt = Date.now()
-            setNoticeCount(res.notices.length)
-            setRecentNotices(res.notices.slice(0, 4))
+            setNoticeCount(unique.length)
+            setRecentNotices(unique.slice(0, 4))
           }
         })
         .catch(() => {})

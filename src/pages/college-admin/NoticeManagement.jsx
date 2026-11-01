@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, Megaphone, Plus, Edit, Trash2, Eye, EyeOff, Calendar, User, Building2, Pin } from 'lucide-react'
 import { apiGetNotices, apiCreateNotice, apiUpdateNotice, apiDeleteNotice, apiPublishNotice, apiPinNotice, apiGetDepartments } from '../../utils/auth'
 import { useSwish } from '../../context/SwishContext'
@@ -15,6 +15,8 @@ export default function NoticeManagement() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingNotice, setEditingNotice] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -64,9 +66,18 @@ export default function NoticeManagement() {
         apiGetNotices(),
         apiGetDepartments(),
       ])
-      if (noticesRes.ok) {
-        setNotices(noticesRes.notices)
-        setFilteredNotices(noticesRes.notices)
+      if (noticesRes.ok && Array.isArray(noticesRes.notices)) {
+        const seen = new Set()
+        const unique = []
+        for (const n of noticesRes.notices) {
+          const id = (n.id || n._id)?.toString()
+          if (id && !seen.has(id)) {
+            seen.add(id)
+            unique.push(n)
+          }
+        }
+        setNotices(unique)
+        setFilteredNotices(unique)
       }
       if (deptsRes.ok) {
         setDepartments(deptsRes.departments)
@@ -148,6 +159,8 @@ export default function NoticeManagement() {
 
   const handleAdd = async (e) => {
     e.preventDefault()
+    if (isSubmittingRef.current) return
+
     const validationErrors = {}
     if (!formData.title.trim()) validationErrors.title = 'Required'
     if (!formData.content.trim()) validationErrors.content = 'Required'
@@ -157,10 +170,23 @@ export default function NoticeManagement() {
       return
     }
 
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
     try {
-      const res = await apiCreateNotice(formData)
-      if (res.ok) {
-        setNotices(prev => [res.notice, ...prev])
+      const idempotencyKey = `notice_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+      const res = await apiCreateNotice({ ...formData, idempotencyKey })
+      if (res.ok && res.notice) {
+        setNotices(prev => {
+          const newNotice = res.notice
+          const newId = (newNotice.id || newNotice._id)?.toString()
+          if (!newId) return prev
+          const exists = prev.some(n => (n.id || n._id)?.toString() === newId)
+          if (exists) {
+            return prev.map(n => (n.id || n._id)?.toString() === newId ? newNotice : n)
+          }
+          return [newNotice, ...prev]
+        })
         setShowAddForm(false)
         resetForm()
       } else {
@@ -168,11 +194,16 @@ export default function NoticeManagement() {
       }
     } catch (err) {
       console.error('[NoticeManagement] Error creating notice:', err)
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
   }
 
   const handleUpdate = async (e) => {
     e.preventDefault()
+    if (isSubmittingRef.current) return
+
     const validationErrors = {}
     if (!formData.title.trim()) validationErrors.title = 'Required'
     if (!formData.content.trim()) validationErrors.content = 'Required'
@@ -182,11 +213,14 @@ export default function NoticeManagement() {
       return
     }
 
-    const noticeId = editingNotice.id || editingNotice._id
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
+
+    const noticeId = (editingNotice.id || editingNotice._id)?.toString()
     try {
       const res = await apiUpdateNotice(noticeId, formData)
-      if (res.ok) {
-        setNotices(prev => prev.map(n => (n.id === noticeId || n._id === noticeId) ? res.notice : n))
+      if (res.ok && res.notice) {
+        setNotices(prev => prev.map(n => ((n.id || n._id)?.toString() === noticeId ? res.notice : n)))
         setEditingNotice(null)
         resetForm()
       } else {
@@ -194,6 +228,9 @@ export default function NoticeManagement() {
       }
     } catch (err) {
       console.error('[NoticeManagement] Error updating notice:', err)
+    } finally {
+      isSubmittingRef.current = false
+      setIsSubmitting(false)
     }
   }
 
@@ -269,6 +306,7 @@ export default function NoticeManagement() {
   }
 
   const handleCancel = () => {
+    if (isSubmitting) return
     setShowAddForm(false)
     setEditingNotice(null)
     resetForm()
@@ -536,15 +574,24 @@ export default function NoticeManagement() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="w-full sm:w-auto px-6 py-3 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto px-6 py-3 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20"
+                disabled={isSubmitting}
+                className={`w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20 flex items-center justify-center gap-2 ${
+                  isSubmitting ? 'opacity-60 cursor-not-allowed' : 'active:scale-95'
+                }`}
               >
-                {editingNotice ? 'Update Notice' : 'Create Notice'}
+                {isSubmitting && (
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                {isSubmitting
+                  ? (editingNotice ? 'Updating...' : 'Publishing...')
+                  : (editingNotice ? 'Update Notice' : 'Create Notice')}
               </button>
             </div>
           </form>

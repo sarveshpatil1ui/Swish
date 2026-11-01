@@ -136,7 +136,18 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'faculty'), r
       return new Date(b.createdAt) - new Date(a.createdAt)
     })
 
-    return res.status(200).json({ ok: true, notices: notices.map(n => ({ ...n, id: n._id.toString(), _id: undefined, __v: undefined })) })
+    // Deduplicate notices by ID to guarantee clean list
+    const seenNoticeIds = new Set()
+    const uniqueNotices = []
+    for (const n of notices) {
+      const idStr = n._id.toString()
+      if (!seenNoticeIds.has(idStr)) {
+        seenNoticeIds.add(idStr)
+        uniqueNotices.push({ ...n, id: idStr, _id: undefined, __v: undefined })
+      }
+    }
+
+    return res.status(200).json({ ok: true, notices: uniqueNotices })
   } catch (err) {
     console.error('[GET /notices]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch notices.' })
@@ -216,9 +227,20 @@ router.get('/college', requireAuth, async (req, res) => {
       daysUntilExpiry: n.expiresAt ? Math.ceil((new Date(n.expiresAt) - now) / (24 * 60 * 60 * 1000)) : null,
     }))
 
+    // Deduplicate notices by ID
+    const seenIds = new Set()
+    const uniqueNotices = []
+    for (const n of noticesWithStatus) {
+      const idStr = n.id || n._id?.toString()
+      if (idStr && !seenIds.has(idStr)) {
+        seenIds.add(idStr)
+        uniqueNotices.push(n)
+      }
+    }
+
     return res.status(200).json({
       ok: true,
-      notices: noticesWithStatus
+      notices: uniqueNotices
     })
   } catch (err) {
     console.error('[GET /api/notices/college]', err)
@@ -272,6 +294,51 @@ router.post(
       }
       if (!colName) colName = 'College'
 
+      // Extract idempotency key from header or body
+      const rawIdempotencyKey = (
+        req.headers['x-idempotency-key'] ||
+        req.body.idempotencyKey ||
+        req.body.clientNoticeId ||
+        ''
+      ).toString().trim()
+      const idempotencyKey = rawIdempotencyKey || null
+
+      // Idempotency check: if an idempotency key was supplied and notice already exists, return it
+      if (idempotencyKey) {
+        const existingNotice = await Notice.findOne({
+          collegeId: targetCollegeId,
+          idempotencyKey,
+        }).populate('createdBy', 'name email designation role')
+
+        if (existingNotice) {
+          return res.status(200).json({
+            ok: true,
+            notice: existingNotice.toJSON(),
+            duplicatePrevented: true,
+            message: 'Notice already submitted (idempotent request).'
+          })
+        }
+      }
+
+      // Replay protection: if identical notice was submitted by same user in last 5 seconds, prevent duplicate
+      const duplicateThreshold = new Date(Date.now() - 5000)
+      const recentDuplicate = await Notice.findOne({
+        collegeId: targetCollegeId,
+        createdBy: req.user._id,
+        title: title.trim(),
+        content: content.trim(),
+        createdAt: { $gte: duplicateThreshold },
+      }).populate('createdBy', 'name email designation role')
+
+      if (recentDuplicate) {
+        return res.status(200).json({
+          ok: true,
+          notice: recentDuplicate.toJSON(),
+          duplicatePrevented: true,
+          message: 'Duplicate notice submission prevented.'
+        })
+      }
+
       // Upload attachments to Cloudinary if provided
       const attachments = []
       if (req.files && req.files.length > 0 && isCloudinaryConfigured()) {
@@ -294,21 +361,41 @@ router.post(
         }
       }
 
-      const notice = await Notice.create({
-        title: title.trim(),
-        content: content.trim(),
-        collegeId: targetCollegeId,
-        college: colName,
-        departmentId: departmentId || null,
-        department: department || null,
-        targetAudience: targetAudience || 'all',
-        priority: priority || 'medium',
-        published: published || false,
-        publishedAt: published ? new Date() : null,
-        expiresAt: expiresAt || null,
-        createdBy: req.user._id,
-        attachments,
-      })
+      let notice
+      try {
+        notice = await Notice.create({
+          title: title.trim(),
+          content: content.trim(),
+          collegeId: targetCollegeId,
+          college: colName,
+          departmentId: departmentId || null,
+          department: department || null,
+          targetAudience: targetAudience || 'all',
+          priority: priority || 'medium',
+          published: published || false,
+          publishedAt: published ? new Date() : null,
+          expiresAt: expiresAt || null,
+          createdBy: req.user._id,
+          attachments,
+          idempotencyKey,
+        })
+      } catch (createErr) {
+        // Handle concurrent race condition on unique idempotencyKey
+        if (idempotencyKey && (createErr.code === 11000 || createErr.name === 'MongoServerError')) {
+          const raceNotice = await Notice.findOne({
+            collegeId: targetCollegeId,
+            idempotencyKey,
+          }).populate('createdBy', 'name email designation role')
+          if (raceNotice) {
+            return res.status(200).json({
+              ok: true,
+              notice: raceNotice.toJSON(),
+              duplicatePrevented: true,
+            })
+          }
+        }
+        throw createErr
+      }
 
       if (notice.published) {
         await notifyNoticeAudience(notice, req.user._id)

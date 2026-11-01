@@ -44,6 +44,12 @@ const NoticeSchema = new Schema(
       size: { type: Number, required: true },
       publicId: { type: String, required: true }
     }], // Cloudinary attachment metadata
+    idempotencyKey: {
+      type: String,
+      default: null,
+      trim: true,
+      index: { unique: true, sparse: true }
+    },
   },
   { timestamps: true }
 )

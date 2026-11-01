@@ -23,7 +23,8 @@ export default function MobileTopBar() {
     apiGetCollegeNotices()
       .then(res => {
         if (mounted && res?.ok && Array.isArray(res.notices)) {
-          setNoticeCount(res.notices.length)
+          const uniqueIds = new Set(res.notices.map(n => (n.id || n._id)?.toString()).filter(Boolean))
+          setNoticeCount(uniqueIds.size)
           const urgent = res.notices.some(n => n.priority === 'urgent')
           setHasUrgentNotice(urgent)
         }

@@ -165,7 +165,16 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
       setError(null)
       const res = await apiGetCollegeNotices()
       if (res.ok && Array.isArray(res.notices)) {
-        setNotices(res.notices)
+        const seen = new Set()
+        const unique = []
+        for (const n of res.notices) {
+          const id = (n.id || n._id)?.toString()
+          if (id && !seen.has(id)) {
+            seen.add(id)
+            unique.push(n)
+          }
+        }
+        setNotices(unique)
       } else {
         setError(res.error || 'Unable to load notices.')
       }
@@ -276,7 +285,7 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
 
               return (
                 <div
-                  key={notice.id}
+                  key={notice.id || notice._id}
                   onClick={() => setSelectedNotice(notice)}
                   role="button"
                   tabIndex={0}

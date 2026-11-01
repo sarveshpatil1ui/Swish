@@ -160,7 +160,16 @@ export default function CollegeAdminDashboard() {
       }
 
       if (noticesRes.ok && Array.isArray(noticesRes.notices)) {
-        setRecentNotices(noticesRes.notices.slice(0, 5))
+        const seen = new Set()
+        const unique = []
+        for (const n of noticesRes.notices) {
+          const id = (n.id || n._id)?.toString()
+          if (id && !seen.has(id)) {
+            seen.add(id)
+            unique.push(n)
+          }
+        }
+        setRecentNotices(unique.slice(0, 5))
       }
 
       if (logsRes.ok && Array.isArray(logsRes.logs)) {
