@@ -33,6 +33,7 @@ import trendingRoutes from './routes/trending.routes.js'
 import moderationRoutes from './routes/moderation.routes.js'
 import activityLogsRoutes from './routes/activity-logs.routes.js'
 import platformRoutes from './routes/platform.routes.js'
+import disciplinaryWarningsRoutes from './routes/disciplinary-warnings.routes.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -110,6 +111,7 @@ app.use('/api/trending', trendingRoutes)
 app.use('/api/moderation', moderationRoutes)
 app.use('/api/activity-logs', activityLogsRoutes)
 app.use('/api/platform', platformRoutes)
+app.use('/api/disciplinary-warnings', disciplinaryWarningsRoutes)
 
 app.use((_req, res) => {
   res.status(404).json({ ok: false, error: 'Route not found.' })
