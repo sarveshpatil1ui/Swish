@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import User from '../models/User.js'
 import College from '../models/College.js'
 import Session from '../models/Session.js'
-import { hashToken, touchSession } from '../services/session.service.js'
+import { hashToken, touchSession, parseClientInfo, createSession } from '../services/session.service.js'
 import { getPlatformConfig } from '../services/platform-config.service.js'
 
 // In-process TTL cache: domain -> { active, expiresAt }
@@ -55,23 +56,27 @@ export async function requireAuth(req, res, next) {
     let session = null
     if (payload.sid) {
       session = await Session.findById(payload.sid)
-      if (!session || !session.isActive) {
+      if (session && !session.isActive) {
         return res.status(401).json({
           ok: false,
           error: 'Session has been revoked. Please log in again.',
           revoked: true,
         })
       }
-      if (session.expiresAt && session.expiresAt < new Date()) {
+      if (session && session.expiresAt && session.expiresAt < new Date()) {
         return res.status(401).json({
           ok: false,
           error: 'Session expired. Please log in again.',
           expired: true,
         })
       }
-      req.sessionId = payload.sid
-      req.session = session
-      touchSession(payload.sid, req).catch(() => {})
+      if (session) {
+        req.sessionId = payload.sid
+        req.session = session
+        touchSession(payload.sid, req).catch(() => {})
+      }
+      // If no session found in DB for a valid JWT with sid, it will be created
+      // retroactively below after user is fetched (handles server restart / DB wipe scenarios)
     } else {
       // Synthetic or legacy token without payload.sid: check tokenHash in DB
       const tokenHash = hashToken(token)
@@ -150,6 +155,32 @@ export async function requireAuth(req, res, next) {
     }
 
     req.user = user
+
+    // ── Retroactive session creation ──────────────────────────────────────────
+    // If the JWT is valid but no session record exists in DB (e.g. token was issued
+    // before session management was deployed, or after a DB migration), create one
+    // now so the user's device appears in the Active Sessions panel immediately.
+    if (!req.sessionId && (user.role === 'college_admin' || user.role === 'admin' || user.role === 'main_admin')) {
+      try {
+        const token = req.cookies?.swish_token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null)
+        if (token) {
+          const tokenHash = hashToken(token)
+          const existing = await Session.findOne({ tokenHash, isActive: true })
+          if (!existing) {
+            const { session: newSession } = await createSession(user, req)
+            req.sessionId = newSession._id.toString()
+            req.session = newSession
+          } else {
+            req.sessionId = existing._id.toString()
+            req.session = existing
+          }
+        }
+      } catch (retroErr) {
+        // Non-fatal: session tracking is best-effort; don't block the request
+        console.warn('[requireAuth] Retroactive session creation skipped:', retroErr.message)
+      }
+    }
+
     next()
   } catch (err) {
     console.error('[requireAuth] Unexpected error:', err)

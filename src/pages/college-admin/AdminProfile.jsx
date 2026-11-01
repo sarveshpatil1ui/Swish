@@ -62,6 +62,15 @@ export default function AdminProfile() {
 
   useEffect(() => {
     fetchSessions()
+
+    // Refresh sessions when user switches back to this tab (covers mobile re-activation)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSessions()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   const handleRevokeSession = async (sessionId) => {
@@ -550,8 +559,11 @@ export default function AdminProfile() {
               </div>
             ) : sessions.length === 0 ? (
               <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                <Monitor size={24} className="mx-auto text-slate-400 dark:text-gray-500 mb-1" />
-                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">No other active sessions detected.</p>
+                <Monitor size={24} className="mx-auto text-slate-400 dark:text-gray-500 mb-2" />
+                <p className="text-xs font-medium text-slate-600 dark:text-gray-300">No active sessions found</p>
+                <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-1 max-w-xs mx-auto">
+                  Session tracking begins with your next login. Sign out and sign back in to register this device.
+                </p>
               </div>
             ) : (
               <div className="space-y-2.5">
