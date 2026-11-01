@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
 import { apiGetUserStats, apiGetNotices, apiGetActivityLogs, apiGetAnalyticsDashboard } from '../../utils/auth'
-import { LineChart as RechartsLineChart, Line, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart as RechartsLineChart, Line, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
   return (
@@ -46,12 +46,14 @@ function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal
   )
 }
 
-function TodayStatCard({ icon: Icon, label, value, color, onClick, clickable }) {
+function TodayStatCard({ icon: Icon, label, value, color, onClick, clickable, growthLabel, growthDirection, comparisonLabel }) {
   const colorClasses = {
     indigo: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
     emerald: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
     blue: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400',
     amber: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400',
+    violet: 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400',
+    rose: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400',
   }
 
   const colors = colorClasses[color] || colorClasses.indigo
@@ -59,15 +61,36 @@ function TodayStatCard({ icon: Icon, label, value, color, onClick, clickable }) 
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-xl p-4 ${clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      className={`bg-white dark:bg-slate-900 rounded-xl p-4 transition-all duration-200 ${
+        clickable ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
+      }`}
     >
-      <div className={`w-8 h-8 ${colors} rounded-lg flex items-center justify-center mb-3`}>
-        <Icon size={16} />
+      <div className="flex items-center justify-between mb-3">
+        <div className={`w-8 h-8 ${colors} rounded-lg flex items-center justify-center`}>
+          <Icon size={16} />
+        </div>
+        {growthLabel && (
+          <span
+            className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+              growthDirection === 'up'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                : growthDirection === 'down'
+                ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}
+            title={comparisonLabel || 'vs previous period'}
+          >
+            {growthLabel}
+          </span>
+        )}
       </div>
-      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+      <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
         {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
       </p>
-      <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">{label}</p>
+      <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">{label}</p>
+      {comparisonLabel && (
+        <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5 truncate">{comparisonLabel}</p>
+      )}
     </div>
   )
 }
@@ -281,24 +304,36 @@ export default function CollegeAdminDashboard() {
             label="New Registrations"
             value={todayStats?.newUsers ?? 0}
             color="indigo"
+            growthLabel={analyticsData?.growth?.users?.label}
+            growthDirection={analyticsData?.growth?.users?.direction}
+            comparisonLabel={analyticsData?.growth?.comparisonLabel}
           />
           <TodayStatCard
             icon={Activity}
             label="New Posts"
             value={todayStats?.newPosts ?? 0}
             color="emerald"
+            growthLabel={analyticsData?.growth?.posts?.label}
+            growthDirection={analyticsData?.growth?.posts?.direction}
+            comparisonLabel={analyticsData?.growth?.comparisonLabel}
           />
           <TodayStatCard
             icon={MessageSquare}
             label="New Comments"
             value={todayStats?.newComments ?? 0}
             color="blue"
+            growthLabel={analyticsData?.growth?.comments?.label}
+            growthDirection={analyticsData?.growth?.comments?.direction}
+            comparisonLabel={analyticsData?.growth?.comparisonLabel}
           />
           <TodayStatCard
             icon={AlertTriangle}
             label="Pending Reports"
             value={todayStats?.pendingReports ?? 0}
             color="amber"
+            growthLabel={analyticsData?.growth?.reports?.label}
+            growthDirection={analyticsData?.growth?.reports?.direction}
+            comparisonLabel={analyticsData?.growth?.comparisonLabel}
             onClick={() => navigate('/college-admin/reports')}
             clickable
           />
@@ -315,6 +350,9 @@ export default function CollegeAdminDashboard() {
             label="Moderation Actions"
             value={analyticsData?.reports?.resolved ?? 0}
             color="violet"
+            growthLabel={analyticsData?.growth?.resolved?.label}
+            growthDirection={analyticsData?.growth?.resolved?.direction}
+            comparisonLabel={analyticsData?.growth?.comparisonLabel}
           />
         </div>
         {lastUpdated && (
@@ -409,9 +447,9 @@ export default function CollegeAdminDashboard() {
               {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
             </span>
           </div>
-          {analyticsData?.postTrends && analyticsData.postTrends.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <RechartsLineChart data={analyticsData.postTrends}>
+          {(analyticsData?.activityTrends || analyticsData?.postTrends)?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <RechartsLineChart data={analyticsData.activityTrends || analyticsData.postTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
                 <XAxis 
                   dataKey="date" 
@@ -430,13 +468,24 @@ export default function CollegeAdminDashboard() {
                     fontSize: '12px'
                   }}
                 />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
                 <Line 
                   type="monotone" 
-                  dataKey="count" 
+                  dataKey="posts" 
+                  name="Posts"
                   stroke="#6366f1" 
                   strokeWidth={2}
-                  dot={{ fill: '#6366f1', r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ fill: '#6366f1', r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="comments" 
+                  name="Comments"
+                  stroke="#0ea5e9" 
+                  strokeWidth={2}
+                  dot={{ fill: '#0ea5e9', r: 3 }}
+                  activeDot={{ r: 5 }}
                 />
               </RechartsLineChart>
             </ResponsiveContainer>
@@ -452,14 +501,14 @@ export default function CollegeAdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Users size={20} className="text-emerald-600 dark:text-emerald-400" />
-              User Registrations
+              User Registrations & Growth
             </h2>
             <span className="text-xs text-slate-400 dark:text-gray-500">
               {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
             </span>
           </div>
           {analyticsData?.userTrends && analyticsData.userTrends.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
               <RechartsBarChart data={analyticsData.userTrends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
                 <XAxis 
@@ -479,8 +528,10 @@ export default function CollegeAdminDashboard() {
                     fontSize: '12px'
                   }}
                 />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
                 <Bar 
-                  dataKey="count" 
+                  dataKey="users" 
+                  name="New Users" 
                   fill="#10b981" 
                   radius={[4, 4, 0, 0]}
                 />
@@ -492,6 +543,66 @@ export default function CollegeAdminDashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Report & Moderation Trends */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <AlertTriangle size={20} className="text-amber-500" />
+            Report & Moderation Trends
+          </h2>
+          <span className="text-xs text-slate-400 dark:text-gray-500">
+            {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
+          </span>
+        </div>
+        {analyticsData?.moderationTrends && analyticsData.moderationTrends.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <RechartsLineChart data={analyticsData.moderationTrends}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                axisLine={{ stroke: '#e2e8f0' }}
+              />
+              <YAxis 
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                axisLine={{ stroke: '#e2e8f0' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
+              <Line 
+                type="monotone" 
+                dataKey="reports" 
+                name="Reports Filed" 
+                stroke="#f59e0b" 
+                strokeWidth={2}
+                dot={{ fill: '#f59e0b', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="resolved" 
+                name="Resolved / Dismissed" 
+                stroke="#10b981" 
+                strokeWidth={2}
+                dot={{ fill: '#10b981', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+            </RechartsLineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
+            No report or moderation trend data available for this period
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

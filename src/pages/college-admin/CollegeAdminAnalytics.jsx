@@ -65,7 +65,7 @@ export default function CollegeAdminAnalytics() {
     )
   }
 
-  const { users, content, reports, departmentDistribution, postTrends, userTrends, dateRange } = analytics
+  const { users, content, reports, departmentDistribution, postTrends, userTrends, dateRange, activityTrends, moderationTrends, growth } = analytics
 
   const formatLastUpdated = () => {
     if (!lastUpdated) return 'Never'
@@ -128,6 +128,9 @@ export default function CollegeAdminAnalytics() {
             value={users.total}
             icon={Users}
             color="indigo"
+            growthLabel={growth?.users?.label}
+            growthDirection={growth?.users?.direction}
+            comparisonLabel={growth?.comparisonLabel}
           />
           <MetricCard
             label="Active Users"
@@ -161,12 +164,18 @@ export default function CollegeAdminAnalytics() {
             value={content.totalPosts}
             icon={MessageSquare}
             color="indigo"
+            growthLabel={growth?.posts?.label}
+            growthDirection={growth?.posts?.direction}
+            comparisonLabel={growth?.comparisonLabel}
           />
           <MetricCard
             label="Total Comments"
             value={content.totalComments}
             icon={MessageSquare}
             color="blue"
+            growthLabel={growth?.comments?.label}
+            growthDirection={growth?.comments?.direction}
+            comparisonLabel={growth?.comparisonLabel}
           />
           <MetricCard
             label="Total Likes"
@@ -194,6 +203,9 @@ export default function CollegeAdminAnalytics() {
             value={reports.pending}
             icon={AlertTriangle}
             color="amber"
+            growthLabel={growth?.reports?.label}
+            growthDirection={growth?.reports?.direction}
+            comparisonLabel={growth?.comparisonLabel}
           />
           <MetricCard
             label="Reviewed"
@@ -206,6 +218,9 @@ export default function CollegeAdminAnalytics() {
             value={reports.resolved}
             icon={Shield}
             color="emerald"
+            growthLabel={growth?.resolved?.label}
+            growthDirection={growth?.resolved?.direction}
+            comparisonLabel={growth?.comparisonLabel}
           />
           <MetricCard
             label="Dismissed"
@@ -246,39 +261,59 @@ export default function CollegeAdminAnalytics() {
         </div>
       )}
 
-      {/* Post Trends Chart */}
-      {postTrends && postTrends.length > 0 && (
+      {/* Activity Trends Chart — Posts + Comments dual line */}
+      {(activityTrends?.length > 0 || postTrends?.length > 0) && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-indigo-600" /> Post Activity Over Time
+            <TrendingUp size={20} className="text-indigo-600" /> Post & Comment Activity Over Time
           </h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={postTrends}>
+              <LineChart data={activityTrends?.length > 0 ? activityTrends : postTrends}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
                 <XAxis
                   dataKey="date"
                   className="text-xs text-slate-500 dark:text-gray-500"
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  tickFormatter={(value) => {
+                    const d = new Date(value)
+                    return activityTrends?.length > 0 && period === 'today'
+                      ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  }}
                 />
-                <YAxis className="text-xs text-slate-500 dark:text-gray-500" />
+                <YAxis className="text-xs text-slate-500 dark:text-gray-500" allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #e2e8f0',
                     borderRadius: '8px',
                   }}
-                  labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                  labelFormatter={(value) => {
+                    const d = new Date(value)
+                    return period === 'today'
+                      ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                      : d.toLocaleDateString()
+                  }}
                 />
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="count"
+                  dataKey={activityTrends?.length > 0 ? 'posts' : 'count'}
                   stroke="#6366f1"
                   strokeWidth={2}
-                  dot={{ fill: '#6366f1', strokeWidth: 2 }}
+                  dot={false}
                   name="Posts"
                 />
+                {activityTrends?.length > 0 && (
+                  <Line
+                    type="monotone"
+                    dataKey="comments"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Comments"
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -300,7 +335,7 @@ export default function CollegeAdminAnalytics() {
                   className="text-xs text-slate-500 dark:text-gray-500"
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
-                <YAxis className="text-xs text-slate-500 dark:text-gray-500" />
+                <YAxis className="text-xs text-slate-500 dark:text-gray-500" allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
@@ -310,8 +345,65 @@ export default function CollegeAdminAnalytics() {
                   labelFormatter={(value) => new Date(value).toLocaleDateString()}
                 />
                 <Legend />
-                <Bar dataKey="count" fill="#10b981" name="New Users" />
+                <Bar dataKey="users" fill="#10b981" name="New Users" />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Moderation Trends Chart — Reports filed vs. resolved */}
+      {moderationTrends && moderationTrends.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <AlertTriangle size={20} className="text-amber-500" /> Report & Moderation Trends
+          </h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={moderationTrends}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs text-slate-500 dark:text-gray-500"
+                  tickFormatter={(value) => {
+                    const d = new Date(value)
+                    return period === 'today'
+                      ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                      : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  }}
+                />
+                <YAxis className="text-xs text-slate-500 dark:text-gray-500" allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                  }}
+                  labelFormatter={(value) => {
+                    const d = new Date(value)
+                    return period === 'today'
+                      ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                      : d.toLocaleDateString()
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="reports"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Reports Filed"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="resolved"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Resolved"
+                />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -320,7 +412,7 @@ export default function CollegeAdminAnalytics() {
   )
 }
 
-function MetricCard({ label, value, icon: Icon, color }) {
+function MetricCard({ label, value, icon: Icon, color, growthLabel, growthDirection, comparisonLabel }) {
   const colorClasses = {
     indigo: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
     emerald: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
@@ -333,13 +425,34 @@ function MetricCard({ label, value, icon: Icon, color }) {
   const colors = colorClasses[color] || colorClasses.indigo
 
   return (
-    <div className={`bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-5`}>
+    <div className={`bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-5 hover:shadow-sm transition-all`}>
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{value.toLocaleString()}</p>
+        <div className="min-w-0">
+          <p className="text-xs text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1 truncate">{label}</p>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              {typeof value === 'number' ? value.toLocaleString() : (value ?? 0)}
+            </p>
+            {growthLabel && (
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                  growthDirection === 'up'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                    : growthDirection === 'down'
+                    ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}
+                title={comparisonLabel || 'vs previous period'}
+              >
+                {growthLabel}
+              </span>
+            )}
+          </div>
+          {comparisonLabel && (
+            <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1 truncate">{comparisonLabel}</p>
+          )}
         </div>
-        <div className={`p-2 rounded-lg border ${colors}`}>
+        <div className={`p-2 rounded-lg border ${colors} flex-shrink-0`}>
           <Icon size={20} />
         </div>
       </div>
