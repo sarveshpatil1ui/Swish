@@ -503,7 +503,7 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin'), requir
     await Department.findByIdAndDelete(id)
 
     // Invalidate department cache
-    await invalidateDepartmentCache(req.user.collegeId)
+    await delPattern(cacheKey('departments', 'by-domain', '*'))
 
     res.json({ ok: true, message: 'Department deleted successfully.' })
   } catch (err) {
