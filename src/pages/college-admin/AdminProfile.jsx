@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Briefcase, Building2, Save, Edit2, Lock, Shield, Camera, Trash2, Upload } from 'lucide-react'
+import {
+  User, Mail, Briefcase, Building2, Save, Edit2, Lock, Shield,
+  Camera, Trash2, Upload, Laptop, Smartphone, Tablet, Monitor,
+  Globe, LogOut, CheckCircle2, AlertCircle, RefreshCw, Clock
+} from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiChangePassword, apiUpdateProfile, apiUploadProfilePhoto, apiRemoveProfilePhoto } from '../../utils/auth'
+import {
+  apiChangePassword,
+  apiUpdateProfile,
+  apiUploadProfilePhoto,
+  apiRemoveProfilePhoto,
+  apiGetSessions,
+  apiRevokeOtherSessions,
+  apiRevokeSession,
+} from '../../utils/auth'
 
 export default function AdminProfile() {
   const { currentUser, setCurrentUser } = useSwish()
@@ -22,6 +34,77 @@ export default function AdminProfile() {
   })
   const [errors, setErrors] = useState({})
   const [successMessage, setSuccessMessage] = useState('')
+
+  // ── Active Sessions & Device State ─────────────────────────────────────────
+  const [sessions, setSessions] = useState([])
+  const [loadingSessions, setLoadingSessions] = useState(true)
+  const [revokingSessionId, setRevokingSessionId] = useState(null)
+  const [terminatingOthers, setTerminatingOthers] = useState(false)
+  const [sessionError, setSessionError] = useState(null)
+
+  const fetchSessions = async () => {
+    try {
+      setLoadingSessions(true)
+      setSessionError(null)
+      const res = await apiGetSessions()
+      if (res.ok && Array.isArray(res.sessions)) {
+        setSessions(res.sessions)
+      } else {
+        setSessionError(res.error || 'Failed to load active sessions')
+      }
+    } catch (err) {
+      console.error('[AdminProfile] Error fetching sessions:', err)
+      setSessionError('Failed to load active sessions')
+    } finally {
+      setLoadingSessions(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSessions()
+  }, [])
+
+  const handleRevokeSession = async (sessionId) => {
+    if (!sessionId) return
+    setRevokingSessionId(sessionId)
+    try {
+      const res = await apiRevokeSession(sessionId)
+      if (res.ok) {
+        setSuccessMessage('Session revoked successfully')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        await fetchSessions()
+      } else {
+        setSessionError(res.error || 'Failed to revoke session')
+      }
+    } catch (err) {
+      console.error('[AdminProfile] Error revoking session:', err)
+      setSessionError('Failed to revoke session')
+    } finally {
+      setRevokingSessionId(null)
+    }
+  }
+
+  const handleTerminateOtherSessions = async () => {
+    if (!confirm('Are you sure you want to terminate all other active sessions and remembered devices? Your current session will remain active.')) {
+      return
+    }
+    setTerminatingOthers(true)
+    try {
+      const res = await apiRevokeOtherSessions()
+      if (res.ok) {
+        setSuccessMessage('All other active sessions have been terminated')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        await fetchSessions()
+      } else {
+        setSessionError(res.error || 'Failed to terminate other sessions')
+      }
+    } catch (err) {
+      console.error('[AdminProfile] Error terminating other sessions:', err)
+      setSessionError('Failed to terminate other sessions')
+    } finally {
+      setTerminatingOthers(false)
+    }
+  }
 
   useEffect(() => {
     if (currentUser) {
@@ -411,6 +494,139 @@ export default function AdminProfile() {
                   </button>
                 </div>
               </form>
+            )}
+          </div>
+
+          {/* Active Sessions & Devices Section */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Monitor size={18} className="text-indigo-600 dark:text-indigo-400" />
+                  Active Sessions & Devices
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                  Devices and locations where your administrator account is currently active.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchSessions}
+                  disabled={loadingSessions}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-200 dark:border-slate-700 disabled:opacity-50"
+                  title="Refresh active sessions"
+                >
+                  <RefreshCw size={13} className={loadingSessions ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+
+                {sessions.some((s) => !s.isCurrent) && (
+                  <button
+                    type="button"
+                    onClick={handleTerminateOtherSessions}
+                    disabled={terminatingOthers}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors border border-rose-200 dark:border-rose-900/60 disabled:opacity-50"
+                  >
+                    <LogOut size={13} />
+                    <span>{terminatingOthers ? 'Terminating...' : 'Terminate Other Sessions'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {sessionError && (
+              <div className="mb-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl p-3 flex items-center gap-2 text-rose-700 dark:text-rose-400 text-xs">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                <span>{sessionError}</span>
+              </div>
+            )}
+
+            {loadingSessions && sessions.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+                <p className="text-xs text-slate-400">Loading active sessions...</p>
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                <Monitor size={24} className="mx-auto text-slate-400 dark:text-gray-500 mb-1" />
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">No other active sessions detected.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {sessions.map((s) => {
+                  const isMobile = s.deviceType === 'mobile'
+                  const isTablet = s.deviceType === 'tablet'
+                  const DeviceIcon = isMobile ? Smartphone : isTablet ? Tablet : Monitor
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
+                        s.isCurrent
+                          ? 'bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200/80 dark:border-indigo-800/60'
+                          : 'bg-slate-50/70 dark:bg-slate-800/50 border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            s.isCurrent
+                              ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          <DeviceIcon size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {s.deviceName || `${s.browser} on ${s.os}`}
+                            </p>
+                            {s.isCurrent && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Current Session
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-gray-400 flex-wrap">
+                            <span className="flex items-center gap-1 font-mono text-[11px]">
+                              {s.ipAddress}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Globe size={11} className="text-slate-400" />
+                              {s.location || 'Local Network'}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={11} className="text-slate-400" />
+                              {s.isCurrent ? 'Active now' : `Last active: ${new Date(s.lastActivity).toLocaleDateString()} ${new Date(s.lastActivity).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {!s.isCurrent && (
+                        <div className="sm:self-center flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeSession(s.id)}
+                            disabled={revokingSessionId === s.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg border border-rose-200 dark:border-rose-900/60 transition-colors disabled:opacity-50"
+                          >
+                            <LogOut size={12} />
+                            <span>{revokingSessionId === s.id ? 'Revoking...' : 'Revoke'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         </div>

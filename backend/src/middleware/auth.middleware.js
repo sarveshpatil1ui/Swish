@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import College from '../models/College.js'
+import Session from '../models/Session.js'
+import { hashToken, touchSession } from '../services/session.service.js'
 import { getPlatformConfig } from '../services/platform-config.service.js'
 
 // In-process TTL cache: domain -> { active, expiresAt }
@@ -47,6 +49,52 @@ export async function requireAuth(req, res, next) {
         ? 'Session expired. Please log in again.'
         : 'Invalid session. Please log in again.'
       return res.status(401).json({ ok: false, error: msg })
+    }
+
+    // ── Session Revocation & Expiration Check ────────────────────────────────
+    let session = null
+    if (payload.sid) {
+      session = await Session.findById(payload.sid)
+      if (!session || !session.isActive) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Session has been revoked. Please log in again.',
+          revoked: true,
+        })
+      }
+      if (session.expiresAt && session.expiresAt < new Date()) {
+        return res.status(401).json({
+          ok: false,
+          error: 'Session expired. Please log in again.',
+          expired: true,
+        })
+      }
+      req.sessionId = payload.sid
+      req.session = session
+      touchSession(payload.sid, req).catch(() => {})
+    } else {
+      // Synthetic or legacy token without payload.sid: check tokenHash in DB
+      const tokenHash = hashToken(token)
+      session = await Session.findOne({ tokenHash })
+      if (session) {
+        if (!session.isActive) {
+          return res.status(401).json({
+            ok: false,
+            error: 'Session has been revoked. Please log in again.',
+            revoked: true,
+          })
+        }
+        if (session.expiresAt && session.expiresAt < new Date()) {
+          return res.status(401).json({
+            ok: false,
+            error: 'Session expired. Please log in again.',
+            expired: true,
+          })
+        }
+        req.sessionId = session._id.toString()
+        req.session = session
+        touchSession(session._id, req).catch(() => {})
+      }
     }
 
     const user = await User.findById(payload.sub)

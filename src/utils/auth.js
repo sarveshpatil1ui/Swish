@@ -737,6 +737,27 @@ export async function apiTerminateOtherSessions() {
   return apiFetch('/api/admin/sessions/terminate-others', { method: 'POST' })
 }
 
+export async function apiGetSessions() {
+  return apiFetch('/api/auth/sessions')
+}
+
+export async function apiRevokeOtherSessions() {
+  return apiFetch('/api/auth/sessions/revoke-others', { method: 'POST' })
+}
+
+export async function apiRevokeSession(sessionId) {
+  return apiFetch(`/api/auth/sessions/${sessionId}`, { method: 'DELETE' })
+}
+
+export async function apiRefreshToken(refreshToken = null) {
+  const body = refreshToken ? { refreshToken } : undefined
+  const data = await apiFetch('/api/auth/refresh-token', { method: 'POST', body })
+  if (data.ok && data.token) {
+    setStoredToken(data.token)
+  }
+  return data
+}
+
 export async function apiGetSystemHealth() {
   return apiFetch('/api/health')
 }

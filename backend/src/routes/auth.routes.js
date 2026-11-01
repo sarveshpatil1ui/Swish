@@ -9,6 +9,17 @@ import rateLimit from 'express-rate-limit'
 import User from '../models/User.js'
 import College from '../models/College.js'
 import Department from '../models/Department.js'
+import Session from '../models/Session.js'
+import {
+  createSession,
+  setSessionCookies,
+  clearSessionCookies,
+  rotateSessionToken,
+  listUserSessions,
+  revokeSession,
+  revokeOtherSessions,
+  hashToken,
+} from '../services/session.service.js'
 import { requireAuth, isCollegeActive } from '../middleware/auth.middleware.js'
 import { sendOtpEmail, sendPasswordResetOtpEmail, sendPasswordChangedEmail } from '../services/email.service.js'
 import {
@@ -160,10 +171,11 @@ function avatarColorForRole(role) {
  * Issue a JWT and set it as an httpOnly cookie on the response.
  * @param {import('express').Response} res
  * @param {import('mongoose').Document} user Mongoose user document
+ * @param {string|null} sessionId
  */
-function setAuthCookie(res, user) {
+function setAuthCookie(res, user, sessionId = null) {
   const token = jwt.sign(
-    { sub: user._id.toString(), role: user.role },
+    { sub: user._id.toString(), role: user.role, ...(sessionId ? { sid: sessionId.toString() } : {}) },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   )
@@ -459,11 +471,14 @@ router.post(
       user.otpAttempts     = 0
       await user.save()
 
-      const token = setAuthCookie(res, user)
+      const { session, token, refreshToken } = await createSession(user, req)
+      setSessionCookies(res, token, refreshToken)
 
       return res.status(200).json({
         ok: true,
         token,
+        refreshToken,
+        sessionId: session._id.toString(),
         user: user.toJSON(),
         redirectTo: redirectPathForUser(user),
       })
@@ -658,11 +673,14 @@ router.post(
         })
       }
 
-      const token = setAuthCookie(res, user)
+      const { session, token, refreshToken } = await createSession(user, req)
+      setSessionCookies(res, token, refreshToken)
 
       return res.status(200).json({
         ok: true,
         token,
+        refreshToken,
+        sessionId: session._id.toString(),
         user: user.toJSON(),
         mustChangePassword: user.mustChangePassword,
         redirectTo: redirectPathForUser(user),
@@ -683,15 +701,26 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 })
 
-router.post('/logout', (_req, res) => {
-  res.clearCookie('swish_token', {
-    httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
-    // MUST match the sameSite value used in setAuthCookie:
-    // 'none' in production (cross-origin Firebase→Render), 'lax' in dev.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path:     '/',
-  })
+router.post('/logout', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const token = req.cookies?.swish_token || bearerToken
+    if (token) {
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET)
+        if (payload?.sid) {
+          await Session.updateOne({ _id: payload.sid }, { $set: { isActive: false, revokedAt: new Date() } })
+        } else {
+          const tokenHash = hashToken(token)
+          await Session.updateOne({ tokenHash }, { $set: { isActive: false, revokedAt: new Date() } })
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.error('[POST /logout]', err)
+  }
+  clearSessionCookies(res)
   return res.status(200).json({ ok: true, message: 'Logged out successfully.' })
 })
 
@@ -733,8 +762,15 @@ router.post(
       user.isDemo = false
       await user.save()
 
-      // Refresh auth cookie and return fresh token so current user session stays valid
-      const token = setAuthCookie(res, user)
+      // Invalidate all previous active sessions for security
+      await Session.updateMany(
+        { userId: user._id, isActive: true },
+        { $set: { isActive: false, revokedAt: new Date() } }
+      )
+
+      // Create fresh session and refresh token for current client
+      const { session, token, refreshToken } = await createSession(user, req)
+      setSessionCookies(res, token, refreshToken)
 
       // Send confirmation email
       try {
@@ -743,13 +779,92 @@ router.post(
         console.error('[change-password sendPasswordChangedEmail failed]', mErr.message)
       }
 
-      return res.status(200).json({ ok: true, token, message: 'Password changed successfully.' })
+      return res.status(200).json({
+        ok: true,
+        token,
+        refreshToken,
+        sessionId: session._id.toString(),
+        message: 'Password changed successfully.',
+      })
     } catch (err) {
       console.error('[POST /change-password]', err)
       res.status(500).json({ ok: false, error: 'Failed to change password.' })
     }
   }
 )
+
+// ── REFRESH TOKEN (Secure Rotation) ──────────────────────────────────────────
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const rawRefreshToken = req.cookies?.swish_refresh_token || req.body?.refreshToken
+    if (!rawRefreshToken) {
+      return res.status(401).json({ ok: false, error: 'Refresh token is required.' })
+    }
+
+    const result = await rotateSessionToken(rawRefreshToken, req)
+    if (!result) {
+      clearSessionCookies(res)
+      return res.status(401).json({ ok: false, error: 'Invalid or expired refresh token. Please log in again.' })
+    }
+
+    setSessionCookies(res, result.token, result.refreshToken)
+
+    return res.status(200).json({
+      ok: true,
+      token: result.token,
+      refreshToken: result.refreshToken,
+      sessionId: result.session._id.toString(),
+      user: result.user.toJSON(),
+    })
+  } catch (err) {
+    console.error('[POST /refresh-token]', err)
+    return res.status(500).json({ ok: false, error: 'Failed to refresh token.' })
+  }
+})
+
+// ── SESSIONS MANAGEMENT ──────────────────────────────────────────────────────
+router.get('/sessions', requireAuth, async (req, res) => {
+  try {
+    const sessions = await listUserSessions(req.user._id, req.sessionId)
+    return res.status(200).json({ ok: true, sessions })
+  } catch (err) {
+    console.error('[GET /api/auth/sessions]', err)
+    return res.status(500).json({ ok: false, error: 'Failed to retrieve active sessions.' })
+  }
+})
+
+router.post('/sessions/revoke-others', requireAuth, async (req, res) => {
+  try {
+    const revokedCount = await revokeOtherSessions(req.user._id, req.sessionId)
+    return res.status(200).json({
+      ok: true,
+      message: 'All other active sessions have been revoked.',
+      revokedCount,
+    })
+  } catch (err) {
+    console.error('[POST /api/auth/sessions/revoke-others]', err)
+    return res.status(500).json({ ok: false, error: 'Failed to revoke other sessions.' })
+  }
+})
+
+router.delete('/sessions/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const { sessionId } = req.params
+    const success = await revokeSession(sessionId, req.user._id)
+    if (!success) {
+      return res.status(404).json({ ok: false, error: 'Session not found or access denied.' })
+    }
+
+    if (req.sessionId && req.sessionId.toString() === sessionId.toString()) {
+      clearSessionCookies(res)
+    }
+
+    return res.status(200).json({ ok: true, message: 'Session revoked successfully.' })
+  } catch (err) {
+    console.error('[DELETE /api/auth/sessions/:sessionId]', err)
+    return res.status(500).json({ ok: false, error: 'Failed to revoke session.' })
+  }
+})
 
 // ── FORGOT PASSWORD (STEP 1: Request OTP) ────────────────────────────────────
 router.post(

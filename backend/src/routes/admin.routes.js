@@ -15,6 +15,12 @@ import {sendCollegeAdminCredentialsEmail,sendCollegeRegistrationRejectedEmail,} 
 import { getSignedProofUrl } from '../services/cloudinary.service.js'
 import { del, cacheKey } from '../services/cache.service.js'
 import { logActivity } from '../services/activity-log.service.js'
+import {
+  listUserSessions,
+  revokeSession,
+  revokeOtherSessions,
+  clearSessionCookies,
+} from '../services/session.service.js'
 const router = express.Router()
 
 const COLLEGES_LIST_KEY = cacheKey('colleges', 'list')
@@ -1194,18 +1200,21 @@ router.delete(
 router.post(
   '/sessions/terminate-others',
   requireAuth,
-  requireRole('admin'),
+  requireRole('admin', 'college_admin', 'main_admin'),
   async (req, res) => {
     try {
+      const revokedCount = await revokeOtherSessions(req.user._id, req.sessionId)
+
       // Create an internal admin notification for security log
       try {
         const notif = await AdminNotification.create({
           type: 'admin_security',
           title: 'Admin Sessions Terminated',
-          message: `Super Admin (${req.user.email}) terminated all other active sessions and remembered devices.`,
+          message: `Admin (${req.user.email}) terminated ${revokedCount} other active session(s) and remembered devices.`,
           metadata: {
             adminId: req.user._id.toString(),
             action: 'terminate_other_sessions',
+            revokedCount,
             timestamp: new Date().toISOString(),
           },
         })
@@ -1217,11 +1226,53 @@ router.post(
       return res.status(200).json({
         ok: true,
         message: 'All other active sessions and remembered devices have been invalidated.',
+        revokedCount,
         terminatedAt: new Date().toISOString(),
       })
     } catch (err) {
       console.error('[POST /api/admin/sessions/terminate-others]', err)
       return res.status(500).json({ ok: false, error: 'Failed to terminate other sessions.' })
+    }
+  }
+)
+
+// ── GET /api/admin/sessions ──────────────────────────────────────────────────
+// Returns the active sessions of the requesting admin
+router.get(
+  '/sessions',
+  requireAuth,
+  requireRole('admin', 'college_admin', 'main_admin'),
+  async (req, res) => {
+    try {
+      const sessions = await listUserSessions(req.user._id, req.sessionId)
+      return res.status(200).json({ ok: true, sessions })
+    } catch (err) {
+      console.error('[GET /api/admin/sessions]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to retrieve active sessions.' })
+    }
+  }
+)
+
+// ── DELETE /api/admin/sessions/:sessionId ────────────────────────────────────
+// Revoke a specific session of the requesting admin
+router.delete(
+  '/sessions/:sessionId',
+  requireAuth,
+  requireRole('admin', 'college_admin', 'main_admin'),
+  async (req, res) => {
+    try {
+      const { sessionId } = req.params
+      const success = await revokeSession(sessionId, req.user._id)
+      if (!success) {
+        return res.status(404).json({ ok: false, error: 'Session not found or access denied.' })
+      }
+      if (req.sessionId && req.sessionId.toString() === sessionId.toString()) {
+        clearSessionCookies(res)
+      }
+      return res.status(200).json({ ok: true, message: 'Session revoked successfully.' })
+    } catch (err) {
+      console.error('[DELETE /api/admin/sessions/:sessionId]', err)
+      return res.status(500).json({ ok: false, error: 'Failed to revoke session.' })
     }
   }
 )
