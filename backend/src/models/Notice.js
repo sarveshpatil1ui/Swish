@@ -46,14 +46,20 @@ const NoticeSchema = new Schema(
     }], // Cloudinary attachment metadata
     idempotencyKey: {
       type: String,
-      default: null,
       trim: true,
-      index: { unique: true, sparse: true }
     },
   },
   { timestamps: true }
 )
 
+NoticeSchema.index(
+  { idempotencyKey: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { idempotencyKey: { $type: 'string' } },
+  }
+)
 NoticeSchema.index({ collegeId: 1, published: 1, createdAt: -1 })
 NoticeSchema.index({ collegeId: 1, expiresAt: 1 })
 NoticeSchema.index({ collegeId: 1, published: 1, pinned: -1, createdAt: -1 })

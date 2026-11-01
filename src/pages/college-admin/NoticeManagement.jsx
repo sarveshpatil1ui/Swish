@@ -175,7 +175,20 @@ export default function NoticeManagement() {
 
     try {
       const idempotencyKey = `notice_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      const res = await apiCreateNotice({ ...formData, idempotencyKey })
+      const payload = {
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        targetAudience: formData.targetAudience,
+        priority: formData.priority,
+        category: formData.category,
+        published: Boolean(formData.published),
+        ...(formData.departmentId ? { departmentId: formData.departmentId } : {}),
+        ...(formData.department ? { department: formData.department } : {}),
+        ...(formData.expiresAt ? { expiresAt: formData.expiresAt } : {}),
+        idempotencyKey,
+      }
+
+      const res = await apiCreateNotice(payload)
       if (res.ok && res.notice) {
         setNotices(prev => {
           const newNotice = res.notice
@@ -191,9 +204,11 @@ export default function NoticeManagement() {
         resetForm()
       } else {
         console.error('[NoticeManagement] Failed to create notice:', res.error)
+        setErrors({ submit: res.error || 'Failed to create notice. Please try again.' })
       }
     } catch (err) {
       console.error('[NoticeManagement] Error creating notice:', err)
+      setErrors({ submit: err?.message || 'Network error while creating notice.' })
     } finally {
       isSubmittingRef.current = false
       setIsSubmitting(false)
@@ -217,17 +232,31 @@ export default function NoticeManagement() {
     setIsSubmitting(true)
 
     const noticeId = (editingNotice.id || editingNotice._id)?.toString()
+    const payload = {
+      title: formData.title.trim(),
+      content: formData.content.trim(),
+      targetAudience: formData.targetAudience,
+      priority: formData.priority,
+      category: formData.category,
+      published: Boolean(formData.published),
+      departmentId: formData.departmentId || null,
+      department: formData.department || null,
+      expiresAt: formData.expiresAt || null,
+    }
+
     try {
-      const res = await apiUpdateNotice(noticeId, formData)
+      const res = await apiUpdateNotice(noticeId, payload)
       if (res.ok && res.notice) {
         setNotices(prev => prev.map(n => ((n.id || n._id)?.toString() === noticeId ? res.notice : n)))
         setEditingNotice(null)
         resetForm()
       } else {
         console.error('[NoticeManagement] Failed to update notice:', res.error)
+        setErrors({ submit: res.error || 'Failed to update notice.' })
       }
     } catch (err) {
       console.error('[NoticeManagement] Error updating notice:', err)
+      setErrors({ submit: err?.message || 'Network error while updating notice.' })
     } finally {
       isSubmittingRef.current = false
       setIsSubmitting(false)
@@ -252,10 +281,11 @@ export default function NoticeManagement() {
   const handlePublish = async (id) => {
     try {
       const res = await apiPublishNotice(id)
-      if (res.ok) {
-        setNotices(prev => prev.map(n => (n.id === id || n._id === id) ? res.notice : n))
+      if (res.ok && res.notice) {
+        setNotices(prev => prev.map(n => ((n.id || n._id)?.toString() === id?.toString()) ? res.notice : n))
       } else {
         console.error('[NoticeManagement] Failed to toggle publish status:', res.error)
+        alert(res.error || 'Failed to toggle notice publish status.')
       }
     } catch (err) {
       console.error('[NoticeManagement] Error toggling publish:', err)
@@ -465,6 +495,11 @@ export default function NoticeManagement() {
             {editingNotice ? 'Edit Notice' : 'Create New Notice'}
           </h2>
           <form onSubmit={editingNotice ? handleUpdate : handleAdd} className="space-y-4">
+            {errors.submit && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-medium">
+                {errors.submit}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Title</label>
               <input

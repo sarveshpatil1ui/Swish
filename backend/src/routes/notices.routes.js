@@ -261,7 +261,7 @@ router.post(
     body('content').trim().notEmpty().withMessage('Notice content is required.'),
     body('targetAudience').optional().isIn(['all', 'students', 'faculty', 'department']),
     body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
-    body('expiresAt').optional().isISO8601().withMessage('Invalid expiration date format.'),
+    body('expiresAt').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid expiration date format.'),
   ],
   async (req, res) => {
     const validationError = handleValidationErrors(req, res)
@@ -271,11 +271,13 @@ router.post(
       const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
 
       // Validate expiresAt is in the future if provided
-      if (expiresAt) {
+      let validExpiresAt = null
+      if (expiresAt && typeof expiresAt === 'string' && expiresAt.trim()) {
         const expiryDate = new Date(expiresAt)
-        if (expiryDate <= new Date()) {
+        if (isNaN(expiryDate.getTime()) || expiryDate <= new Date()) {
           return res.status(400).json({ ok: false, error: 'Expiration date must be in the future.' })
         }
+        validExpiresAt = expiryDate
       }
 
       // Never trust client-supplied collegeId: strictly use authenticated admin's collegeId
@@ -363,7 +365,7 @@ router.post(
 
       let notice
       try {
-        notice = await Notice.create({
+        const noticeData = {
           title: title.trim(),
           content: content.trim(),
           collegeId: targetCollegeId,
@@ -372,13 +374,16 @@ router.post(
           department: department || null,
           targetAudience: targetAudience || 'all',
           priority: priority || 'medium',
-          published: published || false,
+          published: Boolean(published),
           publishedAt: published ? new Date() : null,
-          expiresAt: expiresAt || null,
+          expiresAt: validExpiresAt,
           createdBy: req.user._id,
           attachments,
-          idempotencyKey,
-        })
+        }
+        if (idempotencyKey) {
+          noticeData.idempotencyKey = idempotencyKey
+        }
+        notice = await Notice.create(noticeData)
       } catch (createErr) {
         // Handle concurrent race condition on unique idempotencyKey
         if (idempotencyKey && (createErr.code === 11000 || createErr.name === 'MongoServerError')) {
@@ -627,7 +632,13 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin', 
   try {
     const filter = req.user.role === 'admin' 
       ? { _id: req.params.id }
-      : { _id: req.params.id, collegeId: req.collegeId }
+      : {
+          _id: req.params.id,
+          $or: [
+            { collegeId: req.collegeId },
+            { collegeId: req.collegeId.toString() }
+          ]
+        }
     
     const notice = await Notice.findOne(filter)
     if (!notice) {
@@ -643,6 +654,10 @@ router.patch('/:id/publish', requireAuth, requireRole('admin', 'college_admin', 
       notice.publishedAt = new Date()
     }
     await notice.save()
+
+    if (notice.published) {
+      await notifyNoticeAudience(notice, req.user._id)
+    }
 
     // Log the action
     await logActivity({

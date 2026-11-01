@@ -155,4 +155,25 @@ describe('Notice Deduplication & Idempotency Safeguards', () => {
     assert.equal(unique.length, 3)
     assert.deepEqual(unique.map(n => n.id), [id1, id2, id3])
   })
+
+  it('6. Notice schema has partialFilterExpression on idempotencyKey allowing multiple non-keyed notices', async () => {
+    const Notice = (await import('../src/models/Notice.js')).default
+    const indexes = Notice.schema.indexes()
+    const idempotencyIndex = indexes.find(idx => idx[0]?.idempotencyKey)
+
+    assert.ok(idempotencyIndex, 'idempotencyKey index must exist')
+    assert.equal(idempotencyIndex[1]?.unique, true, 'idempotencyKey index must be unique')
+    assert.equal(idempotencyIndex[1]?.sparse, true, 'idempotencyKey index must be sparse')
+    assert.deepEqual(
+      idempotencyIndex[1]?.partialFilterExpression,
+      { idempotencyKey: { $type: 'string' } },
+      'idempotencyKey index must use partialFilterExpression for strings only'
+    )
+    assert.equal(
+      Notice.schema.paths.idempotencyKey.defaultValue,
+      undefined,
+      'idempotencyKey must not have default null'
+    )
+  })
 })
+
