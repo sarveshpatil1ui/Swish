@@ -769,7 +769,7 @@ Swish includes a complete QA specification covering all 4 user tiers, real-time 
 
 ## 👥 Contributors & Maintainers
 
-* **Sarvesh Patil** — Project Architect & Full-Stack Lead
+* **Sarvesh Patil** — Project Architect & Full-Stack Lead (Team Leader)
 * **Dhruv Nayak** — Core Developer & QA Lead
 * **Mandar Rajadhyaksha** — Innovation & Core Development Lead
 
