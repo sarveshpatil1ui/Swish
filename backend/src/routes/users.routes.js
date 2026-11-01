@@ -1526,4 +1526,298 @@ router.patch('/students/:id/suspend', requireAuth, requireRole('admin', 'college
   }
 })
 
+// ── POST /api/faculty/invite ───────────────────────────────────────────────────
+// Invite a faculty member via email
+router.post('/faculty/invite', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const { email, name, departmentId, designation } = req.body
+
+    if (!email || !name) {
+      return res.status(400).json({ ok: false, error: 'Email and name are required.' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const trimmedName = name.trim()
+
+    const collegeId = req.user.collegeId
+    if (!collegeId && req.user.role === 'college_admin') {
+      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    }
+
+    const targetCollegeId = req.user.role === 'admin' ? (req.body.collegeId || collegeId) : collegeId
+    if (!targetCollegeId) {
+      return res.status(400).json({ ok: false, error: 'College ID is required.' })
+    }
+
+    const college = await College.findById(targetCollegeId)
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    // Validate email domain matches college domain
+    const emailDomain = normalizedEmail.split('@')[1]
+    if (emailDomain !== college.domain.toLowerCase()) {
+      return res.status(400).json({
+        ok: false,
+        error: `Email domain @${emailDomain} does not match college domain @${college.domain}`
+      })
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: normalizedEmail })
+    if (existingUser) {
+      return res.status(409).json({ ok: false, error: 'A user with this email already exists.' })
+    }
+
+    // Validate department if provided
+    let departmentIdObj = null
+    let deptName = ''
+    if (departmentId) {
+      const department = await Department.findById(departmentId)
+      if (!department || !department.collegeId.equals(targetCollegeId)) {
+        return res.status(404).json({ ok: false, error: 'Department not found in this college.' })
+      }
+      departmentIdObj = department._id
+      deptName = department.name
+    }
+
+    // Generate invitation token (expires in 7 days)
+    const invitationToken = crypto.randomBytes(32).toString('hex')
+    const invitationTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+    const initials = trimmedName
+      .split(/\s+/)
+      .map(word => word[0] || '')
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+
+    const faculty = await User.create({
+      name: trimmedName,
+      username: normalizedEmail,
+      initials,
+      avatarColor: '#6366f1',
+      email: normalizedEmail,
+      passwordHash: '', // Will be set when they accept invitation
+      role: 'faculty',
+      isEmailVerified: false,
+      college: college.name,
+      collegeId: targetCollegeId,
+      dept: deptName,
+      departmentId: departmentIdObj,
+      designation: designation?.trim() || '',
+      deactivated: false,
+      suspended: false,
+      invitationToken,
+      invitationTokenExpiresAt,
+      invitationStatus: 'pending',
+      invitedBy: req.user._id,
+      invitedAt: new Date(),
+      mustChangePassword: true,
+    })
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: targetCollegeId,
+      college: college.name,
+      actionType: 'faculty_invited',
+      resourceType: 'user',
+      resourceId: faculty._id,
+      resourceName: trimmedName,
+      details: `Invited faculty member: ${normalizedEmail}`,
+      ipAddress: req.ip,
+    })
+
+    // TODO: Send invitation email with token
+
+    res.status(201).json({
+      ok: true,
+      message: 'Faculty invitation sent successfully.',
+      faculty: {
+        id: faculty._id.toString(),
+        name: faculty.name,
+        email: faculty.email,
+        invitationStatus: faculty.invitationStatus,
+        invitedAt: faculty.invitedAt,
+      }
+    })
+  } catch (err) {
+    console.error('[POST /api/faculty/invite] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to send faculty invitation.' })
+  }
+})
+
+// ── GET /api/faculty/invitations ─────────────────────────────────────────────────
+// List faculty invitations with pagination and filtering
+router.get('/faculty/invitations', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const collegeId = req.user.collegeId
+    if (!collegeId && req.user.role === 'college_admin') {
+      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    }
+
+    const targetCollegeId = req.user.role === 'admin' ? (req.query.collegeId || collegeId) : collegeId
+    if (!targetCollegeId) {
+      return res.status(400).json({ ok: false, error: 'College ID is required.' })
+    }
+
+    const { status, limit = 50, skip = 0 } = req.query
+
+    const filter = { collegeId: targetCollegeId, role: 'faculty' }
+    if (status) {
+      filter.invitationStatus = status
+    }
+
+    const invitations = await User.find(filter)
+      .populate('invitedBy', 'name email')
+      .sort({ invitedAt: -1 })
+      .limit(Number(limit))
+      .skip(Number(skip))
+      .lean()
+
+    const total = await User.countDocuments(filter)
+
+    res.json({
+      ok: true,
+      invitations: invitations.map(f => ({
+        id: f._id.toString(),
+        name: f.name,
+        email: f.email,
+        designation: f.designation || '',
+        dept: f.dept || '',
+        invitationStatus: f.invitationStatus,
+        invitedAt: f.invitedAt,
+        invitedBy: f.invitedBy ? {
+          id: f.invitedBy._id.toString(),
+          name: f.invitedBy.name,
+          email: f.invitedBy.email
+        } : null,
+        invitationTokenExpiresAt: f.invitationTokenExpiresAt
+      })),
+      total,
+      limit: Number(limit),
+      skip: Number(skip)
+    })
+  } catch (err) {
+    console.error('[GET /api/faculty/invitations] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch faculty invitations.' })
+  }
+})
+
+// ── POST /api/faculty/accept-invitation ───────────────────────────────────────────
+// Accept faculty invitation with token and set password
+router.post('/faculty/accept-invitation', async (req, res) => {
+  try {
+    const { token, password } = req.body
+
+    if (!token || !password) {
+      return res.status(400).json({ ok: false, error: 'Token and password are required.' })
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 8 characters.' })
+    }
+
+    const faculty = await User.findOne({ invitationToken: token, invitationStatus: 'pending' })
+    if (!faculty) {
+      return res.status(404).json({ ok: false, error: 'Invalid or expired invitation token.' })
+    }
+
+    if (faculty.invitationTokenExpiresAt && new Date() > faculty.invitationTokenExpiresAt) {
+      faculty.invitationStatus = 'expired'
+      await faculty.save()
+      return res.status(400).json({ ok: false, error: 'Invitation has expired.' })
+    }
+
+    // Set password and mark as accepted
+    const passwordHash = await bcrypt.hash(password, 12)
+    faculty.passwordHash = passwordHash
+    faculty.invitationStatus = 'accepted'
+    faculty.invitationToken = null
+    faculty.invitationTokenExpiresAt = null
+    faculty.isEmailVerified = true
+    await faculty.save()
+
+    res.json({
+      ok: true,
+      message: 'Invitation accepted successfully. You can now log in.',
+      faculty: {
+        id: faculty._id.toString(),
+        name: faculty.name,
+        email: faculty.email,
+      }
+    })
+  } catch (err) {
+    console.error('[POST /api/faculty/accept-invitation] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to accept invitation.' })
+  }
+})
+
+// ── GET /api/faculty ───────────────────────────────────────────────────────────
+// List faculty with pagination and filtering
+router.get('/faculty', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const collegeId = req.user.collegeId
+    if (!collegeId && req.user.role === 'college_admin') {
+      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    }
+
+    const targetCollegeId = req.user.role === 'admin' ? (req.query.collegeId || collegeId) : collegeId
+    if (!targetCollegeId) {
+      return res.status(400).json({ ok: false, error: 'College ID is required.' })
+    }
+
+    const { search, department, limit = 50, skip = 0 } = req.query
+
+    const filter = { collegeId: targetCollegeId, role: 'faculty', deactivated: false }
+
+    if (search) {
+      const searchRegex = new RegExp(search, 'i')
+      filter.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { designation: searchRegex }
+      ]
+    }
+
+    if (department) {
+      filter.dept = department
+    }
+
+    const faculty = await User.find(filter)
+      .select('name email designation dept verifiedBadge isHOD suspended invitationStatus invitedAt')
+      .sort({ name: 1 })
+      .limit(Number(limit))
+      .skip(Number(skip))
+      .lean()
+
+    const total = await User.countDocuments(filter)
+
+    res.json({
+      ok: true,
+      faculty: faculty.map(f => ({
+        id: f._id.toString(),
+        name: f.name,
+        email: f.email,
+        designation: f.designation || '',
+        dept: f.dept || '',
+        verifiedBadge: f.verifiedBadge,
+        isHOD: f.isHOD,
+        suspended: f.suspended,
+        invitationStatus: f.invitationStatus,
+        invitedAt: f.invitedAt
+      })),
+      total,
+      limit: Number(limit),
+      skip: Number(skip)
+    })
+  } catch (err) {
+    console.error('[GET /api/faculty] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to fetch faculty.' })
+  }
+})
+
 export default router

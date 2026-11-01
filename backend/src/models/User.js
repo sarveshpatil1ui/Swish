@@ -95,6 +95,13 @@ const UserSchema = new Schema(
     suspensionStart: { type: Date, default: null },
     suspensionEnd: { type: Date, default: null },
     isDemo: { type: Boolean, default: false },
+
+    // Faculty invitation fields
+    invitationToken: { type: String, default: null },
+    invitationTokenExpiresAt: { type: Date, default: null },
+    invitationStatus: { type: String, enum: ['pending', 'accepted', 'expired'], default: null },
+    invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    invitedAt: { type: Date, default: null },
   },
   { timestamps: true }
 )
