@@ -222,18 +222,24 @@ describe('[UNIT / MOCK-BASED] Socket.io Redis Adapter Integration & Fallback (St
     const client = Client(`http://127.0.0.1:${port}`, { transports: ['websocket'] })
     client.on('notice', () => localReceived++)
 
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    try {
+      await new Promise((resolve) => {
+        client.once('connect', resolve);
+        setTimeout(resolve, 300);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Broadcast while pubClient is failing
-    assert.doesNotThrow(() => {
-      io.to('college:test').emit('notice', { title: 'Test Notice' })
-    })
+      // Broadcast while pubClient is failing
+      assert.doesNotThrow(() => {
+        io.to('college:test').emit('notice', { title: 'Test Notice' });
+      });
 
-    await new Promise((resolve) => setTimeout(resolve, 100))
-    assert.strictEqual(localReceived, 1, 'Local socket must receive broadcast even when Redis publish fails')
-
-    client.close()
-    await new Promise((resolve) => srv.close(resolve))
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      assert.strictEqual(localReceived, 1, 'Local socket must receive broadcast even when Redis publish fails');
+    } finally {
+      client.close();
+      await new Promise((resolve) => srv.close(resolve));
+    }
   })
 
   it('two isolated Socket.io server instances connected to Redis broadcast across instances without duplicate delivery', async () => {
@@ -318,28 +324,31 @@ describe('[UNIT / MOCK-BASED] Socket.io Redis Adapter Integration & Fallback (St
     client2.on('new_post', () => client2Events++)
     clientOther.on('new_post', () => clientOtherEvents++)
 
-    // Wait for sockets to connect and join rooms
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    try {
+      // Wait for sockets to connect and join rooms
+      await Promise.all([
+        new Promise((resolve) => { client1.once('connect', resolve); setTimeout(resolve, 300); }),
+        new Promise((resolve) => { client2.once('connect', resolve); setTimeout(resolve, 300); }),
+        new Promise((resolve) => { clientOther.once('connect', resolve); setTimeout(resolve, 300); }),
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Broadcast on Instance 1 to 'college:somaiya'
-    io1.to('college:somaiya').emit('new_post', { postId: 'p_100', text: 'Cross-instance post' })
+      // Broadcast on Instance 1 to 'college:somaiya'
+      io1.to('college:somaiya').emit('new_post', { postId: 'p_100', text: 'Cross-instance post' });
 
-    // Wait for delivery to propagate through Redis adapter
-    await new Promise((resolve) => setTimeout(resolve, 150))
+      // Wait for delivery to propagate through Redis adapter
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
-    // Assertions:
-    // 1. Client 1 (local to Instance 1) received event exactly once (no duplicate from Redis echo)
-    assert.strictEqual(client1Events, 1, 'Local client must receive event exactly once')
-    // 2. Client 2 (connected to Instance 2) received event across the Redis adapter
-    assert.strictEqual(client2Events, 1, 'Remote instance client must receive cross-instance event')
-    // 3. Client in different room must NOT receive event (room isolation enforced)
-    assert.strictEqual(clientOtherRoomEvents, 0, 'Client in another room must never receive event')
-
-    // Clean teardown
-    client1.close()
-    client2.close()
-    clientOther.close()
-    await new Promise((resolve) => srv1.close(() => srv2.close(resolve)))
+      // Assertions:
+      assert.strictEqual(client1Events, 1, 'Local client must receive event exactly once');
+      assert.strictEqual(client2Events, 1, 'Remote instance client must receive cross-instance event');
+      assert.strictEqual(clientOtherRoomEvents, 0, 'Client in another room must never receive event');
+    } finally {
+      client1.close();
+      client2.close();
+      clientOther.close();
+      await new Promise((resolve) => srv1.close(() => srv2.close(resolve)));
+    }
   })
 })
 
