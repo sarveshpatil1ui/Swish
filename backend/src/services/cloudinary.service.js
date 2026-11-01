@@ -291,4 +291,60 @@ export async function deleteStoryImage(publicId) {
   }
 }
 
+/**
+ * Upload a document buffer directly to Cloudinary.
+ * Used for notice attachments (PDF, DOC, DOCX, images).
+ *
+ * @param {Buffer} buffer - File buffer from multer.memoryStorage
+ * @param {Object} [options] - Optional Cloudinary upload parameters
+ * @returns {Promise<{ secureUrl: string, publicId: string }>}
+ */
+export async function uploadDocument(buffer, options = {}) {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary is not configured.')
+  }
+  ensureConfig()
+
+  if (!buffer || !Buffer.isBuffer(buffer)) {
+    throw new Error('A valid file buffer is required.')
+  }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'auto',
+        ...options,
+      },
+      (error, result) => {
+        if (error) return reject(error)
+        resolve({
+          secureUrl: result.secure_url,
+          publicId: result.public_id,
+        })
+      }
+    )
+    uploadStream.end(buffer)
+  })
+}
+
+/**
+ * Delete a document asset from Cloudinary.
+ *
+ * @param {string} publicId - Cloudinary public ID
+ * @returns {Promise<Object|null>}
+ */
+export async function deleteDocument(publicId) {
+  if (!isCloudinaryConfigured() || !publicId) return null
+  ensureConfig()
+
+  try {
+    return await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'auto',
+    })
+  } catch (err) {
+    console.error('[Cloudinary] Failed to delete document:', err)
+    return null
+  }
+}
+
 export default cloudinary

@@ -37,7 +37,13 @@ const NoticeSchema = new Schema(
     expiresAt: { type: Date, default: null },
     pinned: { type: Boolean, default: false }, // For official announcements
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    attachments: [{ type: String }], // URLs to attached files
+    attachments: [{
+      url: { type: String, required: true },
+      filename: { type: String, required: true },
+      mimeType: { type: String, required: true },
+      size: { type: Number, required: true },
+      publicId: { type: String, required: true }
+    }], // Cloudinary attachment metadata
   },
   { timestamps: true }
 )

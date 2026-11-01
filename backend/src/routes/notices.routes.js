@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
+import multer from 'multer'
 
 import Notice from '../models/Notice.js'
 import College from '../models/College.js'
@@ -13,8 +14,35 @@ import User from '../models/User.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import { createNotification } from '../services/notification.service.js'
 import { logActivity } from '../services/activity-log.service.js'
+import { uploadDocument, isCloudinaryConfigured } from '../services/cloudinary.service.js'
 
 const router = Router()
+
+// Multer configuration for notice attachments (PDF, DOC, DOCX, images)
+const attachmentStorage = multer.memoryStorage()
+const attachmentUpload = multer({
+  storage: attachmentStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp'
+    ]
+    if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(pdf|doc|docx|jpg|jpeg|png|gif|webp)$/i)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only PDF, DOC, DOCX, and image files are allowed.'), false)
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per file
+})
+
+// Multer for multiple attachments
+const attachmentsUpload = attachmentUpload.array('attachments', 5) // Max 5 attachments
 
 async function notifyNoticeAudience(notice, senderId) {
   const filter = {
@@ -205,6 +233,7 @@ router.post(
   requireAuth,
   requireRole('admin', 'college_admin', 'faculty'),
   requireCollegeAccess,
+  attachmentsUpload,
   [
     body('title').trim().notEmpty().withMessage('Notice title is required.'),
     body('content').trim().notEmpty().withMessage('Notice content is required.'),
@@ -243,6 +272,28 @@ router.post(
       }
       if (!colName) colName = 'College'
 
+      // Upload attachments to Cloudinary if provided
+      const attachments = []
+      if (req.files && req.files.length > 0 && isCloudinaryConfigured()) {
+        for (const file of req.files) {
+          try {
+            const uploadResult = await uploadDocument(file.buffer, {
+              folder: `swish/notices/${targetCollegeId}`,
+              resource_type: 'auto',
+            })
+            attachments.push({
+              url: uploadResult.secureUrl,
+              filename: file.originalname,
+              mimeType: file.mimetype,
+              size: file.size,
+              publicId: uploadResult.public_id
+            })
+          } catch (uploadErr) {
+            console.error('[Attachment Upload Error]', uploadErr)
+          }
+        }
+      }
+
       const notice = await Notice.create({
         title: title.trim(),
         content: content.trim(),
@@ -256,7 +307,7 @@ router.post(
         publishedAt: published ? new Date() : null,
         expiresAt: expiresAt || null,
         createdBy: req.user._id,
-        attachments: [],
+        attachments,
       })
 
       if (notice.published) {
@@ -329,6 +380,7 @@ router.put(
   requireAuth,
   requireRole('admin', 'college_admin', 'faculty'),
   requireCollegeAccess,
+  attachmentsUpload,
   [
     body('title').optional().trim(),
     body('content').optional().trim(),
@@ -340,10 +392,10 @@ router.put(
     if (validationError) return
 
     try {
-      const filter = req.user.role === 'admin' 
+      const filter = req.user.role === 'admin'
         ? { _id: req.params.id }
         : { _id: req.params.id, collegeId: req.collegeId }
-      
+
       const notice = await Notice.findOne(filter)
       if (!notice) {
         return res.status(404).json({ ok: false, error: 'Notice not found.' })
@@ -353,7 +405,7 @@ router.put(
         return res.status(403).json({ ok: false, error: 'Access denied: You can only edit your own notices.' })
       }
 
-      const { title, content, departmentId, department, targetAudience, priority, published, expiresAt } = req.body
+      const { title, content, departmentId, department, targetAudience, priority, published, expiresAt, removeAttachments } = req.body
       const wasPublished = notice.published
 
       if (title) notice.title = title.trim()
@@ -369,6 +421,39 @@ router.put(
         }
       }
       if (expiresAt !== undefined) notice.expiresAt = expiresAt || null
+
+      // Handle new attachments
+      if (req.files && req.files.length > 0 && isCloudinaryConfigured()) {
+        for (const file of req.files) {
+          try {
+            const uploadResult = await uploadDocument(file.buffer, {
+              folder: `swish/notices/${notice.collegeId}`,
+              resource_type: 'auto',
+            })
+            notice.attachments.push({
+              url: uploadResult.secureUrl,
+              filename: file.originalname,
+              mimeType: file.mimetype,
+              size: file.size,
+              publicId: uploadResult.public_id
+            })
+          } catch (uploadErr) {
+            console.error('[Attachment Upload Error]', uploadErr)
+          }
+        }
+      }
+
+      // Handle attachment removal
+      if (removeAttachments && Array.isArray(removeAttachments)) {
+        const { deleteDocument } = await import('../services/cloudinary.service.js')
+        for (const publicId of removeAttachments) {
+          const index = notice.attachments.findIndex(a => a.publicId === publicId)
+          if (index !== -1) {
+            await deleteDocument(publicId).catch(err => console.error('[Delete Attachment Error]', err))
+            notice.attachments.splice(index, 1)
+          }
+        }
+      }
 
       await notice.save()
 
@@ -415,6 +500,14 @@ router.delete('/:id', requireAuth, requireRole('admin', 'college_admin', 'facult
 
     if (req.user.role === 'faculty' && notice.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ ok: false, error: 'Access denied: You can only delete your own notices.' })
+    }
+
+    // Delete attachments from Cloudinary
+    if (notice.attachments && notice.attachments.length > 0 && isCloudinaryConfigured()) {
+      const { deleteDocument } = await import('../services/cloudinary.service.js')
+      for (const attachment of notice.attachments) {
+        await deleteDocument(attachment.publicId).catch(err => console.error('[Delete Attachment Error]', err))
+      }
     }
 
     await Notice.findByIdAndDelete(notice._id)
