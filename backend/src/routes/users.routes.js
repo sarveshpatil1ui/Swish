@@ -1,8 +1,11 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
+import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
+import csv from 'csv-parser'
+import { createObjectCsvWriter } from 'csv-writer'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
 import { uploadProfilePhoto, uploadPostPhoto } from '../middleware/upload.middleware.js'
 import { uploadPostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
@@ -10,6 +13,7 @@ import User from '../models/User.js'
 import Follow from '../models/Follow.js'
 import FollowRequest from '../models/FollowRequest.js'
 import Department from '../models/Department.js'
+import College from '../models/College.js'
 import Notice from '../models/Notice.js'
 import Notification from '../models/Notification.js'
 import Post from '../models/Post.js'
@@ -20,8 +24,23 @@ import { Conversation } from '../models/Conversation.js'
 import { emitToUser } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
 import { logActivity } from '../services/activity-log.service.js'
+import bcrypt from 'bcryptjs'
 
 const router = Router()
+
+// Multer configuration for CSV file upload
+const csvStorage = multer.memoryStorage()
+const csvUpload = multer({
+  storage: csvStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel' || file.originalname.endsWith('.csv')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only CSV files are allowed.'), false)
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+})
 
 function handleValidationErrors(req, res) {
   const errors = validationResult(req)
@@ -1096,6 +1115,414 @@ router.get('/:userId/following', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
     res.status(500).json({ ok: false, error: 'Failed to fetch following.' })
+  }
+})
+
+// ── GET /api/students/csv-template ─────────────────────────────────────────────
+// Download CSV template for student import
+router.get('/students/csv-template', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const template = [
+      {
+        name: 'John Doe',
+        email: 'john.doe@college.edu',
+        rollNumber: 'CS2024001',
+        department: 'Computer Science',
+        year: '1st Year'
+      }
+    ]
+
+    const csvWriter = createObjectCsvWriter({
+      path: path.join(process.cwd(), 'temp', 'student-template.csv'),
+      header: [
+        { id: 'name', title: 'Name' },
+        { id: 'email', title: 'Email' },
+        { id: 'rollNumber', title: 'Roll Number' },
+        { id: 'department', title: 'Department' },
+        { id: 'year', title: 'Academic Year' }
+      ]
+    })
+
+    const tempDir = path.join(process.cwd(), 'temp')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    await csvWriter.writeRecords(template)
+
+    res.download(path.join(tempDir, 'student-template.csv'), 'student-import-template.csv', (err) => {
+      if (err) {
+        console.error('[CSV Template Download] Error:', err)
+      }
+      fs.unlinkSync(path.join(tempDir, 'student-template.csv'))
+    })
+  } catch (err) {
+    console.error('[GET /api/students/csv-template] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to generate CSV template.' })
+  }
+})
+
+// ── POST /api/students/csv-import ───────────────────────────────────────────────
+// Import students from CSV file
+router.post('/students/csv-import', requireAuth, requireRole('admin', 'college_admin'), csvUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No CSV file uploaded.' })
+    }
+
+    const collegeId = req.user.collegeId
+    if (!collegeId && req.user.role === 'college_admin') {
+      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    }
+
+    const targetCollegeId = req.user.role === 'admin' ? (req.body.collegeId || collegeId) : collegeId
+    if (!targetCollegeId) {
+      return res.status(400).json({ ok: false, error: 'College ID is required.' })
+    }
+
+    const college = await College.findById(targetCollegeId)
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    const results = []
+    const errors = []
+    const skipped = []
+    let successCount = 0
+    let failCount = 0
+
+    // Parse CSV from memory buffer
+    const csvData = []
+    await new Promise((resolve, reject) => {
+      const bufferString = req.file.buffer.toString('utf-8')
+      const lines = bufferString.split('\n')
+      const headers = lines[0].split(',').map(h => h.trim())
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue
+        const values = lines[i].split(',').map(v => v.trim())
+        const row = {}
+        headers.forEach((header, index) => {
+          row[header] = values[index] || ''
+        })
+        csvData.push(row)
+      }
+      resolve()
+    })
+
+    const emailSet = new Set()
+    const rollNumberSet = new Set()
+
+    for (const [index, row] of csvData.entries()) {
+      const rowNum = index + 2 // Header is row 1
+      const { Name, Email, 'Roll Number': rollNumber, Department, 'Academic Year': year } = row
+
+      // Validate required fields
+      if (!Name || !Email || !rollNumber) {
+        errors.push({ row: rowNum, error: 'Missing required fields: Name, Email, or Roll Number' })
+        failCount++
+        continue
+      }
+
+      const name = Name.trim()
+      const email = Email.trim().toLowerCase()
+      const dept = Department?.trim() || ''
+      const academicYear = year?.trim() || ''
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        errors.push({ row: rowNum, email, error: 'Invalid email format' })
+        failCount++
+        continue
+      }
+
+      // Check for duplicate emails within CSV
+      if (emailSet.has(email)) {
+        errors.push({ row: rowNum, email, error: 'Duplicate email within CSV' })
+        failCount++
+        continue
+      }
+      emailSet.add(email)
+
+      // Check for duplicate roll numbers within CSV
+      if (rollNumberSet.has(rollNumber)) {
+        errors.push({ row: rowNum, rollNumber, error: 'Duplicate roll number within CSV' })
+        failCount++
+        continue
+      }
+      rollNumberSet.add(rollNumber)
+
+      // Check if email domain matches college domain
+      const emailDomain = email.split('@')[1]
+      if (emailDomain !== college.domain.toLowerCase()) {
+        errors.push({ row: rowNum, email, error: `Email domain @${emailDomain} does not match college domain @${college.domain}` })
+        failCount++
+        continue
+      }
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email })
+      if (existingUser) {
+        skipped.push({ row: rowNum, email, reason: 'User already exists' })
+        continue
+      }
+
+      // Check if roll number already exists in college
+      const existingRoll = await User.findOne({ rollNumber, collegeId: targetCollegeId })
+      if (existingRoll) {
+        errors.push({ row: rowNum, rollNumber, error: 'Roll number already exists in college' })
+        failCount++
+        continue
+      }
+
+      // Validate department if provided
+      let departmentId = null
+      if (dept) {
+        const department = await Department.findOne({ collegeId: targetCollegeId, name: dept })
+        if (!department) {
+          errors.push({ row: rowNum, department: dept, error: 'Department not found in college' })
+          failCount++
+          continue
+        }
+        departmentId = department._id
+      }
+
+      try {
+        // Generate temporary password
+        const tempPassword = crypto.randomBytes(8).toString('hex')
+        const passwordHash = await bcrypt.hash(tempPassword, 12)
+
+        const initials = name
+          .split(/\s+/)
+          .map(word => word[0] || '')
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+
+        const student = await User.create({
+          name,
+          username: email,
+          initials,
+          avatarColor: '#6366f1',
+          email,
+          passwordHash,
+          role: 'student',
+          isEmailVerified: true,
+          college: college.name,
+          collegeId: targetCollegeId,
+          mustChangePassword: true,
+          dept,
+          departmentId,
+          year: academicYear,
+          rollNumber,
+          deactivated: false,
+          suspended: false,
+        })
+
+        successCount++
+        results.push({
+          row: rowNum,
+          name,
+          email,
+          rollNumber,
+          tempPassword
+        })
+      } catch (createErr) {
+        errors.push({ row: rowNum, email, error: createErr.message })
+        failCount++
+      }
+    }
+
+    // Log the bulk import action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: targetCollegeId,
+      college: college.name,
+      actionType: 'students_imported',
+      resourceType: 'user',
+      resourceId: null,
+      resourceName: `${successCount} students`,
+      details: `CSV import: ${successCount} successful, ${skipped.length} skipped, ${failCount} failed`,
+      ipAddress: req.ip,
+    })
+
+    res.json({
+      ok: true,
+      summary: {
+        total: csvData.length,
+        success: successCount,
+        skipped: skipped.length,
+        failed: failCount
+      },
+      results,
+      skipped,
+      errors
+    })
+  } catch (err) {
+    console.error('[POST /api/students/csv-import] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to import students from CSV.' })
+  }
+})
+
+// ── GET /api/students/csv-export ───────────────────────────────────────────────
+// Export students to CSV
+router.get('/students/csv-export', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const collegeId = req.user.collegeId
+    if (!collegeId && req.user.role === 'college_admin') {
+      return res.status(403).json({ ok: false, error: 'College admin has no associated college.' })
+    }
+
+    const targetCollegeId = req.user.role === 'admin' ? (req.query.collegeId || collegeId) : collegeId
+    if (!targetCollegeId) {
+      return res.status(400).json({ ok: false, error: 'College ID is required.' })
+    }
+
+    const filter = { collegeId: targetCollegeId, role: 'student' }
+
+    // Apply search filter if provided
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i')
+      filter.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { rollNumber: searchRegex }
+      ]
+    }
+
+    // Apply department filter if provided
+    if (req.query.department) {
+      filter.dept = req.query.department
+    }
+
+    // Apply year filter if provided
+    if (req.query.year) {
+      filter.year = req.query.year
+    }
+
+    const students = await User.find(filter)
+      .select('name email rollNumber dept year suspended deactivated createdAt')
+      .sort({ name: 1 })
+      .lean()
+
+    const csvData = students.map(s => ({
+      Name: s.name,
+      Email: s.email,
+      'Roll Number': s.rollNumber || '',
+      Department: s.dept || '',
+      'Academic Year': s.year || '',
+      Status: s.suspended ? 'Suspended' : (s.deactivated ? 'Deactivated' : 'Active'),
+      'Created At': s.createdAt ? new Date(s.createdAt).toISOString().split('T')[0] : ''
+    }))
+
+    const tempDir = path.join(process.cwd(), 'temp')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    const filename = `students-export-${Date.now()}.csv`
+    const filepath = path.join(tempDir, filename)
+
+    const csvWriter = createObjectCsvWriter({
+      path: filepath,
+      header: [
+        { id: 'Name', title: 'Name' },
+        { id: 'Email', title: 'Email' },
+        { id: 'Roll Number', title: 'Roll Number' },
+        { id: 'Department', title: 'Department' },
+        { id: 'Academic Year', title: 'Academic Year' },
+        { id: 'Status', title: 'Status' },
+        { id: 'Created At', title: 'Created At' }
+      ]
+    })
+
+    await csvWriter.writeRecords(csvData)
+
+    res.download(filepath, filename, (err) => {
+      if (err) {
+        console.error('[CSV Export Download] Error:', err)
+      }
+      fs.unlinkSync(filepath)
+    })
+  } catch (err) {
+    console.error('[GET /api/students/csv-export] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to export students to CSV.' })
+  }
+})
+
+// ── PATCH /api/students/:id/suspend ─────────────────────────────────────────────
+// Suspend or reactivate a student with reason and dates
+router.patch('/students/:id/suspend', requireAuth, requireRole('admin', 'college_admin'), async (req, res) => {
+  try {
+    const { id } = req.params
+    const { suspended, reason, suspensionStart, suspensionEnd } = req.body
+
+    if (id === req.user.id || id === req.user._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'You cannot suspend your own account.' })
+    }
+
+    const targetUser = await User.findById(id)
+    if (!targetUser) {
+      return res.status(404).json({ ok: false, error: 'User not found.' })
+    }
+
+    if (targetUser.role !== 'student') {
+      return res.status(400).json({ ok: false, error: 'Suspension can only be applied to students.' })
+    }
+
+    // College admin can only manage students from their college
+    if (req.user.role === 'college_admin') {
+      if (!req.user.collegeId || !targetUser.collegeId || !targetUser.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'You can only manage students from your college.' })
+      }
+    }
+
+    if (suspended) {
+      // Validate suspension details
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ ok: false, error: 'Suspension reason is required.' })
+      }
+
+      if (suspensionEnd && new Date(suspensionEnd) <= new Date()) {
+        return res.status(400).json({ ok: false, error: 'Suspension end date must be in the future.' })
+      }
+
+      targetUser.suspended = true
+      targetUser.suspensionReason = reason.trim()
+      targetUser.suspensionStart = suspensionStart ? new Date(suspensionStart) : new Date()
+      targetUser.suspensionEnd = suspensionEnd ? new Date(suspensionEnd) : null
+    } else {
+      // Reactivate
+      targetUser.suspended = false
+      targetUser.suspensionReason = null
+      targetUser.suspensionStart = null
+      targetUser.suspensionEnd = null
+    }
+
+    await targetUser.save()
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: req.user.collegeId,
+      college: req.user.college,
+      actionType: suspended ? 'user_suspended' : 'user_reactivated',
+      resourceType: 'user',
+      resourceId: targetUser._id,
+      resourceName: targetUser.name,
+      details: suspended ? `Suspended: ${reason.trim()}` : 'Reactivated student account',
+      ipAddress: req.ip,
+    })
+
+    res.json({ ok: true, user: targetUser.toJSON() })
+  } catch (err) {
+    console.error('[PATCH /api/students/:id/suspend] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to update suspension status.' })
   }
 })
 

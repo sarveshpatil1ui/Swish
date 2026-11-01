@@ -91,6 +91,9 @@ const UserSchema = new Schema(
 
     deactivated: { type: Boolean, default: false },
     suspended:   { type: Boolean, default: false },
+    suspensionReason: { type: String, default: null },
+    suspensionStart: { type: Date, default: null },
+    suspensionEnd: { type: Date, default: null },
     isDemo: { type: Boolean, default: false },
   },
   { timestamps: true }
