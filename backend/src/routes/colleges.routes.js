@@ -12,6 +12,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { Router } from 'express'
 import { body, query, validationResult } from 'express-validator'
+import multer from 'multer'
 
 import College from '../models/College.js'
 import CollegeOnboardingRequest from '../models/CollegeOnboardingRequest.js'
@@ -21,8 +22,28 @@ import Notice from '../models/Notice.js'
 import { requireAuth, requireRole, invalidateCollegeCache } from '../middleware/auth.middleware.js'
 import { getOrSet, del, cacheKey } from '../services/cache.service.js'
 import { sendCollegeAdminCredentialsEmail } from '../services/email.service.js'
+import { uploadPostImage, deletePostImage, isCloudinaryConfigured } from '../services/cloudinary.service.js'
+import { logActivity } from '../services/activity-log.service.js'
 
 const router = Router()
+
+// Multer configuration for branding uploads (logo, banner)
+const brandingStorage = multer.memoryStorage()
+const brandingUpload = multer({
+  storage: brandingStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only image files are allowed.'), false)
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+})
+
+const logoUpload = brandingUpload.single('logo')
+const bannerUpload = brandingUpload.single('banner')
 
 // ── Cache keys ────────────────────────────────────────────────────────────────
 const COLLEGES_LIST_KEY = cacheKey('colleges', 'list')
@@ -473,6 +494,197 @@ router.put(
     } catch (err) {
       console.error('[PUT /colleges/:id]', err)
       res.status(500).json({ ok: false, error: 'Failed to update college.' })
+    }
+  }
+)
+
+// ── POST /api/colleges/:id/logo ──────────────────────────────────────────────────
+// Upload college logo
+router.post('/:id/logo', requireAuth, requireRole('admin', 'college_admin'), logoUpload, async (req, res) => {
+  try {
+    const college = await College.findById(req.params.id)
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    // College admin can only update their own college
+    if (req.user.role === 'college_admin' && req.user.collegeId?.toString() !== college._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'You can only update your own college.' })
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No file uploaded.' })
+    }
+
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({ ok: false, error: 'Cloudinary is not configured.' })
+    }
+
+    // Delete old logo if exists
+    if (college.logoPublicId) {
+      await deletePostImage(college.logoPublicId).catch(err => console.error('[Delete Logo Error]', err))
+    }
+
+    // Upload new logo
+    const uploadResult = await uploadPostImage(req.file.buffer, {
+      folder: `swish/colleges/${college._id}`,
+      public_id: `logo_${college._id}`,
+      transformation: { width: 200, height: 200, crop: 'limit' }
+    })
+
+    college.logo = uploadResult.secureUrl
+    college.logoPublicId = uploadResult.publicId
+    await college.save()
+
+    invalidateCollegeCache(college.domain)
+    await del(COLLEGES_LIST_KEY)
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: college._id,
+      college: college.name,
+      actionType: 'college_logo_updated',
+      resourceType: 'college',
+      resourceId: college._id,
+      resourceName: college.name,
+      details: 'Updated college logo',
+      ipAddress: req.ip,
+    })
+
+    res.json({ ok: true, college: college.toJSON() })
+  } catch (err) {
+    console.error('[POST /colleges/:id/logo] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to upload logo.' })
+  }
+})
+
+// ── POST /api/colleges/:id/banner ────────────────────────────────────────────────
+// Upload college banner
+router.post('/:id/banner', requireAuth, requireRole('admin', 'college_admin'), bannerUpload, async (req, res) => {
+  try {
+    const college = await College.findById(req.params.id)
+    if (!college) {
+      return res.status(404).json({ ok: false, error: 'College not found.' })
+    }
+
+    // College admin can only update their own college
+    if (req.user.role === 'college_admin' && req.user.collegeId?.toString() !== college._id.toString()) {
+      return res.status(403).json({ ok: false, error: 'You can only update your own college.' })
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No file uploaded.' })
+    }
+
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({ ok: false, error: 'Cloudinary is not configured.' })
+    }
+
+    // Delete old banner if exists
+    if (college.bannerPublicId) {
+      await deletePostImage(college.bannerPublicId).catch(err => console.error('[Delete Banner Error]', err))
+    }
+
+    // Upload new banner
+    const uploadResult = await uploadPostImage(req.file.buffer, {
+      folder: `swish/colleges/${college._id}`,
+      public_id: `banner_${college._id}`,
+      transformation: { width: 1200, height: 400, crop: 'limit' }
+    })
+
+    college.banner = uploadResult.secureUrl
+    college.bannerPublicId = uploadResult.publicId
+    await college.save()
+
+    invalidateCollegeCache(college.domain)
+    await del(COLLEGES_LIST_KEY)
+
+    // Log the action
+    await logActivity({
+      adminId: req.user._id,
+      adminName: req.user.name,
+      adminRole: req.user.role,
+      collegeId: college._id,
+      college: college.name,
+      actionType: 'college_banner_updated',
+      resourceType: 'college',
+      resourceId: college._id,
+      resourceName: college.name,
+      details: 'Updated college banner',
+      ipAddress: req.ip,
+    })
+
+    res.json({ ok: true, college: college.toJSON() })
+  } catch (err) {
+    console.error('[POST /colleges/:id/banner] Error:', err)
+    res.status(500).json({ ok: false, error: 'Failed to upload banner.' })
+  }
+})
+
+// ── PUT /api/colleges/:id/branding ────────────────────────────────────────────────
+// Update college branding (colors, social media)
+router.put(
+  '/:id/branding',
+  requireAuth,
+  requireRole('admin', 'college_admin'),
+  [
+    body('primaryColor').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Invalid primary color format.'),
+    body('secondaryColor').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Invalid secondary color format.'),
+    body('facebook').optional().trim(),
+    body('twitter').optional().trim(),
+    body('linkedin').optional().trim(),
+    body('instagram').optional().trim(),
+  ],
+  async (req, res) => {
+    const validationError = handleValidationErrors(req, res)
+    if (validationError) return
+
+    try {
+      const college = await College.findById(req.params.id)
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'College not found.' })
+      }
+
+      // College admin can only update their own college
+      if (req.user.role === 'college_admin' && req.user.collegeId?.toString() !== college._id.toString()) {
+        return res.status(403).json({ ok: false, error: 'You can only update your own college.' })
+      }
+
+      const { primaryColor, secondaryColor, facebook, twitter, linkedin, instagram } = req.body
+
+      if (primaryColor) college.primaryColor = primaryColor
+      if (secondaryColor) college.secondaryColor = secondaryColor
+      if (facebook !== undefined) college.facebook = facebook.trim()
+      if (twitter !== undefined) college.twitter = twitter.trim()
+      if (linkedin !== undefined) college.linkedin = linkedin.trim()
+      if (instagram !== undefined) college.instagram = instagram.trim()
+
+      await college.save()
+      invalidateCollegeCache(college.domain)
+      await del(COLLEGES_LIST_KEY)
+
+      // Log the action
+      await logActivity({
+        adminId: req.user._id,
+        adminName: req.user.name,
+        adminRole: req.user.role,
+        collegeId: college._id,
+        college: college.name,
+        actionType: 'college_branding_updated',
+        resourceType: 'college',
+        resourceId: college._id,
+        resourceName: college.name,
+        details: 'Updated college branding',
+        ipAddress: req.ip,
+      })
+
+      res.json({ ok: true, college: college.toJSON() })
+    } catch (err) {
+      console.error('[PUT /colleges/:id/branding] Error:', err)
+      res.status(500).json({ ok: false, error: 'Failed to update branding.' })
     }
   }
 )

@@ -18,11 +18,24 @@ const CollegeSchema = new Schema(
     active:   { type: Boolean, default: true },
     // Additional fields for College Admin module
     logo:     { type: String, default: null },
+    logoPublicId: { type: String, default: null }, // Cloudinary public ID for deletion
+    banner:   { type: String, default: null }, // Banner/cover image
+    bannerPublicId: { type: String, default: null },
     website:  { type: String, default: '', trim: true },
     address:  { type: String, default: '', trim: true },
     phone:    { type: String, default: '', trim: true },
     email:    { type: String, default: '', trim: true, lowercase: true },
     description: { type: String, default: '', maxlength: 1000 },
+    
+    // Branding colors
+    primaryColor: { type: String, default: '#6366f1' },
+    secondaryColor: { type: String, default: '#8b5cf6' },
+    
+    // Social media links
+    facebook: { type: String, default: '', trim: true },
+    twitter: { type: String, default: '', trim: true },
+    linkedin: { type: String, default: '', trim: true },
+    instagram: { type: String, default: '', trim: true },
   },
   { timestamps: true }
 )
