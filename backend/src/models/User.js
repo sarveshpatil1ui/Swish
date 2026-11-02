@@ -113,6 +113,8 @@ UserSchema.index({ 'preferences.privacy.private': 1 })
 UserSchema.index({ followers: -1, createdAt: -1 })
 UserSchema.index({ deactivated: 1, role: 1 })
 UserSchema.index({ collegeId: 1, deactivated: 1, role: 1 })
+UserSchema.index({ collegeId: 1, deactivated: 1, createdAt: -1 })
+UserSchema.index({ collegeId: 1, deactivated: 1, suspended: 1 })
 
 UserSchema.set('toJSON', {
   virtuals: true,

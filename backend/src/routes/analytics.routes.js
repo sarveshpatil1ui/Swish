@@ -24,6 +24,23 @@ async function requireCollegeAccess(req, res, next) {
 }
 
 /**
+ * Converts browser timezone offset (in minutes from UTC) to ISO-8601 offset (+HH:MM / -HH:MM)
+ * for native MongoDB $dateToString timezone parameter.
+ */
+function formatTimezoneOffset(offsetMinutes) {
+  if (offsetMinutes === undefined || offsetMinutes === null || Number.isNaN(Number(offsetMinutes))) {
+    return '+00:00'
+  }
+  const offset = Number(offsetMinutes)
+  // Date.prototype.getTimezoneOffset() returns positive for west of UTC, negative for east of UTC
+  const sign = offset <= 0 ? '+' : '-'
+  const abs = Math.abs(offset)
+  const hours = String(Math.floor(abs / 60)).padStart(2, '0')
+  const mins = String(abs % 60).padStart(2, '0')
+  return `${sign}${hours}:${mins}`
+}
+
+/**
  * Calculates percentage growth with strict zero-baseline and division-by-zero protection.
  */
 function calculateGrowth(current, previous) {
@@ -50,11 +67,12 @@ function calculateGrowth(current, previous) {
 
 /**
  * Generates an unbroken array of ISO date or hour strings for chart timelines.
+ * Strictly capped at 180 slots to prevent browser DOM and Recharts freezing.
  */
 function generateTimeSlots(startDate, endDate, period) {
   const slots = []
   if (period === 'today') {
-    // Generate 24 hourly slots
+    // Generate 24 hourly slots 00:00 to 23:00
     for (let h = 0; h < 24; h++) {
       slots.push(`${String(h).padStart(2, '0')}:00`)
     }
@@ -66,6 +84,13 @@ function generateTimeSlots(startDate, endDate, period) {
   const end = new Date(endDate)
   end.setUTCHours(23, 59, 59, 999)
 
+  // Safety safeguard: Never produce more than 180 daily slots
+  const diffDays = Math.ceil((end.getTime() - curr.getTime()) / (24 * 60 * 60 * 1000))
+  if (diffDays > 180) {
+    curr.setTime(end.getTime() - 180 * 24 * 60 * 60 * 1000)
+    curr.setUTCHours(0, 0, 0, 0)
+  }
+
   while (curr <= end) {
     slots.push(curr.toISOString().slice(0, 10))
     curr.setUTCDate(curr.getUTCDate() + 1)
@@ -74,33 +99,57 @@ function generateTimeSlots(startDate, endDate, period) {
 }
 
 // ── GET /api/analytics/dashboard ─────────────────────────────────────────────────
-// Query params: period (today|7days|30days|all), startDate, endDate
+// Query params: period (today|7days|30days|all), startDate, endDate, timezoneOffset
 router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'main_admin'), requireCollegeAccess, async (req, res) => {
   try {
-    const collegeId = req.user.role === 'college_admin' ? req.user.collegeId : null
+    const collegeId = req.user.role === 'college_admin' ? req.user.collegeId : (req.query.collegeId || null)
     const filter = collegeId ? { collegeId } : {}
 
-    // Get all user IDs in the college for post/comment filtering
+    // Resolve college user IDs for post/comment author filtering
     const collegeUsers = collegeId
       ? await User.find({ collegeId }).select('_id').lean()
       : null
     const collegeUserIds = collegeUsers ? collegeUsers.map(u => u._id) : null
 
-    const postFilter = collegeUserIds ? { user: { $in: collegeUserIds }, isDeleted: false } : { isDeleted: false }
-    const commentFilter = collegeUserIds ? { user: { $in: collegeUserIds }, isDeleted: false } : { isDeleted: false }
+    const postFilter = collegeId
+      ? (collegeUserIds && collegeUserIds.length > 0
+          ? { $or: [{ collegeId }, { user: { $in: collegeUserIds } }], isDeleted: false }
+          : { collegeId, isDeleted: false })
+      : { isDeleted: false }
+
+    const commentFilter = collegeUserIds
+      ? { user: { $in: collegeUserIds }, isDeleted: false }
+      : { isDeleted: false }
+
     const reportFilter = collegeId ? { collegeId } : {}
 
     const now = new Date()
-    const period = req.query.period || 'today'
+    const period = req.query.period || 'all'
+
+    // Client timezone offset in minutes (e.g. -330 for UTC+5:30)
+    const tzOffsetMinutes = Number.isFinite(Number(req.query.timezoneOffset))
+      ? Number(req.query.timezoneOffset)
+      : 0
+    const tzOffsetMs = tzOffsetMinutes * 60 * 1000
+    const tzString = formatTimezoneOffset(tzOffsetMinutes)
+
+    // Client's local time representation
+    const clientLocalNowMs = now.getTime() - tzOffsetMs
+    const clientLocalNow = new Date(clientLocalNowMs)
 
     let currentStart, currentEnd, previousStart, previousEnd
     let dateFormat = '%Y-%m-%d'
 
     if (period === 'today') {
-      currentStart = new Date(now)
-      currentStart.setUTCHours(0, 0, 0, 0)
-      currentEnd = new Date(now)
-      currentEnd.setUTCHours(23, 59, 59, 999)
+      // Start of client local day: 00:00:00.000 local converted to UTC timestamp
+      const localStartOfDay = new Date(Date.UTC(
+        clientLocalNow.getUTCFullYear(),
+        clientLocalNow.getUTCMonth(),
+        clientLocalNow.getUTCDate(),
+        0, 0, 0, 0
+      ))
+      currentStart = new Date(localStartOfDay.getTime() + tzOffsetMs)
+      currentEnd = now
 
       previousStart = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000)
       previousEnd = new Date(currentEnd.getTime() - 24 * 60 * 60 * 1000)
@@ -122,23 +171,50 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
     } else if (req.query.startDate && req.query.endDate) {
       currentStart = new Date(req.query.startDate)
       currentEnd = new Date(req.query.endDate)
-      const spanMs = currentEnd.getTime() - currentStart.getTime()
+      const spanMs = Math.max(0, currentEnd.getTime() - currentStart.getTime())
       previousStart = new Date(currentStart.getTime() - spanMs)
       previousEnd = new Date(currentStart.getTime())
       dateFormat = '%Y-%m-%d'
     } else {
-      // 'all' period
-      currentStart = new Date(0)
+      // 'all' period — complete available history
+      // Find actual earliest activity in this college, NEVER default to 1970 epoch!
+      let earliest = null
+      if (collegeId) {
+        const [oldestUser, oldestPost, oldestReport] = await Promise.all([
+          User.findOne({ collegeId }).sort({ createdAt: 1 }).select('createdAt').lean(),
+          Post.findOne(postFilter).sort({ createdAt: 1 }).select('createdAt').lean(),
+          Report.findOne(reportFilter).sort({ createdAt: 1 }).select('createdAt').lean(),
+        ])
+        const dates = [oldestUser?.createdAt, oldestPost?.createdAt, oldestReport?.createdAt].filter(Boolean)
+        if (dates.length > 0) {
+          earliest = new Date(Math.min(...dates.map(d => new Date(d).getTime())))
+        }
+      }
+
+      if (earliest && !Number.isNaN(earliest.getTime())) {
+        const localEarliest = new Date(earliest.getTime() - tzOffsetMs)
+        const localStartOfEarliest = new Date(Date.UTC(
+          localEarliest.getUTCFullYear(),
+          localEarliest.getUTCMonth(),
+          localEarliest.getUTCDate(),
+          0, 0, 0, 0
+        ))
+        currentStart = new Date(localStartOfEarliest.getTime() + tzOffsetMs)
+      } else {
+        // Fallback if no records found yet: 30 days ago
+        currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      }
+
       currentEnd = now
-      previousStart = new Date(0)
-      previousEnd = new Date(0)
+      previousStart = new Date(currentStart)
+      previousEnd = new Date(currentStart)
       dateFormat = '%Y-%m-%d'
     }
 
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-    // Parallel queries for all metrics & trends
+    // Parallel execution of consolidated aggregation queries
     const [
       totalUsers,
       activeUsers,
@@ -152,7 +228,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       posts30Days,
       reportsByStatus,
       departments,
-      // Current vs Previous Period (for Growth Calculations)
+      // Current vs Previous Period
       currentPeriodUsers,
       previousPeriodUsers,
       currentPeriodPosts,
@@ -191,11 +267,10 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       // 7. Total comments
       Comment.countDocuments(commentFilter),
 
-      // 8. Total likes
+      // 8. Total likes (optimized: uses likeCount where available, else likes array size)
       Post.aggregate([
         { $match: postFilter },
-        { $project: { likeCount: { $size: { $ifNull: ['$likes', []] } } } },
-        { $group: { _id: null, total: { $sum: '$likeCount' } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$likeCount', { $size: { $ifNull: ['$likes', []] } }] } } } },
       ]),
 
       // 9. Posts in last 7 days
@@ -224,7 +299,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       User.countDocuments({ ...filter, deactivated: false, createdAt: { $gte: currentStart, $lte: currentEnd } }),
 
       // 14. Previous Period Users
-      previousStart.getTime() > 0
+      previousStart.getTime() > 0 && period !== 'all'
         ? User.countDocuments({ ...filter, deactivated: false, createdAt: { $gte: previousStart, $lte: previousEnd } })
         : Promise.resolve(0),
 
@@ -232,7 +307,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       Post.countDocuments({ ...postFilter, createdAt: { $gte: currentStart, $lte: currentEnd } }),
 
       // 16. Previous Period Posts
-      previousStart.getTime() > 0
+      previousStart.getTime() > 0 && period !== 'all'
         ? Post.countDocuments({ ...postFilter, createdAt: { $gte: previousStart, $lte: previousEnd } })
         : Promise.resolve(0),
 
@@ -240,7 +315,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       Comment.countDocuments({ ...commentFilter, createdAt: { $gte: currentStart, $lte: currentEnd } }),
 
       // 18. Previous Period Comments
-      previousStart.getTime() > 0
+      previousStart.getTime() > 0 && period !== 'all'
         ? Comment.countDocuments({ ...commentFilter, createdAt: { $gte: previousStart, $lte: previousEnd } })
         : Promise.resolve(0),
 
@@ -248,7 +323,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       Report.countDocuments({ ...reportFilter, createdAt: { $gte: currentStart, $lte: currentEnd } }),
 
       // 20. Previous Period Reports Filed
-      previousStart.getTime() > 0
+      previousStart.getTime() > 0 && period !== 'all'
         ? Report.countDocuments({ ...reportFilter, createdAt: { $gte: previousStart, $lte: previousEnd } })
         : Promise.resolve(0),
 
@@ -256,43 +331,43 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
       Report.countDocuments({ ...reportFilter, status: { $in: ['resolved', 'dismissed'] }, updatedAt: { $gte: currentStart, $lte: currentEnd } }),
 
       // 22. Previous Period Reports Resolved
-      previousStart.getTime() > 0
+      previousStart.getTime() > 0 && period !== 'all'
         ? Report.countDocuments({ ...reportFilter, status: { $in: ['resolved', 'dismissed'] }, updatedAt: { $gte: previousStart, $lte: previousEnd } })
         : Promise.resolve(0),
 
-      // ── Timeline Trends Aggregations ──
+      // ── Timeline Trends Aggregations with Timezone Support ──
       // 23. Post trends over period
       Post.aggregate([
         { $match: { ...postFilter, createdAt: { $gte: currentStart, $lte: currentEnd } } },
-        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: tzString } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
 
       // 24. Comment trends over period
       Comment.aggregate([
         { $match: { ...commentFilter, createdAt: { $gte: currentStart, $lte: currentEnd } } },
-        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: tzString } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
 
       // 25. User registration trends over period
       User.aggregate([
         { $match: { ...filter, deactivated: false, createdAt: { $gte: currentStart, $lte: currentEnd } } },
-        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: tzString } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
 
       // 26. Reports filed trends over period
       Report.aggregate([
         { $match: { ...reportFilter, createdAt: { $gte: currentStart, $lte: currentEnd } } },
-        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: tzString } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
 
       // 27. Moderation actions / resolved trends over period
       Report.aggregate([
         { $match: { ...reportFilter, status: { $in: ['resolved', 'dismissed'] }, updatedAt: { $gte: currentStart, $lte: currentEnd } } },
-        { $group: { _id: { $dateToString: { format: dateFormat, date: '$updatedAt' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: dateFormat, date: '$updatedAt', timezone: tzString } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
     ])
@@ -324,7 +399,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
     const reportMap = new Map(rawReportTrends.map(t => [t._id, t.count]))
     const resolvedMap = new Map(rawResolvedTrends.map(t => [t._id, t.count]))
 
-    // Generate unbroken slot timeline
+    // Generate unbroken slot timeline (capped at max 180 slots)
     const timeSlots = generateTimeSlots(currentStart, currentEnd, period)
 
     let runningCumulativeUsers = Math.max(0, totalUsers - currentPeriodUsers)
@@ -379,7 +454,7 @@ router.get('/dashboard', requireAuth, requireRole('admin', 'college_admin', 'mai
           ? 'vs prior 7 days'
           : period === '30days'
           ? 'vs prior 30 days'
-          : 'vs prior period',
+          : 'all time history',
     }
 
     res.json({

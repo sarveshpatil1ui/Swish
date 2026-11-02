@@ -130,7 +130,7 @@ export default function CollegeAdminDashboard() {
         apiGetUserStats(),
         apiGetNotices(),
         apiGetActivityLogs({ limit: 10 }),
-        apiGetAnalyticsDashboard({ period }),
+        apiGetAnalyticsDashboard({ period, timezoneOffset: new Date().getTimezoneOffset() }),
       ])
 
       if (!statsRes.ok) {
@@ -151,9 +151,9 @@ export default function CollegeAdminDashboard() {
       if (analyticsRes.ok && analyticsRes.analytics) {
         setAnalyticsData(analyticsRes.analytics)
         setTodayStats({
-          newUsers: analyticsRes.analytics.users.newToday ?? 0,
-          newPosts: analyticsRes.analytics.content.postsToday ?? 0,
-          newComments: analyticsRes.analytics.content.commentsToday ?? 0,
+          newUsers: analyticsRes.analytics.users.currentPeriod ?? analyticsRes.analytics.users.newToday ?? 0,
+          newPosts: analyticsRes.analytics.content.currentPeriodPosts ?? analyticsRes.analytics.content.postsToday ?? 0,
+          newComments: analyticsRes.analytics.content.currentPeriodComments ?? analyticsRes.analytics.content.commentsToday ?? 0,
           pendingReports: analyticsRes.analytics.reports.pending ?? 0,
           activeGrievances: analyticsRes.analytics.reports.reviewed ?? 0,
         })
@@ -285,10 +285,10 @@ export default function CollegeAdminDashboard() {
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
               <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
-              Today's Overview
+              {period === 'today' ? "Today's Overview" : period === '7days' ? 'Past 7 Days Overview' : 'Past 30 Days Overview'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-              Activity from {formatDate(currentTime)}
+              {period === 'today' ? `Activity from ${formatDate(currentTime)}` : `Activity over the preceding ${period === '7days' ? '7 days' : '30 days'}`}
             </p>
           </div>
           <div className="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-lg">

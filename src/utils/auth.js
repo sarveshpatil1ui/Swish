@@ -585,11 +585,13 @@ export async function apiUpdateReportStatus(id, { status, resolutionNotes }) {
   return apiFetch(`/api/reports/${id}/status`, { method: 'PATCH', body: { status, resolutionNotes } })
 }
 
-export async function apiGetAnalyticsDashboard({ period, startDate, endDate } = {}) {
+export async function apiGetAnalyticsDashboard({ period, startDate, endDate, timezoneOffset } = {}) {
   const params = new URLSearchParams()
   if (period) params.append('period', period)
   if (startDate) params.append('startDate', startDate)
   if (endDate) params.append('endDate', endDate)
+  const tz = timezoneOffset !== undefined ? timezoneOffset : new Date().getTimezoneOffset()
+  params.append('timezoneOffset', String(tz))
   const query = params.toString()
   return apiFetch(`/api/analytics/dashboard${query ? `?${query}` : ''}`)
 }
