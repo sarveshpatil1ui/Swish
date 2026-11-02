@@ -199,7 +199,7 @@ export default function CollegeAdminLayout() {
           - Desktop (lg:): Fixed w-60 sidebar, exactly preserving existing desktop layout
       */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-72 max-w-[85vw] lg:w-60
+        className={`fixed top-0 left-0 z-50 h-screen h-[100dvh] max-h-screen max-h-[100dvh] overflow-hidden w-72 max-w-[85vw] lg:w-60
           bg-white dark:bg-gray-950
           border-r border-slate-200 dark:border-gray-800
           flex flex-col
@@ -240,7 +240,7 @@ export default function CollegeAdminLayout() {
         </div>
 
         {/* Navigation Sections & Links */}
-        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-4 overflow-y-auto">
+        <nav className="flex-1 min-h-0 px-3 lg:px-4 py-3.5 space-y-4 overflow-y-auto overscroll-contain">
           {menuSections.map((section) => (
             <div key={section.title}>
               <h3 className="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
@@ -280,7 +280,7 @@ export default function CollegeAdminLayout() {
         </nav>
 
         {/* Bottom Section: Profile, Theme, and Logout */}
-        <div className="px-3 lg:px-4 py-3.5 space-y-1 border-t border-slate-100 dark:border-gray-800 flex-shrink-0 bg-slate-50/50 dark:bg-gray-900/40 lg:bg-transparent">
+        <div className="px-3 lg:px-4 py-2.5 space-y-1 border-t border-slate-100 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-gray-950 z-10 sticky bottom-0">
           {/* Admin Profile */}
           {currentUser && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-gray-800/60 transition-all mb-1">
@@ -303,17 +303,18 @@ export default function CollegeAdminLayout() {
 
           {/* Theme Toggle */}
           <button
+            type="button"
             onClick={toggle}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all text-sm font-medium"
           >
             <AnimatePresence mode="wait" initial={false}>
               {dark ? (
-                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5">
+                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5 flex-shrink-0">
                   <Sun size={18} className="text-amber-400" />
                 </motion.span>
               ) : (
-                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5">
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5 flex-shrink-0">
                   <Moon size={18} className="text-slate-600" />
                 </motion.span>
               )}
@@ -323,11 +324,15 @@ export default function CollegeAdminLayout() {
 
           {/* Logout (reuses existing handleLogout cleanly) */}
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all text-sm font-medium"
+            data-testid="college-admin-logout-btn"
+            id="college-admin-logout-btn"
+            aria-label="Logout"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 active:bg-rose-100 dark:active:bg-rose-950/50 transition-all text-sm font-semibold"
           >
-            <div className="flex items-center justify-center w-5 h-5">
-              <LogOut size={18} />
+            <div className="flex items-center justify-center w-5 h-5 flex-shrink-0">
+              <LogOut size={18} className="stroke-[2.25]" />
             </div>
             <span>Logout</span>
           </button>
