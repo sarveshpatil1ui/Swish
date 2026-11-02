@@ -26,6 +26,7 @@ function handleValidationErrors(req, res) {
 }
 
 // ── Middleware: Ensure college admin can only access reports from their college ──
+// and cannot access platform/system reports ──
 async function requireCollegeAccess(req, res, next) {
   if (req.user.role === 'admin' || req.user.role === 'main_admin') {
     return next()
@@ -35,6 +36,8 @@ async function requireCollegeAccess(req, res, next) {
       return res.status(403).json({ ok: false, error: 'Access denied: No college associated.' })
     }
     req.collegeId = req.user.collegeId
+    // College admins should only see post and comment reports, not platform/system reports
+    req.isCollegeAdmin = true
     return next()
   }
   return res.status(403).json({ ok: false, error: 'Access denied.' })
@@ -140,9 +143,17 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'main_admin')
     const filter = {}
     if (req.user.role === 'college_admin') {
       filter.collegeId = req.user.collegeId
+      // College admins can ONLY see post and comment reports, NOT platform or system reports
+      filter.type = { $in: ['post', 'comment'] }
     }
     if (status) filter.status = status
-    if (type) filter.type = type
+    if (type) {
+      // For college admins, ensure type is only post or comment
+      if (req.user.role === 'college_admin' && !['post', 'comment'].includes(type)) {
+        return res.status(403).json({ ok: false, error: 'Access denied: College admins can only view post and comment reports.' })
+      }
+      filter.type = type
+    }
 
     const reports = await Report.find(filter)
       .sort({ createdAt: -1 })
@@ -168,8 +179,14 @@ router.get('/:id', requireAuth, requireRole('admin', 'college_admin', 'main_admi
     }
 
     // College admin can only access reports from their college
-    if (req.user.role === 'college_admin' && !report.collegeId.equals(req.user.collegeId)) {
-      return res.status(403).json({ ok: false, error: 'Access denied.' })
+    if (req.user.role === 'college_admin') {
+      if (!report.collegeId || !report.collegeId.equals(req.user.collegeId)) {
+        return res.status(403).json({ ok: false, error: 'Access denied: You can only view reports from your college.' })
+      }
+      // College admins cannot access platform or system reports
+      if (report.type === 'platform' || report.category === 'platform_bug' || report.category === 'college_admin_misconduct' || report.category === 'feature_request') {
+        return res.status(403).json({ ok: false, error: 'Access denied: College admins cannot view platform or system reports.' })
+      }
     }
 
     res.json({ ok: true, report })
@@ -201,8 +218,14 @@ router.patch(
       }
 
       // College admin can only manage reports from their college
-      if (req.user.role === 'college_admin' && !report.collegeId.equals(req.user.collegeId)) {
-        return res.status(403).json({ ok: false, error: 'Access denied.' })
+      if (req.user.role === 'college_admin') {
+        if (!report.collegeId || !report.collegeId.equals(req.user.collegeId)) {
+          return res.status(403).json({ ok: false, error: 'Access denied: You can only manage reports from your college.' })
+        }
+        // College admins cannot manage platform or system reports
+        if (report.type === 'platform' || report.category === 'platform_bug' || report.category === 'college_admin_misconduct' || report.category === 'feature_request') {
+          return res.status(403).json({ ok: false, error: 'Access denied: College admins cannot manage platform or system reports.' })
+        }
       }
 
       report.status = status

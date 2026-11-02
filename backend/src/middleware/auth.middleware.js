@@ -165,15 +165,27 @@ export async function requireAuth(req, res, next) {
         const token = req.cookies?.swish_token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null)
         if (token) {
           const tokenHash = hashToken(token)
-          const existing = await Session.findOne({ tokenHash, isActive: true })
-          if (!existing) {
-            const { session: newSession } = await createSession(user, req)
-            req.sessionId = newSession._id.toString()
-            req.session = newSession
-          } else {
-            req.sessionId = existing._id.toString()
-            req.session = existing
-          }
+          // Use findOneAndUpdate with upsert to prevent race conditions and duplicate sessions
+          const session = await Session.findOneAndUpdate(
+            { tokenHash, isActive: true },
+            {
+              $setOnInsert: {
+                userId: user._id,
+                userName: user.name || 'User',
+                userRole: user.role,
+                collegeId: user.collegeId || null,
+                ...parseClientInfo(req),
+                tokenHash,
+                refreshTokenHash: null,
+                isActive: true,
+                lastActivity: new Date(),
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+              }
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          )
+          req.sessionId = session._id.toString()
+          req.session = session
         }
       } catch (retroErr) {
         // Non-fatal: session tracking is best-effort; don't block the request

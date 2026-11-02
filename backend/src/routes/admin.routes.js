@@ -1462,7 +1462,7 @@ router.post(
 router.get(
   '/reports',
   requireAuth,
-  requireRole('admin'),
+  requireRole('admin', 'main_admin'),
   async (req, res) => {
     try {
       const reports = await Report.find({
@@ -1496,7 +1496,7 @@ router.get(
 router.patch(
   '/reports/:id/status',
   requireAuth,
-  requireRole('admin'),
+  requireRole('admin', 'main_admin'),
   async (req, res) => {
     try {
       const { status, resolutionNote, resolutionNotes } = req.body

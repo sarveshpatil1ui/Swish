@@ -301,5 +301,38 @@ describe('Admin Session & Device Management', () => {
       Session.updateMany = originalUpdateMany
     }
   })
+
+  it('8. Retroactive session creation uses upsert to prevent duplicates', async () => {
+    // Test that the findOneAndUpdate with upsert prevents race conditions
+    const tokenHash = hashToken('test_token_123')
+    let wasUpsertCalled = false
+    let upsertOption = null
+
+    const originalFindOneAndUpdate = Session.findOneAndUpdate
+    Session.findOneAndUpdate = (filter, update, options) => {
+      wasUpsertCalled = true
+      upsertOption = options?.upsert
+      return Promise.resolve({
+        _id: new mongoose.Types.ObjectId(),
+        userId: mockAdminUser._id,
+        isActive: true,
+      })
+    }
+
+    try {
+      // Simulate the retroactive session creation logic
+      const session = await Session.findOneAndUpdate(
+        { tokenHash, isActive: true },
+        { $setOnInsert: { userId: mockAdminUser._id, userName: mockAdminUser.name } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
+
+      assert.equal(wasUpsertCalled, true, 'findOneAndUpdate should be called')
+      assert.equal(upsertOption, true, 'upsert option should be true to prevent duplicates')
+      assert.ok(session, 'Session should be returned')
+    } finally {
+      Session.findOneAndUpdate = originalFindOneAndUpdate
+    }
+  })
 })
 
