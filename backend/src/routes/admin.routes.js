@@ -1471,6 +1471,11 @@ router.get(
           { category: { $in: ['college_admin_misconduct', 'platform_bug', 'feature_request'] } }
         ]
       })
+        .populate({
+          path: 'reportedPostId',
+          select: 'caption imageUrl imagePublicId music tags isDeleted hidden createdAt user collegeId',
+          populate: { path: 'user', select: 'name username initials avatarColor profilePhoto' },
+        })
         .populate('reporterId', 'role name email')
         .sort({ createdAt: -1 })
         .lean()
@@ -1480,6 +1485,7 @@ router.get(
         reports: reports.map((r) => ({
           ...r,
           id: r._id.toString(),
+          reportedPost: r.reportedPostId && typeof r.reportedPostId === 'object' && r.reportedPostId._id ? r.reportedPostId : null,
           reporterRole: r.reporterRole || r.reporterId?.role || 'student',
           resolutionNote: r.resolutionNote || r.resolutionNotes || '',
           resolutionNotes: r.resolutionNotes || r.resolutionNote || '',

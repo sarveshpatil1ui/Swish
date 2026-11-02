@@ -18,6 +18,9 @@ import {
   FileText,
   Check,
   X,
+  AlertCircle,
+  Calendar,
+  EyeOff,
 } from 'lucide-react'
 import { apiGetAdminReports, apiUpdateAdminReportStatus } from '../../utils/auth'
 
@@ -446,6 +449,85 @@ export default function AdminReports() {
                 </span>
               </div>
             </div>
+
+            {/* Reported Post details if this report concerns a post */}
+            {Boolean(selectedReport.type === 'post' || selectedReport.reportedPostId || selectedReport.reportedPost) && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+                  Reported Post:
+                </p>
+                {(() => {
+                  const post =
+                    selectedReport.reportedPost ||
+                    (typeof selectedReport.reportedPostId === 'object' && selectedReport.reportedPostId?._id
+                      ? selectedReport.reportedPostId
+                      : null)
+                  if (!post || post.isDeleted) {
+                    return (
+                      <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 text-xs">
+                        <div className="flex items-center gap-2 font-medium">
+                          <AlertCircle size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Original post unavailable or deleted</span>
+                        </div>
+                        {selectedReport.reportedUserName && (
+                          <p className="text-[11px] text-amber-700 dark:text-amber-300/90 mt-1 pl-5">
+                            Author: <span className="font-semibold">{selectedReport.reportedUserName}</span>
+                          </p>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  const authorName = post.user?.name || selectedReport.reportedUserName || 'Post Author'
+                  const authorUsername = post.user?.username
+
+                  return (
+                    <div className="rounded-xl border border-slate-200/80 dark:border-gray-800 bg-slate-50/80 dark:bg-gray-800/40 p-3.5 space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/70 dark:border-gray-700/60">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-slate-900 dark:text-white truncate">
+                            {authorName}
+                          </span>
+                          {authorUsername && (
+                            <span className="text-slate-400 dark:text-gray-500 text-[11px] truncate">
+                              @{authorUsername}
+                            </span>
+                          )}
+                        </div>
+                        {post.createdAt && (
+                          <span className="text-slate-400 dark:text-gray-500 flex items-center gap-1 text-[11px] shrink-0">
+                            <Calendar size={12} />
+                            {new Date(post.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      {post.caption ? (
+                        <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                          {post.caption}
+                        </p>
+                      ) : (
+                        <p className="italic text-slate-400 dark:text-gray-500 text-[11px]">(No caption)</p>
+                      )}
+                      {post.imageUrl && (
+                        <div className="rounded-lg overflow-hidden border border-slate-200/80 dark:border-gray-700 max-h-56 bg-black/5 dark:bg-black/20 flex items-center justify-center">
+                          <img
+                            src={post.imageUrl}
+                            alt="Reported post attachment"
+                            className="max-h-56 w-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      {post.hidden && (
+                        <div className="inline-flex items-center gap-1 text-[10px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded">
+                          <EyeOff size={11} /> Currently hidden
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
 
             {/* Description */}
             <div>

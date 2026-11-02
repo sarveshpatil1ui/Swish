@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, CheckCircle, XCircle, Clock, Filter, Search, Eye, MessageSquare, User as UserIcon, Ban, EyeOff, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, CheckCircle, XCircle, Clock, Filter, Search, Eye, MessageSquare, User as UserIcon, Ban, EyeOff, ShieldAlert, Calendar, AlertCircle } from 'lucide-react'
 import { apiGetReports, apiUpdateReportStatus, apiHidePost, apiHideComment, apiToggleUserStatus } from '../../utils/auth'
 
 const STATUS_COLORS = {
@@ -99,24 +99,41 @@ export default function ReportsManagement() {
       return
     }
 
+    const targetPostId =
+      selectedReport?.reportedPost?._id ||
+      (typeof selectedReport?.reportedPostId === 'object'
+        ? selectedReport?.reportedPostId?._id
+        : selectedReport?.reportedPostId)
+
+    const targetCommentId =
+      selectedReport?.reportedComment?._id ||
+      (typeof selectedReport?.reportedCommentId === 'object'
+        ? selectedReport?.reportedCommentId?._id
+        : selectedReport?.reportedCommentId)
+
+    const targetUserId =
+      typeof selectedReport?.reportedUserId === 'object'
+        ? selectedReport?.reportedUserId?._id
+        : selectedReport?.reportedUserId
+
     setActioning(true)
     try {
-      if (actionType === 'hide_post' && selectedReport.reportedPostId) {
-        const res = await apiHidePost(selectedReport.reportedPostId, actionReason)
+      if (actionType === 'hide_post' && targetPostId) {
+        const res = await apiHidePost(targetPostId, actionReason)
         if (res.ok) {
           alert('Post hidden successfully')
         } else {
           alert(res.error || 'Failed to hide post')
         }
-      } else if (actionType === 'hide_comment' && selectedReport.reportedCommentId) {
-        const res = await apiHideComment(selectedReport.reportedCommentId, actionReason)
+      } else if (actionType === 'hide_comment' && targetCommentId) {
+        const res = await apiHideComment(targetCommentId, actionReason)
         if (res.ok) {
           alert('Comment hidden successfully')
         } else {
           alert(res.error || 'Failed to hide comment')
         }
-      } else if (actionType === 'suspend_user' && selectedReport.reportedUserId) {
-        const res = await apiToggleUserStatus(selectedReport.reportedUserId)
+      } else if (actionType === 'suspend_user' && targetUserId) {
+        const res = await apiToggleUserStatus(targetUserId)
         if (res.ok) {
           alert('User suspended successfully')
         } else {
@@ -289,25 +306,175 @@ export default function ReportsManagement() {
                 </div>
               </div>
 
+              {/* Reporter Information */}
               <div>
-                <p className="text-xs text-slate-500 dark:text-gray-500 mb-1">Reporter</p>
-                <div className="flex items-center gap-2">
-                  <UserIcon size={16} className="text-slate-400 dark:text-gray-500" />
-                  <p className="text-sm text-slate-900 dark:text-white">{selectedReport.reporterName}</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">Reporter</p>
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                  <UserIcon size={16} className="text-slate-400 dark:text-gray-500 shrink-0" />
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{selectedReport.reporterName}</p>
                 </div>
               </div>
 
+              {/* Reported Content / Target Details */}
               <div>
-                <p className="text-xs text-slate-500 dark:text-gray-500 mb-1">Reported {TYPE_LABELS[selectedReport.type]}</p>
-                <div className="flex items-center gap-2">
-                  <UserIcon size={16} className="text-slate-400 dark:text-gray-500" />
-                  <p className="text-sm text-slate-900 dark:text-white">{selectedReport.reportedUserName}</p>
-                </div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1.5">
+                  Reported {TYPE_LABELS[selectedReport.type] || 'Content'}
+                </p>
+                {(() => {
+                  if (selectedReport.type === 'post') {
+                    const post =
+                      selectedReport.reportedPost ||
+                      (typeof selectedReport.reportedPostId === 'object' && selectedReport.reportedPostId?._id
+                        ? selectedReport.reportedPostId
+                        : null)
+                    const isUnavailable = !post || post.isDeleted
+
+                    if (isUnavailable) {
+                      return (
+                        <div className="p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200">
+                          <div className="flex items-center gap-2 font-medium text-sm">
+                            <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>Original post unavailable or deleted</span>
+                          </div>
+                          {selectedReport.reportedUserName && (
+                            <p className="text-xs text-amber-700 dark:text-amber-300/90 mt-1 pl-6">
+                              Author: <span className="font-semibold">{selectedReport.reportedUserName}</span>
+                            </p>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    const authorName = post.user?.name || selectedReport.reportedUserName || 'Unknown'
+                    const authorUsername = post.user?.username
+                    const authorInitials = post.user?.initials || authorName.slice(0, 2).toUpperCase()
+                    const avatarColor = post.user?.avatarColor || '#6366f1'
+
+                    return (
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 p-4 space-y-3">
+                        {/* Author Header & Date */}
+                        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {post.user?.profilePhoto ? (
+                              <img
+                                src={post.user.profilePhoto}
+                                alt={authorName}
+                                className="w-9 h-9 rounded-full object-cover shrink-0"
+                              />
+                            ) : (
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
+                                style={{ backgroundColor: avatarColor }}
+                              >
+                                {authorInitials}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                {authorName}
+                              </p>
+                              {authorUsername && (
+                                <p className="text-xs text-slate-500 dark:text-gray-400 truncate">
+                                  @{authorUsername}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {post.createdAt && (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-gray-400 shrink-0">
+                              <Calendar size={13} />
+                              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Post Caption */}
+                        {post.caption ? (
+                          <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                            {post.caption}
+                          </p>
+                        ) : (
+                          <p className="text-xs italic text-slate-400 dark:text-gray-500">
+                            (No caption provided)
+                          </p>
+                        )}
+
+                        {/* Post Image Attachment */}
+                        {post.imageUrl && (
+                          <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 max-h-72 bg-black/5 dark:bg-black/20 flex items-center justify-center">
+                            <img
+                              src={post.imageUrl}
+                              alt="Reported content attachment"
+                              className="max-h-72 w-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+
+                        {post.hidden && (
+                          <div className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded">
+                            <EyeOff size={12} /> Currently hidden from feed
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  if (selectedReport.type === 'comment') {
+                    const comment =
+                      selectedReport.reportedComment ||
+                      (typeof selectedReport.reportedCommentId === 'object' && selectedReport.reportedCommentId?._id
+                        ? selectedReport.reportedCommentId
+                        : null)
+                    const isUnavailable = !comment || comment.isDeleted
+
+                    if (isUnavailable) {
+                      return (
+                        <div className="p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200">
+                          <div className="flex items-center gap-2 font-medium text-sm">
+                            <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>Original comment unavailable or deleted</span>
+                          </div>
+                          {selectedReport.reportedUserName && (
+                            <p className="text-xs text-amber-700 dark:text-amber-300/90 mt-1 pl-6">
+                              Author: <span className="font-semibold">{selectedReport.reportedUserName}</span>
+                            </p>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                          <span className="font-medium text-slate-900 dark:text-white">
+                            {comment.user?.name || selectedReport.reportedUserName}
+                          </span>
+                          {comment.createdAt && <span>{new Date(comment.createdAt).toLocaleDateString()}</span>}
+                        </div>
+                        <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                          {comment.text}
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  // Default / User report
+                  return (
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                      <UserIcon size={16} className="text-slate-400 dark:text-gray-500 shrink-0" />
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{selectedReport.reportedUserName}</p>
+                    </div>
+                  )
+                })()}
               </div>
 
+              {/* Reporter's Description / Reason */}
               <div>
-                <p className="text-xs text-slate-500 dark:text-gray-500 mb-1">Description</p>
-                <p className="text-sm text-slate-700 dark:text-gray-300 bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                <p className="text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1">
+                  Reporter's Description
+                </p>
+                <p className="text-sm text-slate-700 dark:text-gray-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">
                   {selectedReport.description}
                 </p>
               </div>
@@ -343,7 +510,11 @@ export default function ReportsManagement() {
                       {selectedReport.reportedPostId && (
                         <button
                           onClick={() => openActionModal(selectedReport, 'hide_post')}
-                          className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
+                          disabled={
+                            selectedReport.type === 'post' &&
+                            (!selectedReport.reportedPost || selectedReport.reportedPost.isDeleted)
+                          }
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <EyeOff size={14} /> Hide Post
                         </button>

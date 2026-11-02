@@ -25,6 +25,50 @@ function handleValidationErrors(req, res) {
   return null
 }
 
+const POPULATE_REPORTED_POST = {
+  path: 'reportedPostId',
+  select: 'caption imageUrl imagePublicId music tags isDeleted hidden createdAt user collegeId',
+  populate: { path: 'user', select: 'name username initials avatarColor profilePhoto' },
+}
+
+const POPULATE_REPORTED_COMMENT = {
+  path: 'reportedCommentId',
+  select: 'text isDeleted hidden createdAt user',
+  populate: { path: 'user', select: 'name username initials avatarColor profilePhoto' },
+}
+
+function formatReportForClient(report, currentUser) {
+  if (!report) return report
+  const formatted = { ...report }
+
+  let post =
+    report.reportedPostId && typeof report.reportedPostId === 'object' && report.reportedPostId._id
+      ? report.reportedPostId
+      : null
+
+  // Cross-college authorization protection (Requirement 8):
+  // College admins can only view post content belonging to their college
+  if (currentUser?.role === 'college_admin' && post) {
+    const postCollegeId = post.collegeId ? post.collegeId.toString() : null
+    const userCollegeId = currentUser.collegeId ? currentUser.collegeId.toString() : null
+    if (postCollegeId && userCollegeId && postCollegeId !== userCollegeId) {
+      post = null
+      formatted.reportedPostId = null
+    }
+  }
+
+  // Ensure reportedPost is explicitly attached as populated post object (or null)
+  formatted.reportedPost = post
+
+  let comment =
+    report.reportedCommentId && typeof report.reportedCommentId === 'object' && report.reportedCommentId._id
+      ? report.reportedCommentId
+      : null
+
+  formatted.reportedComment = comment
+  return formatted
+}
+
 // ── Middleware: Ensure college admin can only access reports from their college ──
 // and cannot access platform/system reports ──
 async function requireCollegeAccess(req, res, next) {
@@ -108,9 +152,15 @@ router.post(
         college: req.user.college || '',
       })
 
+      const populatedReport = await Report.findById(report._id)
+        .populate(POPULATE_REPORTED_POST)
+        .populate(POPULATE_REPORTED_COMMENT)
+        .lean()
+      const clientReport = formatReportForClient(populatedReport || report.toObject(), req.user)
+
       // Realtime notification to College Admin
       try {
-        emitToCollege(reporterCollegeId, 'report:new', { report })
+        emitToCollege(reporterCollegeId, 'report:new', { report: clientReport })
       } catch (socketErr) {
         console.warn('[Report] Socket notification error:', socketErr?.message)
       }
@@ -127,7 +177,7 @@ router.post(
         description: `${req.user.name} (${req.user.role}) reported a ${type} (${category}): "${description.slice(0, 80)}"`,
       }).catch(err => console.warn('[Report] Failed to log activity:', err))
 
-      res.status(201).json({ ok: true, report })
+      res.status(201).json({ ok: true, report: clientReport })
     } catch (err) {
       console.error('[POST /reports]', err)
       res.status(500).json({ ok: false, error: 'Failed to submit report. Please try again.' })
@@ -156,6 +206,8 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'main_admin')
     }
 
     const reports = await Report.find(filter)
+      .populate(POPULATE_REPORTED_POST)
+      .populate(POPULATE_REPORTED_COMMENT)
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip(Number(skip))
@@ -163,7 +215,7 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'main_admin')
 
     const total = await Report.countDocuments(filter)
 
-    res.json({ ok: true, reports, total })
+    res.json({ ok: true, reports: reports.map((r) => formatReportForClient(r, req.user)), total })
   } catch (err) {
     console.error('[GET /reports]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch reports.' })
@@ -173,7 +225,10 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'main_admin')
 // ── GET /api/reports/:id — Get single report details ─────────────────────────────
 router.get('/:id', requireAuth, requireRole('admin', 'college_admin', 'main_admin'), requireCollegeAccess, async (req, res) => {
   try {
-    const report = await Report.findById(req.params.id).lean()
+    const report = await Report.findById(req.params.id)
+      .populate(POPULATE_REPORTED_POST)
+      .populate(POPULATE_REPORTED_COMMENT)
+      .lean()
     if (!report) {
       return res.status(404).json({ ok: false, error: 'Report not found.' })
     }
@@ -189,7 +244,7 @@ router.get('/:id', requireAuth, requireRole('admin', 'college_admin', 'main_admi
       }
     }
 
-    res.json({ ok: true, report })
+    res.json({ ok: true, report: formatReportForClient(report, req.user) })
   } catch (err) {
     console.error('[GET /reports/:id]', err)
     res.status(500).json({ ok: false, error: 'Failed to fetch report.' })
@@ -239,6 +294,11 @@ router.patch(
 
       await report.save()
 
+      const populatedReport = await Report.findById(report._id)
+        .populate(POPULATE_REPORTED_POST)
+        .populate(POPULATE_REPORTED_COMMENT)
+        .lean()
+
       // Log the action
       const actionType = status === 'resolved' ? 'report_resolved' : status === 'dismissed' ? 'report_dismissed' : 'report_reviewed'
       await logActivity({
@@ -255,7 +315,7 @@ router.patch(
         ipAddress: req.ip,
       })
 
-      res.json({ ok: true, report })
+      res.json({ ok: true, report: formatReportForClient(populatedReport || report.toObject(), req.user) })
     } catch (err) {
       console.error('[PATCH /reports/:id/status]', err)
       res.status(500).json({ ok: false, error: 'Failed to update report status.' })

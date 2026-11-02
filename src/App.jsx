@@ -249,11 +249,11 @@ function AppContent() {
                   <Route path="notices" element={<FacultyPage defaultTab="Notices" />} />
                 </Route>
 
-                {/* ── College Admin (requires college_admin role) ─────────── */}
+                {/* ── College Admin (requires college_admin or admin role) ─── */}
                 <Route
                   path="/college-admin"
                   element={
-                    <ProtectedRoute allowedRoles={['college_admin']}>
+                    <ProtectedRoute allowedRoles={['college_admin', 'admin']}>
                       <CollegeAdminLayout />
                     </ProtectedRoute>
                   }
