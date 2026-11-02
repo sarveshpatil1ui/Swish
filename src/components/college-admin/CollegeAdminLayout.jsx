@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -78,7 +78,30 @@ export default function CollegeAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const msgBadgeLabel = unreadMsgCount > 9 ? '9+' : String(unreadMsgCount)
 
+  // Prevent background body scroll when mobile drawer is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [sidebarOpen])
+
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSidebarOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [sidebarOpen])
+
   const handleLogout = async () => {
+    setSidebarOpen(false)
     await logout()
     navigate('/login')
   }
@@ -86,13 +109,14 @@ export default function CollegeAdminLayout() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300">
 
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2.5 flex items-center justify-between">
+      {/* Mobile Top Header (Hidden on Desktop: lg:hidden) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-800 px-3.5 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-slate-600 dark:text-gray-400"
-            aria-label="Open menu"
+            aria-label="Open navigation menu"
+            aria-expanded={sidebarOpen}
           >
             <Menu size={20} />
           </button>
@@ -112,7 +136,7 @@ export default function CollegeAdminLayout() {
           </div>
         </div>
 
-        {/* Right actions: Theme toggle + Account Profile */}
+        {/* Right actions: Theme toggle + Messages + Account Profile */}
         <div className="flex items-center gap-1.5">
           <button
             onClick={toggle}
@@ -125,7 +149,7 @@ export default function CollegeAdminLayout() {
                   <Sun size={18} className="text-amber-400" />
                 </motion.span>
               ) : (
-                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
                   <Moon size={18} className="text-slate-600" />
                 </motion.span>
               )}
@@ -155,48 +179,71 @@ export default function CollegeAdminLayout() {
         </div>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/50"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Drawer Backdrop Overlay (Hidden on Desktop: lg:hidden) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Sidebar / Mobile Drawer
+          - Mobile (< lg): Expandable drawer w-72 max-w-[85vw] sliding in with full labels and close button
+          - Desktop (lg:): Fixed w-60 sidebar, exactly preserving existing desktop layout
+      */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-16 lg:w-60
+        className={`fixed top-0 left-0 z-50 h-screen w-72 max-w-[85vw] lg:w-60
           bg-white dark:bg-gray-950
           border-r border-slate-200 dark:border-gray-800
           flex flex-col
-          transform transition-transform duration-300
+          shadow-2xl lg:shadow-none
+          transform transition-transform duration-300 ease-in-out
           ${
             sidebarOpen
               ? 'translate-x-0'
               : '-translate-x-full lg:translate-x-0'
           }`}
+        aria-label="College admin sidebar"
       >
 
-        {/* Logo */}
-        <div className="p-5 lg:px-4 border-b border-slate-100 dark:border-gray-800 flex-shrink-0">
-          <div className="flex items-center gap-2.5 px-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
+        {/* Drawer Header (Logo + Mobile Close Button) */}
+        <div className="p-4 sm:p-5 lg:px-4 border-b border-slate-100 dark:border-gray-800 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5 px-1 sm:px-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-xs">
               <Zap size={16} className="text-white fill-white" />
             </div>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="hidden lg:block font-extrabold text-lg text-slate-900 dark:text-white">
-              Swish
-            </span>
+            <div>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-extrabold text-lg text-slate-900 dark:text-white leading-tight block">
+                Swish
+              </span>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 leading-tight">
+                College Admin Portal
+              </p>
+            </div>
           </div>
-          <p className="hidden lg:block text-xs text-slate-500 dark:text-gray-500 mt-2 px-2">
-            College Admin Portal
-          </p>
+
+          {/* Close button strictly visible on mobile drawer, hidden on desktop */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation menu"
+            className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 lg:px-4 py-4 space-y-4 overflow-y-auto">
+        {/* Navigation Sections & Links */}
+        <nav className="flex-1 px-3 lg:px-4 py-4 space-y-4 overflow-y-auto">
           {menuSections.map((section) => (
             <div key={section.title}>
-              <h3 className="hidden lg:block text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
+              <h3 className="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-2">
                 {section.title}
               </h3>
               <div className="space-y-0.5">
@@ -211,21 +258,18 @@ export default function CollegeAdminLayout() {
                         navigate(item.path)
                         setSidebarOpen(false)
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative text-left ${
                         isActive
-                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold shadow-xs'
                           : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <Icon size={20} className={`flex-shrink-0 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                      <span className="hidden lg:block text-sm">{item.label}</span>
+                      <span className="text-sm font-medium">{item.label}</span>
                       {item.label === 'Messages' && unreadMsgCount > 0 && (
-                        <span className="hidden lg:flex ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold items-center justify-center shadow-sm shadow-indigo-500/30">
+                        <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-indigo-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center shadow-sm shadow-indigo-500/30">
                           {msgBadgeLabel}
                         </span>
-                      )}
-                      {item.label === 'Messages' && unreadMsgCount > 0 && (
-                        <span className="lg:hidden absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white dark:ring-gray-950" />
                       )}
                     </button>
                   )
@@ -235,17 +279,24 @@ export default function CollegeAdminLayout() {
           ))}
         </nav>
 
-        {/* Bottom Section */}
-        <div className="px-2 lg:px-4 py-4 space-y-0.5 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
+        {/* Bottom Section: Profile, Theme, and Logout */}
+        <div className="px-3 lg:px-4 py-3.5 space-y-1 border-t border-slate-100 dark:border-gray-800 flex-shrink-0 bg-slate-50/50 dark:bg-gray-900/40 lg:bg-transparent">
           {/* Admin Profile */}
           {currentUser && (
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: currentUser.avatarColor }}>
-                {currentUser.initials}
+            <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-gray-800/60 transition-all mb-1">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-xs"
+                style={{ backgroundColor: currentUser.avatarColor || '#6366f1' }}
+              >
+                {currentUser.initials || 'A'}
               </div>
-              <div className="hidden lg:block min-w-0">
-                <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">{currentUser.name}</p>
-                <p className="text-slate-400 dark:text-gray-500 text-xs truncate">{currentUser.college}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-slate-900 dark:text-white text-sm font-semibold truncate leading-tight">
+                  {currentUser.name}
+                </p>
+                <p className="text-slate-400 dark:text-gray-500 text-xs truncate leading-tight mt-0.5">
+                  {currentUser.college || 'College Admin'}
+                </p>
               </div>
             </div>
           )}
@@ -254,43 +305,37 @@ export default function CollegeAdminLayout() {
           <button
             onClick={toggle}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all text-sm font-medium"
           >
             <AnimatePresence mode="wait" initial={false}>
               {dark ? (
-                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <Sun size={18} />
+                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5">
+                  <Sun size={18} className="text-amber-400" />
                 </motion.span>
               ) : (
-                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <Moon size={18} />
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="flex items-center justify-center w-5 h-5">
+                  <Moon size={18} className="text-slate-600" />
                 </motion.span>
               )}
             </AnimatePresence>
-            <span className="hidden lg:block text-sm">{dark ? 'Light Mode' : 'Dark Mode'}</span>
+            <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
 
-          {/* Logout */}
+          {/* Logout (reuses existing handleLogout cleanly) */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all text-sm font-medium"
           >
-            <LogOut size={18} />
-            <span className="hidden lg:block text-sm">Logout</span>
+            <div className="flex items-center justify-center w-5 h-5">
+              <LogOut size={18} />
+            </div>
+            <span>Logout</span>
           </button>
         </div>
 
-        {/* Mobile Close Button */}
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="lg:hidden absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <X size={20} className="text-slate-600 dark:text-gray-400" />
-        </button>
-
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content (Desktop margin lg:ml-60 preserved, pt-20 on mobile for header, pt-6 on desktop) */}
       <main className="lg:ml-60 min-h-screen">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-20 lg:pt-6">
           <Suspense
