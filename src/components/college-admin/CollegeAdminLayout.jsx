@@ -199,10 +199,10 @@ export default function CollegeAdminLayout() {
           - Desktop (lg:): Fixed w-60 sidebar, exactly preserving existing desktop layout
       */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen h-[100dvh] max-h-screen max-h-[100dvh] overflow-hidden w-72 max-w-[85vw] lg:w-60
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] lg:w-60 h-[100dvh] max-h-[100dvh] lg:h-screen
           bg-white dark:bg-gray-950
           border-r border-slate-200 dark:border-gray-800
-          flex flex-col
+          flex flex-col overflow-hidden
           shadow-2xl lg:shadow-none
           transform transition-transform duration-300 ease-in-out
           ${
@@ -280,10 +280,13 @@ export default function CollegeAdminLayout() {
         </nav>
 
         {/* Bottom Section: Profile, Theme, and Logout */}
-        <div className="px-3 lg:px-4 py-2.5 space-y-1 border-t border-slate-100 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-gray-950 z-10 sticky bottom-0">
+        <div
+          className="px-3 lg:px-4 pt-2.5 space-y-1 border-t border-slate-100 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-gray-950 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.25)]"
+          style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))' }}
+        >
           {/* Admin Profile */}
           {currentUser && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-gray-800/60 transition-all mb-1">
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-slate-100/70 dark:hover:bg-gray-800/60 transition-all mb-0.5">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-xs"
                 style={{ backgroundColor: currentUser.avatarColor || '#6366f1' }}
