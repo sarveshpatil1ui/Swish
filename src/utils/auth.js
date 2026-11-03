@@ -633,12 +633,26 @@ export async function apiGetSuggestedAccounts(limit = 8) {
 }
 
 // ── Moderation API ──────────────────────────────────────────────────────────
-export async function apiGetModerationPosts() {
-  return apiFetch('/api/moderation/posts')
+export async function apiGetModerationPosts(params = {}) {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '' && value !== 'all') {
+      query.append(key, value)
+    }
+  }
+  const qStr = query.toString()
+  return apiFetch(`/api/moderation/posts${qStr ? `?${qStr}` : ''}`)
 }
 
-export async function apiGetModerationComments() {
-  return apiFetch('/api/moderation/comments')
+export async function apiGetModerationComments(params = {}) {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '' && value !== 'all') {
+      query.append(key, value)
+    }
+  }
+  const qStr = query.toString()
+  return apiFetch(`/api/moderation/comments${qStr ? `?${qStr}` : ''}`)
 }
 
 export async function apiHidePost(id, reason) {
@@ -649,12 +663,24 @@ export async function apiRestorePost(id) {
   return apiFetch(`/api/moderation/posts/${id}/restore`, { method: 'PATCH' })
 }
 
+export async function apiDeleteModerationPost(id) {
+  return apiFetch(`/api/moderation/posts/${id}`, { method: 'DELETE' })
+}
+
 export async function apiHideComment(id, reason) {
   return apiFetch(`/api/moderation/comments/${id}/hide`, { method: 'PATCH', body: { reason } })
 }
 
 export async function apiRestoreComment(id) {
   return apiFetch(`/api/moderation/comments/${id}/restore`, { method: 'PATCH' })
+}
+
+export async function apiDeleteModerationComment(id) {
+  return apiFetch(`/api/moderation/comments/${id}`, { method: 'DELETE' })
+}
+
+export async function apiIssueDisciplinaryWarning(data) {
+  return apiFetch('/api/disciplinary-warnings', { method: 'POST', body: data })
 }
 
 // ── Activity Logs API ──────────────────────────────────────────────────────────
