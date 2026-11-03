@@ -1,96 +1,171 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, GraduationCap, Building2, Megaphone,
-  TrendingUp, Activity, Calendar, ArrowRight,
-  AlertCircle, RefreshCw, Clock, MessageSquare, AlertTriangle,
-  BarChart, LineChart
+  Users,
+  GraduationCap,
+  Building2,
+  Megaphone,
+  TrendingUp,
+  Activity,
+  Calendar,
+  ArrowRight,
+  AlertCircle,
+  RefreshCw,
+  Clock,
+  MessageSquare,
+  AlertTriangle,
+  Shield,
+  ChevronRight,
+  Plus,
 } from 'lucide-react'
 import { useSwish } from '../../context/SwishContext'
-import { apiGetUserStats, apiGetNotices, apiGetActivityLogs, apiGetAnalyticsDashboard } from '../../utils/auth'
-import { LineChart as RechartsLineChart, Line, BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import {
+  apiGetUserStats,
+  apiGetNotices,
+  apiGetActivityLogs,
+  apiGetAnalyticsDashboard,
+} from '../../utils/auth'
+import {
+  LineChart as RechartsLineChart,
+  Line,
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 
-function StatCard({ icon: Icon, label, value, iconBg, iconColor, trend, trendVal }) {
+// Custom tooltip for chart clarity across light & dark modes
+function CustomChartTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm text-white px-3 py-2 rounded-xl shadow-lg border border-slate-700/50 text-xs">
+        <p className="font-semibold text-slate-300 mb-1">{label}</p>
+        {payload.map((entry, idx) => (
+          <div key={`tooltip-${idx}`} className="flex items-center gap-2 text-[11px] py-0.5">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+            <span className="text-slate-300">{entry.name}:</span>
+            <span className="font-bold text-white">{entry.value?.toLocaleString?.() ?? entry.value}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
+// ── PRIMARY PILLAR CARD (Consolidates Total + Active + Suspended) ─────────────
+function PrimaryHubCard({
+  icon: Icon,
+  title,
+  value,
+  iconBg,
+  iconColor,
+  activeCount,
+  suspendedCount,
+  subtext,
+  onClick,
+  manageLabel,
+}) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-      <div className="flex items-start justify-between mb-5">
-        <div
-          className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}
-        >
-          <Icon size={20} className={iconColor} />
+    <div
+      onClick={onClick}
+      className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 hover:border-indigo-300 dark:hover:border-indigo-700/60 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+    >
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div
+            className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center transition-transform group-hover:scale-105`}
+          >
+            <Icon size={20} className={iconColor} />
+          </div>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+            {manageLabel || 'Manage'} <ChevronRight size={12} />
+          </span>
         </div>
 
-        {trendVal && (
-          <span
-            className={`flex items-center gap-1 text-xs font-bold ${
-              trend === 'up' ? 'text-emerald-600' : 'text-red-500'
-            }`}
-          >
-            {trendVal}
-          </span>
-        )}
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{title}</p>
+        <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
+          {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
+        </p>
       </div>
 
-      <p className="text-[28px] font-black text-slate-900 dark:text-white leading-none mb-1">
-        {typeof value === 'number' ? value.toLocaleString() : (value ?? '-')}
-      </p>
-
-      <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
-        {label}
-      </p>
-
-      <p className="text-[11px] text-slate-400">
-        {trend ? (trend === 'up' ? 'Active' : 'Inactive') : 'Total'}
-      </p>
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+        {activeCount !== undefined && suspendedCount !== undefined ? (
+          <>
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span>{activeCount.toLocaleString()} Active</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+              <span>{suspendedCount.toLocaleString()} Suspended</span>
+            </div>
+          </>
+        ) : (
+          <span className="text-slate-400 dark:text-slate-500 font-medium">{subtext || 'Active in directory'}</span>
+        )}
+      </div>
     </div>
   )
 }
 
-function TodayStatCard({ icon: Icon, label, value, color, onClick, clickable, growthLabel, growthDirection, comparisonLabel }) {
-  const colorClasses = {
-    indigo: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
-    emerald: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400',
-    blue: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400',
-    amber: 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400',
-    violet: 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400',
-    rose: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400',
+// ── CAMPUS PULSE MINI-TILE (Period Activity Ribbon) ───────────────────────────
+function PulseTile({
+  icon: Icon,
+  label,
+  value,
+  color,
+  growthLabel,
+  growthDirection,
+  onClick,
+  clickable,
+}) {
+  const colorMap = {
+    indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400',
+    emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
+    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
+    amber: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
+    violet: 'bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400',
+    rose: 'bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
   }
-
-  const colors = colorClasses[color] || colorClasses.indigo
 
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-slate-900 rounded-xl p-4 transition-all duration-200 ${
-        clickable ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
+      className={`p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col justify-between transition-all ${
+        clickable
+          ? 'cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/70 hover:border-slate-300 dark:hover:border-slate-700'
+          : ''
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-8 h-8 ${colors} rounded-lg flex items-center justify-center`}>
-          <Icon size={16} />
+      <div className="flex items-center justify-between mb-2">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colorMap[color] || colorMap.indigo}`}>
+          <Icon size={14} />
         </div>
         {growthLabel && (
           <span
-            className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
               growthDirection === 'up'
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                 : growthDirection === 'down'
-                ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
             }`}
-            title={comparisonLabel || 'vs previous period'}
           >
             {growthLabel}
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-        {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
-      </p>
-      <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">{label}</p>
-      {comparisonLabel && (
-        <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-0.5 truncate">{comparisonLabel}</p>
-      )}
+      <div>
+        <p className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
+          {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
+        </p>
+        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">{label}</p>
+      </div>
     </div>
   )
 }
@@ -111,9 +186,7 @@ export default function CollegeAdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-    // Update clock every minute
     const clockInterval = setInterval(() => setCurrentTime(new Date()), 60000)
-    // Refresh analytics every 5 minutes
     const refreshInterval = setInterval(() => fetchDashboardData(), 300000)
     return () => {
       clearInterval(clockInterval)
@@ -129,7 +202,7 @@ export default function CollegeAdminDashboard() {
       const [statsRes, noticesRes, logsRes, analyticsRes] = await Promise.all([
         apiGetUserStats(),
         apiGetNotices(),
-        apiGetActivityLogs({ limit: 10 }),
+        apiGetActivityLogs({ limit: 6 }),
         apiGetAnalyticsDashboard({ period, timezoneOffset: new Date().getTimezoneOffset() }),
       ])
 
@@ -169,11 +242,11 @@ export default function CollegeAdminDashboard() {
             unique.push(n)
           }
         }
-        setRecentNotices(unique.slice(0, 5))
+        setRecentNotices(unique.slice(0, 4))
       }
 
       if (logsRes.ok && Array.isArray(logsRes.logs)) {
-        setActivityLogs(logsRes.logs)
+        setActivityLogs(logsRes.logs.slice(0, 6))
       }
 
       setLastUpdated(new Date())
@@ -197,14 +270,14 @@ export default function CollegeAdminDashboard() {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     })
   }
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -236,505 +309,480 @@ export default function CollegeAdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Header with Dynamic Date/Time */}
+    <div className="space-y-6 pb-10">
+      {/* ── 1. WELCOME HEADER ─────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {getGreeting()}, {currentUser?.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Clock size={14} className="text-slate-400" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">
-              {formatDate(currentTime)} • {formatTime(currentTime)}
-            </p>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {getGreeting()}, {currentUser?.name}
+            </h1>
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+              {currentUser?.college || 'College Admin'}
+            </span>
           </div>
-          <p className="text-slate-500 dark:text-gray-500 mt-1">
-            Here's what's happening at {currentUser?.college || 'your college'}
-          </p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <Clock size={13} className="text-slate-400" />
+            <span>
+              {formatDate(currentTime)} • {formatTime(currentTime)}
+            </span>
+          </div>
         </div>
-        <button
-          onClick={fetchDashboardData}
-          disabled={loading}
-          className="self-start sm:self-auto flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50"
-          title="Refresh statistics"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
-        </button>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => navigate('/college-admin/analytics')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-xl transition-colors"
+          >
+            <TrendingUp size={14} />
+            <span>Deep Analytics</span>
+          </button>
+          <button
+            onClick={fetchDashboardData}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all shadow-xs disabled:opacity-50"
+            title="Refresh statistics"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {error && stats && (
         <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-rose-700 dark:text-rose-400">
-            <AlertCircle size={20} className="flex-shrink-0" />
+            <AlertCircle size={20} className="shrink-0" />
             <p className="text-xs">{error}</p>
           </div>
           <button
             onClick={fetchDashboardData}
-            className="text-xs font-semibold text-rose-600 hover:underline flex-shrink-0"
+            className="text-xs font-semibold text-rose-600 hover:underline shrink-0"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Today's Overview */}
-      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-2xl border border-indigo-200/60 dark:border-indigo-800/60 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
-              {period === 'today' ? "Today's Overview" : period === '7days' ? 'Past 7 Days Overview' : 'Past 30 Days Overview'}
+      {/* ── 2. PRIMARY METRIC HUBS (Unified Pillars: Students, Faculty, Depts, Notices) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Students Hub */}
+        <PrimaryHubCard
+          icon={Users}
+          title="Total Students"
+          value={stats?.totalStudents}
+          iconBg="bg-indigo-50 dark:bg-indigo-950/60"
+          iconColor="text-indigo-600 dark:text-indigo-400"
+          activeCount={stats?.activeStudents}
+          suspendedCount={stats?.suspendedStudents}
+          onClick={() => navigate('/college-admin/students')}
+          manageLabel="Manage"
+        />
+
+        {/* Card 2: Faculty Hub */}
+        <PrimaryHubCard
+          icon={GraduationCap}
+          title="Total Faculty"
+          value={stats?.totalFaculty}
+          iconBg="bg-purple-50 dark:bg-purple-950/60"
+          iconColor="text-purple-600 dark:text-purple-400"
+          activeCount={stats?.activeFaculty}
+          suspendedCount={stats?.suspendedFaculty}
+          onClick={() => navigate('/college-admin/faculty')}
+          manageLabel="Manage"
+        />
+
+        {/* Card 3: Academic Departments */}
+        <PrimaryHubCard
+          icon={Building2}
+          title="Academic Departments"
+          value={stats?.totalDepartments}
+          iconBg="bg-violet-50 dark:bg-violet-950/60"
+          iconColor="text-violet-600 dark:text-violet-400"
+          subtext="Active academic divisions"
+          onClick={() => navigate('/college-admin/departments')}
+          manageLabel="View"
+        />
+
+        {/* Card 4: Campus Notices */}
+        <PrimaryHubCard
+          icon={Megaphone}
+          title="Active Notices"
+          value={stats?.activeNotices}
+          iconBg="bg-amber-50 dark:bg-amber-950/60"
+          iconColor="text-amber-600 dark:text-amber-400"
+          subtext="Published campus bulletins"
+          onClick={() => navigate('/college-admin/notices')}
+          manageLabel="Broadcast"
+        />
+      </div>
+
+      {/* ── 3. CAMPUS PULSE (Period Activity Executive Ribbon) ────────────── */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <Activity size={18} className="text-indigo-600 dark:text-indigo-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Campus Activity Pulse
             </h2>
-            <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-              {period === 'today' ? `Activity from ${formatDate(currentTime)}` : `Activity over the preceding ${period === '7days' ? '7 days' : '30 days'}`}
-            </p>
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
+              ({period === 'today' ? 'Today' : period === '7days' ? 'Past 7 Days' : 'Past 30 Days'})
+            </span>
           </div>
-          <div className="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-lg">
-            {['today', '7days', '30days'].map(p => (
+
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            {[
+              { id: 'today', label: 'Today' },
+              { id: '7days', label: '7 Days' },
+              { id: '30days', label: '30 Days' },
+            ].map((tab) => (
               <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                  period === p
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                key={tab.id}
+                onClick={() => setPeriod(tab.id)}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  period === tab.id
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {p === 'today' ? 'Today' : p === '7days' ? '7 Days' : '30 Days'}
+                {tab.label}
               </button>
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-          <TodayStatCard
+
+        {/* 5 Compact Metric Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <PulseTile
             icon={Users}
             label="New Registrations"
             value={todayStats?.newUsers ?? 0}
             color="indigo"
             growthLabel={analyticsData?.growth?.users?.label}
             growthDirection={analyticsData?.growth?.users?.direction}
-            comparisonLabel={analyticsData?.growth?.comparisonLabel}
           />
-          <TodayStatCard
+          <PulseTile
             icon={Activity}
-            label="New Posts"
+            label="Posts Created"
             value={todayStats?.newPosts ?? 0}
             color="emerald"
             growthLabel={analyticsData?.growth?.posts?.label}
             growthDirection={analyticsData?.growth?.posts?.direction}
-            comparisonLabel={analyticsData?.growth?.comparisonLabel}
+            onClick={() => navigate('/college-admin/moderation')}
+            clickable
           />
-          <TodayStatCard
+          <PulseTile
             icon={MessageSquare}
-            label="New Comments"
+            label="Comments Added"
             value={todayStats?.newComments ?? 0}
             color="blue"
             growthLabel={analyticsData?.growth?.comments?.label}
             growthDirection={analyticsData?.growth?.comments?.direction}
-            comparisonLabel={analyticsData?.growth?.comparisonLabel}
+            onClick={() => navigate('/college-admin/moderation')}
+            clickable
           />
-          <TodayStatCard
+          <PulseTile
             icon={AlertTriangle}
             label="Pending Reports"
             value={todayStats?.pendingReports ?? 0}
             color="amber"
             growthLabel={analyticsData?.growth?.reports?.label}
             growthDirection={analyticsData?.growth?.reports?.direction}
-            comparisonLabel={analyticsData?.growth?.comparisonLabel}
             onClick={() => navigate('/college-admin/reports')}
             clickable
           />
-          <TodayStatCard
-            icon={AlertCircle}
-            label="Active Grievances"
-            value={todayStats?.activeGrievances ?? 0}
-            color="rose"
-            onClick={() => navigate('/college-admin/reports')}
-            clickable
-          />
-          <TodayStatCard
-            icon={TrendingUp}
-            label="Moderation Actions"
+          <PulseTile
+            icon={Shield}
+            label="Resolved / Actions"
             value={analyticsData?.reports?.resolved ?? 0}
             color="violet"
             growthLabel={analyticsData?.growth?.resolved?.label}
             growthDirection={analyticsData?.growth?.resolved?.direction}
-            comparisonLabel={analyticsData?.growth?.comparisonLabel}
+            onClick={() => navigate('/college-admin/reports')}
+            clickable
           />
         </div>
-        {lastUpdated && (
-          <p className="text-xs text-slate-400 dark:text-gray-500 mt-3">
-            Last updated: {formatTime(lastUpdated)}
-          </p>
-        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Users}
-          label="Total Students"
-          value={stats?.totalStudents}
-          iconBg="bg-indigo-100 dark:bg-indigo-950/60"
-          iconColor="text-indigo-600 dark:text-indigo-400"
-        />
-        <StatCard
-          icon={GraduationCap}
-          label="Total Faculty"
-          value={stats?.totalFaculty}
-          iconBg="bg-emerald-100 dark:bg-emerald-950/60"
-          iconColor="text-emerald-600 dark:text-emerald-400"
-        />
-        <StatCard
-          icon={Building2}
-          label="Departments"
-          value={stats?.totalDepartments}
-          iconBg="bg-violet-100 dark:bg-violet-950/60"
-          iconColor="text-violet-600 dark:text-violet-400"
-        />
-        <StatCard
-          icon={Megaphone}
-          label="Active Notices"
-          value={stats?.activeNotices}
-          iconBg="bg-amber-100 dark:bg-amber-950/60"
-          iconColor="text-amber-600 dark:text-amber-400"
-        />
-      </div>
-
-      {/* Additional Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Activity}
-          label="Active Students"
-          value={stats?.activeStudents}
-          iconBg="bg-emerald-100 dark:bg-emerald-950/60"
-          iconColor="text-emerald-600 dark:text-emerald-400"
-          trend="up"
-          trendVal="Active"
-        />
-        <StatCard
-          icon={Activity}
-          label="Active Faculty"
-          value={stats?.activeFaculty}
-          iconBg="bg-emerald-100 dark:bg-emerald-950/60"
-          iconColor="text-emerald-600 dark:text-emerald-400"
-          trend="up"
-          trendVal="Active"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Suspended Students"
-          value={stats?.suspendedStudents}
-          iconBg="bg-rose-100 dark:bg-rose-950/60"
-          iconColor="text-rose-600 dark:text-rose-400"
-          trend="down"
-          trendVal="Suspended"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Suspended Faculty"
-          value={stats?.suspendedFaculty}
-          iconBg="bg-rose-100 dark:bg-rose-950/60"
-          iconColor="text-rose-600 dark:text-rose-400"
-          trend="down"
-          trendVal="Suspended"
-        />
-      </div>
-
-      {/* Activity Trends Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Post/Comment Activity */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+      {/* ── 4. ANALYTICS CHARTS (Balanced 2-Column Responsive Layout) ─────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Chart 1: Post & Comment Activity */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Activity size={20} className="text-indigo-600 dark:text-indigo-400" />
-              Post & Comment Activity
-            </h2>
-            <span className="text-xs text-slate-400 dark:text-gray-500">
-              {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
-            </span>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
+                Post & Comment Activity
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                {period === 'today' ? 'Hourly distribution' : 'Daily volume'}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/college-admin/analytics')}
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+            >
+              <span>Details</span>
+              <ChevronRight size={12} />
+            </button>
           </div>
+
           {(analyticsData?.activityTrends || analyticsData?.postTrends)?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <RechartsLineChart data={analyticsData.activityTrends || analyticsData.postTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
-                <Line 
-                  type="monotone" 
-                  dataKey="posts" 
-                  name="Posts"
-                  stroke="#6366f1" 
-                  strokeWidth={2}
-                  dot={{ fill: '#6366f1', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="comments" 
-                  name="Comments"
-                  stroke="#0ea5e9" 
-                  strokeWidth={2}
-                  dot={{ fill: '#0ea5e9', r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              </RechartsLineChart>
-            </ResponsiveContainer>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsLineChart
+                  data={analyticsData.activityTrends || analyticsData.postTrends}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.6} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    tickFormatter={(val) => {
+                      if (period === 'today') return val
+                      const d = new Date(val)
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    }}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#e2e8f0' }} allowDecimals={false} />
+                  <Tooltip content={<CustomChartTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Line
+                    type="monotone"
+                    dataKey="posts"
+                    name="Posts"
+                    stroke="#6366f1"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#6366f1', r: 2.5 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="comments"
+                    name="Comments"
+                    stroke="#0ea5e9"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#0ea5e9', r: 2.5 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </RechartsLineChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
-              No activity data available for this period
+            <div className="flex flex-col items-center justify-center h-60 text-slate-400 dark:text-slate-500 text-xs">
+              <MessageSquare size={28} className="mb-2 opacity-40" />
+              <span>No activity recorded for this period</span>
             </div>
           )}
         </div>
 
-        {/* User Registration Trends */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
+        {/* Chart 2: User Registrations & Growth */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users size={20} className="text-emerald-600 dark:text-emerald-400" />
-              User Registrations & Growth
-            </h2>
-            <span className="text-xs text-slate-400 dark:text-gray-500">
-              {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
-            </span>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Users size={16} className="text-emerald-600 dark:text-emerald-400" />
+                User Registrations & Growth
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                New students & faculty onboarded
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/college-admin/analytics')}
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+            >
+              <span>Details</span>
+              <ChevronRight size={12} />
+            </button>
           </div>
+
           {analyticsData?.userTrends && analyticsData.userTrends.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <RechartsBarChart data={analyticsData.userTrends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
-                <Bar 
-                  dataKey="users" 
-                  name="New Users" 
-                  fill="#10b981" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </RechartsBarChart>
-            </ResponsiveContainer>
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart
+                  data={analyticsData.userTrends}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.6} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    tickFormatter={(val) => {
+                      if (period === 'today') return val
+                      const d = new Date(val)
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    }}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#e2e8f0' }} allowDecimals={false} />
+                  <Tooltip content={<CustomChartTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Bar
+                    dataKey="users"
+                    name="New Users"
+                    fill="#10b981"
+                    radius={[5, 5, 0, 0]}
+                  />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
-              No registration data available for this period
+            <div className="flex flex-col items-center justify-center h-60 text-slate-400 dark:text-slate-500 text-xs">
+              <Users size={28} className="mb-2 opacity-40" />
+              <span>No user registrations recorded for this period</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Report & Moderation Trends */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <AlertTriangle size={20} className="text-amber-500" />
-            Report & Moderation Trends
-          </h2>
-          <span className="text-xs text-slate-400 dark:text-gray-500">
-            {period === 'today' ? 'Today' : period === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
-          </span>
-        </div>
-        {analyticsData?.moderationTrends && analyticsData.moderationTrends.length > 0 ? (
-          <ResponsiveContainer width="100%" height={220}>
-            <RechartsLineChart data={analyticsData.moderationTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                axisLine={{ stroke: '#e2e8f0' }}
-              />
-              <YAxis 
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                axisLine={{ stroke: '#e2e8f0' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '12px'
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '4px' }} />
-              <Line 
-                type="monotone" 
-                dataKey="reports" 
-                name="Reports Filed" 
-                stroke="#f59e0b" 
-                strokeWidth={2}
-                dot={{ fill: '#f59e0b', r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="resolved" 
-                name="Resolved / Dismissed" 
-                stroke="#10b981" 
-                strokeWidth={2}
-                dot={{ fill: '#10b981', r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-            </RechartsLineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center h-48 text-slate-400 dark:text-gray-500 text-sm">
-            No report or moderation trend data available for this period
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <button
-            onClick={() => navigate('/college-admin/students')}
-            className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <Users size={20} className="text-indigo-600 dark:text-indigo-400" />
-            <span className="text-sm font-medium text-slate-900 dark:text-white">Manage Students</span>
-          </button>
-          <button
-            onClick={() => navigate('/college-admin/faculty')}
-            className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <GraduationCap size={20} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-sm font-medium text-slate-900 dark:text-white">Manage Faculty</span>
-          </button>
-          <button
-            onClick={() => navigate('/college-admin/departments')}
-            className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <Building2 size={20} className="text-violet-600 dark:text-violet-400" />
-            <span className="text-sm font-medium text-slate-900 dark:text-white">Departments</span>
-          </button>
-          <button
-            onClick={() => navigate('/college-admin/notices')}
-            className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left"
-          >
-            <Megaphone size={20} className="text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-medium text-slate-900 dark:text-white">Create Notice</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Recent Notices */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Notices</h2>
-          <button
-            onClick={() => navigate('/college-admin/notices')}
-            className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 transition-colors flex items-center gap-1"
-          >
-            View All <ArrowRight size={16} />
-          </button>
-        </div>
-        {recentNotices.length === 0 ? (
-          <div className="text-center py-8">
-            <Megaphone size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">No notices yet</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Create a notice to communicate important information to your college.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {recentNotices.map((notice, idx) => (
-              <div
-                key={notice._id || notice.id || `notice-${idx}`}
-                className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"
+      {/* ── 5. OPERATIONAL DUAL SECTION (Recent Notices & Activity Logs) ──── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Left: Recent Notices */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Megaphone size={16} className="text-amber-500" />
+              Recent Notices
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/college-admin/notices')}
+                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  notice.priority === 'urgent' ? 'bg-rose-100 dark:bg-rose-950/60' :
-                  notice.priority === 'high' ? 'bg-amber-100 dark:bg-amber-950/60' :
-                  'bg-slate-200 dark:bg-gray-700'
-                }`}>
-                  <Megaphone size={18} className="text-slate-600 dark:text-gray-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{notice.title}</p>
-                  <p className="text-slate-500 dark:text-gray-500 text-xs mt-1 line-clamp-2">{notice.content}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      notice.published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {notice.published ? 'Published' : 'Draft'}
-                    </span>
-                    <span className="text-xs text-slate-400 dark:text-gray-500">
+                <span>View All</span>
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          </div>
+
+          {recentNotices.length === 0 ? (
+            <div className="text-center py-10">
+              <Megaphone size={28} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">No notices published yet</p>
+              <button
+                onClick={() => navigate('/college-admin/notices')}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Plus size={13} /> Create Notice
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentNotices.map((notice, idx) => (
+                <div
+                  key={notice._id || notice.id || `notice-${idx}`}
+                  className="flex items-start gap-3 p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      notice.priority === 'urgent'
+                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600'
+                        : notice.priority === 'high'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600'
+                        : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600'
+                    }`}
+                  >
+                    <Megaphone size={15} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-slate-900 dark:text-white font-semibold text-xs truncate">
+                        {notice.title}
+                      </p>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          notice.published
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                        }`}
+                      >
+                        {notice.published ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 line-clamp-1">
+                      {notice.content}
+                    </p>
+                    <span className="text-[10px] text-slate-400 mt-1 block">
                       {new Date(notice.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Activity Log */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Activity</h2>
-          <span className="text-xs text-slate-400 dark:text-gray-500">Last 10 actions</span>
+              ))}
+            </div>
+          )}
         </div>
-        {activityLogs.length === 0 ? (
-          <div className="text-center py-8">
-            <Activity size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">No recent activity</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Admin actions will appear here.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {activityLogs.map((log, idx) => (
-              <div
-                key={log._id || log.id || `log-${idx}`}
-                className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl"
-              >
-                <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 flex items-center justify-center flex-shrink-0">
-                  <Activity size={18} className="text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-slate-900 dark:text-white font-medium text-sm">{log.adminName}</p>
-                  <p className="text-slate-500 dark:text-gray-500 text-xs mt-1">{getActionDescription(log.actionType, log.resourceName)}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-slate-400 dark:text-gray-500">
-                      {new Date(log.createdAt).toLocaleString()}
+
+        {/* Right: Activity Log & Quick Navigation */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
+                Recent Administration Actions
+              </h2>
+              <span className="text-xs text-slate-400">Live logs</span>
+            </div>
+
+            {activityLogs.length === 0 ? (
+              <div className="text-center py-10">
+                <Activity size={28} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">No recent actions logged</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {activityLogs.map((log, idx) => (
+                  <div
+                    key={log._id || log.id || `log-${idx}`}
+                    className="flex items-center justify-between gap-3 p-2.5 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60 text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-slate-800 dark:text-slate-200 font-medium truncate">
+                          {getActionDescription(log.actionType, log.resourceName)}
+                        </p>
+                        <p className="text-[10px] text-slate-400">By {log.adminName || 'Admin'}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 shrink-0">
+                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+
+          {/* Quick Hub Navigation Toolbar */}
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              onClick={() => navigate('/college-admin/students')}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+            >
+              Students
+            </button>
+            <button
+              onClick={() => navigate('/college-admin/faculty')}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+            >
+              Faculty
+            </button>
+            <button
+              onClick={() => navigate('/college-admin/moderation')}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+            >
+              Moderation
+            </button>
+            <button
+              onClick={() => navigate('/college-admin/reports')}
+              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+            >
+              Reports
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -751,19 +799,22 @@ function getActionDescription(actionType, resourceName) {
     report_dismissed: `Dismissed report: ${resourceName}`,
     post_hidden: `Hidden post: ${resourceName}`,
     post_restored: `Restored post: ${resourceName}`,
+    post_deleted: `Deleted post: ${resourceName}`,
     comment_hidden: `Hidden comment: ${resourceName}`,
     comment_restored: `Restored comment: ${resourceName}`,
+    comment_deleted: `Deleted comment: ${resourceName}`,
     notice_created: `Created notice: ${resourceName}`,
     notice_edited: `Edited notice: ${resourceName}`,
     notice_pinned: `Pinned notice: ${resourceName}`,
     notice_unpinned: `Unpinned notice: ${resourceName}`,
     notice_deleted: `Deleted notice: ${resourceName}`,
     notice_published: `Published notice: ${resourceName}`,
-    department_created: `Created department: ${resourceName}`,
-    department_edited: `Edited department: ${resourceName}`,
-    department_deactivated: `Deactivated department: ${resourceName}`,
-    department_activated: `Activated department: ${resourceName}`,
-    department_deleted: `Deleted department: ${resourceName}`,
+    department_created: `Created dept: ${resourceName}`,
+    department_edited: `Edited dept: ${resourceName}`,
+    department_deactivated: `Deactivated dept: ${resourceName}`,
+    department_activated: `Activated dept: ${resourceName}`,
+    department_deleted: `Deleted dept: ${resourceName}`,
+    warning_issued: `Issued warning to: ${resourceName}`,
   }
-  return descriptions[actionType] || `${actionType}: ${resourceName}`
+  return descriptions[actionType] || `${actionType?.replace(/_/g, ' ')}: ${resourceName || ''}`
 }
