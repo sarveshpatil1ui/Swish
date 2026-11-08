@@ -156,7 +156,7 @@ connectDB().then(() => {
   // Non-overlapping, error-safe, and unref'd so it won't hold the process open
   const cleanupScheduler = createStoryCleanupScheduler()
 
-  const server = httpServer.listen(PORT, '0.0.0.0', () => {
+  const server = httpServer.listen(PORT, () => {
     console.log(`🚀  Swish backend running at http://localhost:${PORT}`)
     console.log(`   Health: http://localhost:${PORT}/api/health`)
     console.log(`   Socket: ws://localhost:${PORT}`)

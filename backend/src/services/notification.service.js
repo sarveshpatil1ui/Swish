@@ -13,16 +13,31 @@ const preferenceByType = {
   follow_accept: 'follows',
 }
 
-export async function createNotification({ recipient, sender, type, post = null, notice = null, text, subtext = '' }) {
+export async function createNotification({ recipient, sender, type, post = null, notice = null, text, subtext = '', collegeId = null }) {
+  let resolvedCollegeId = collegeId
   const preferenceKey = preferenceByType[type]
-  if (preferenceKey) {
-    const recipientUser = await User.findById(recipient).select('preferences').lean()
-    if (!recipientUser || recipientUser.preferences?.notifications?.[preferenceKey] === false) {
-      return null
-    }
+
+  const recipientUser = await User.findById(recipient).select('preferences collegeId').lean()
+  if (!recipientUser) {
+    return null
+  }
+  if (preferenceKey && recipientUser.preferences?.notifications?.[preferenceKey] === false) {
+    return null
+  }
+  if (!resolvedCollegeId) {
+    resolvedCollegeId = recipientUser.collegeId
   }
 
-  const notification = await Notification.create({ recipient, sender, type, post, notice, text, subtext })
+  const notification = await Notification.create({
+    recipient,
+    sender,
+    type,
+    post,
+    notice,
+    text,
+    subtext,
+    collegeId: resolvedCollegeId,
+  })
   const populated = await notification.populate('sender', 'name username initials avatarColor profilePhoto role')
   emitToUser(recipient, 'notification:new', formatNotification(populated))
   return notification

@@ -6,6 +6,7 @@ import { uploadStoryImage, deleteStoryImage } from '../services/cloudinary.servi
 import Story from '../models/Story.js'
 import StoryView from '../models/StoryView.js'
 import Follow from '../models/Follow.js'
+import College from '../models/College.js'
 import { Conversation } from '../models/Conversation.js'
 import { emitToUser, getIO } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
@@ -99,15 +100,36 @@ export async function cleanupExpiredStories() {
 // Returns stories for the current user and users they follow, filtered to active (unexpired).
 router.get('/', requireAuth, async (req, res) => {
   try {
-    // Find all users the current user follows
-    const follows = await Follow.find({ follower: req.user._id }).select('following')
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    let tenantCollegeId = req.user.collegeId ? req.user.collegeId.toString() : null
+
+    if (isMainAdmin) {
+      const candidateId = req.query.collegeId || req.headers['x-college-id']
+      if (!candidateId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Explicit college context (?collegeId=...) is required for administrative stories inspection.',
+        })
+      }
+      const college = await College.findById(candidateId).select('_id').lean()
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'Specified college not found.' })
+      }
+      tenantCollegeId = college._id.toString()
+    } else if (!tenantCollegeId) {
+      return res.status(403).json({ ok: false, error: 'College membership required to view stories.' })
+    }
+
+    // Find all users the current user follows using legacy-safe isActive filter
+    const follows = await Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following')
     const followingIds = follows.map(f => f.following)
     const allowedAuthorIds = [req.user._id, ...followingIds]
 
     const now = new Date()
-    // Explicitly filter for expiresAt > now so expired stories are never returned
+    // Explicitly filter for expiresAt > now and collegeId so expired or foreign stories are never returned
     const stories = await Story.find({
       user: { $in: allowedAuthorIds },
+      collegeId: tenantCollegeId,
       expiresAt: { $gt: now },
     })
       .sort({ createdAt: 1 })
@@ -187,6 +209,12 @@ router.post(
   async (req, res) => {
     let uploadedAsset = null
     try {
+      if (!req.user.collegeId) {
+        return res.status(403).json({
+          ok: false,
+          error: 'You must be affiliated with an active college to post stories.',
+        })
+      }
       if (!req.file && !req.body.imageUrl) {
         return res.status(400).json({ ok: false, error: 'Story image is required.' })
       }
@@ -252,6 +280,7 @@ router.post(
         filter,
         sticker,
         expiresAt,
+        collegeId: req.user.collegeId,
       })
 
       const populated = await story.populate('user', 'name username initials avatarColor profilePhoto')
@@ -277,16 +306,21 @@ router.get('/:storyId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Story not found.' })
     }
 
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     if (story.expiresAt && story.expiresAt <= new Date()) {
       return res.status(410).json({ ok: false, error: 'Story has expired.' })
     }
 
     const isAuthor = story.user?._id?.toString() === req.user.id
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isAdmin = isMainAdmin
     let isFollowing = false
 
     if (!isAuthor && !isAdmin) {
-      isFollowing = await Follow.exists({ follower: req.user._id, following: story.user._id })
+      isFollowing = await Follow.exists({ follower: req.user._id, following: story.user._id, isActive: { $ne: false } })
       if (!isFollowing) {
         return res.status(403).json({ ok: false, error: 'Access denied: You must follow this user to view their story.' })
       }
@@ -317,16 +351,21 @@ router.post('/:storyId/view', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Story not found.' })
     }
 
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     if (story.expiresAt && story.expiresAt <= new Date()) {
       return res.status(410).json({ ok: false, error: 'Story has expired.' })
     }
 
     const isAuthor = story.user.toString() === req.user.id
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isAdmin = isMainAdmin
 
     // Verify privacy
     if (!isAuthor && !isAdmin) {
-      const isFollowing = await Follow.exists({ follower: req.user._id, following: story.user })
+      const isFollowing = await Follow.exists({ follower: req.user._id, following: story.user, isActive: { $ne: false } })
       if (!isFollowing) {
         return res.status(403).json({ ok: false, error: 'Access denied: You must follow this user to view their story.' })
       }
@@ -414,6 +453,12 @@ router.post('/:storyId/like', requireAuth, async (req, res) => {
   try {
     const story = await Story.findById(req.params.storyId)
     if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     if (story.expiresAt && story.expiresAt <= new Date()) {
       return res.status(410).json({ ok: false, error: 'Story has expired.' })
     }
@@ -485,6 +530,12 @@ router.post('/:storyId/react', requireAuth, async (req, res) => {
 
     const story = await Story.findById(req.params.storyId)
     if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     if (story.expiresAt && story.expiresAt <= new Date()) {
       return res.status(410).json({ ok: false, error: 'Story has expired.' })
     }
@@ -517,9 +568,15 @@ router.post('/:storyId/react', requireAuth, async (req, res) => {
         let conv = await Conversation.findOne({
           participants: { $all: [req.user._id, authorObjectId], $size: 2 },
         })
+        if (conv && conv.isArchived) {
+          // Do not send DM to archived cross-college conversation
+          return res.json({ ok: true, reaction: trimmedEmoji, message: 'Reaction recorded (conversation archived).' })
+        }
         if (!conv) {
           conv = await Conversation.create({
             participants: [req.user._id, authorObjectId],
+            collegeId: req.user.collegeId,
+            isArchived: false,
             messages: [],
           })
         }
@@ -636,6 +693,12 @@ router.post('/:storyId/reply', requireAuth, async (req, res) => {
 
     const story = await Story.findById(req.params.storyId)
     if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
+
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     if (story.expiresAt && story.expiresAt <= new Date()) {
       return res.status(410).json({ ok: false, error: 'Story has expired.' })
     }
@@ -679,9 +742,15 @@ router.post('/:storyId/reply', requireAuth, async (req, res) => {
         let conv = await Conversation.findOne({
           participants: { $all: [req.user._id, authorObjectId], $size: 2 },
         })
+        if (conv && conv.isArchived) {
+          // Do not send DM to archived cross-college conversation
+          return res.status(201).json({ ok: true, reply: formattedReply, message: 'Reply added (direct message skipped: conversation archived).' })
+        }
         if (!conv) {
           conv = await Conversation.create({
             participants: [req.user._id, authorObjectId],
+            collegeId: req.user.collegeId,
+            isArchived: false,
             messages: [],
           })
         }
@@ -777,6 +846,11 @@ router.get('/:storyId/replies', requireAuth, async (req, res) => {
       .populate('replies.user', 'name username initials avatarColor profilePhoto')
     if (!story) return res.status(404).json({ ok: false, error: 'Story not found.' })
 
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    if (!isMainAdmin && (!story.collegeId || story.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Story not found.' })
+    }
+
     const replies = (story.replies || []).map(r => ({
       id: r._id ? r._id.toString() : undefined,
       userId: r.user?._id?.toString() || r.user?.id || (typeof r.user === 'string' ? r.user : ''),
@@ -819,6 +893,12 @@ router.put(
   async (req, res) => {
     let uploadedAsset = null
     try {
+      if (!req.user.collegeId) {
+        return res.status(403).json({
+          ok: false,
+          error: 'You must be affiliated with an active college to post stories.',
+        })
+      }
       const story = await Story.findById(req.params.storyId)
       if (!story) {
         return res.status(404).json({ ok: false, error: 'Story not found.' })
@@ -884,10 +964,11 @@ router.delete('/:storyId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Story not found.' })
     }
 
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isCollegeAdmin = req.user.role === 'college_admin' && story.collegeId?.toString() === req.user.collegeId?.toString()
     const isAuthor = story.user.toString() === req.user.id
 
-    if (!isAuthor && !isAdmin) {
+    if (!isAuthor && !isMainAdmin && !isCollegeAdmin) {
       return res.status(403).json({ ok: false, error: 'You can only delete your own stories.' })
     }
 

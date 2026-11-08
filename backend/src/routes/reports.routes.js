@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator'
 import Report from '../models/Report.js'
 import User from '../models/User.js'
 import Post from '../models/Post.js'
+import Comment from '../models/Comment.js'
 import College from '../models/College.js'
 import { emitToCollege } from '../services/socket.service.js'
 import { requireAuth, requireRole } from '../middleware/auth.middleware.js'
@@ -128,13 +129,31 @@ router.post(
         return res.status(400).json({ ok: false, error: 'You must be associated with a college to submit a report.' })
       }
 
-      // Resolve reported user
-      let targetUser = reportedUserId ? await User.findById(reportedUserId).select('_id name') : null
+      // Resolve reported user and enforce tenant college boundaries
+      let targetUser = null
+      if (type === 'user' && reportedUserId) {
+        const targetUserDoc = await User.findById(reportedUserId).select('_id name collegeId').lean()
+        if (!targetUserDoc || (req.user.collegeId && targetUserDoc.collegeId?.toString() !== req.user.collegeId.toString())) {
+          return res.status(404).json({ ok: false, error: 'User not found.' })
+        }
+        targetUser = targetUserDoc
+      }
       if (type === 'post' && reportedPostId) {
-        const post = await Post.findById(reportedPostId).populate('user', 'name')
-        if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+        const post = await Post.findById(reportedPostId).select('_id user collegeId').populate('user', 'name')
+        if (!post || (req.user.collegeId && post.collegeId?.toString() !== req.user.collegeId.toString())) {
+          return res.status(404).json({ ok: false, error: 'Post not found.' })
+        }
         if (!targetUser && post.user) {
           targetUser = post.user
+        }
+      }
+      if (type === 'comment' && reportedCommentId) {
+        const comment = await Comment.findById(reportedCommentId).select('_id user collegeId').populate('user', 'name')
+        if (!comment || (req.user.collegeId && comment.collegeId?.toString() !== req.user.collegeId.toString())) {
+          return res.status(404).json({ ok: false, error: 'Comment not found.' })
+        }
+        if (!targetUser && comment.user) {
+          targetUser = comment.user
         }
       }
 
@@ -195,6 +214,8 @@ router.get('/', requireAuth, requireRole('admin', 'college_admin', 'main_admin')
       filter.collegeId = req.user.collegeId
       // College admins can ONLY see post and comment reports, NOT platform or system reports
       filter.type = { $in: ['post', 'comment'] }
+    } else if (req.query.collegeId) {
+      filter.collegeId = req.query.collegeId
     }
     if (status) filter.status = status
     if (type) {

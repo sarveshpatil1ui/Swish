@@ -77,6 +77,13 @@ const StorySchema = new Schema(
       required: true,
       default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
+
+    // College ownership for complete college-level isolation
+    collegeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'College',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -89,6 +96,8 @@ const StorySchema = new Schema(
 StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 StorySchema.index({ user: 1, createdAt: -1 })
 StorySchema.index({ user: 1, expiresAt: 1, createdAt: 1 })
+StorySchema.index({ collegeId: 1, expiresAt: 1, createdAt: -1 })
+StorySchema.index({ collegeId: 1, user: 1, expiresAt: 1 })
 
 StorySchema.set('toJSON', {
   virtuals: true,

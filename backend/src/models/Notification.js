@@ -41,6 +41,13 @@ const NotificationSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    // College context for multi-tenant notifications
+    collegeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'College',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -48,5 +55,6 @@ const NotificationSchema = new Schema(
 )
 
 NotificationSchema.index({ recipient: 1, createdAt: -1 })
+NotificationSchema.index({ recipient: 1, collegeId: 1, createdAt: -1 })
 
 export default mongoose.models.Notification || mongoose.model('Notification', NotificationSchema)

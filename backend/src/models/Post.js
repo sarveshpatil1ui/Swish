@@ -107,6 +107,8 @@ PostSchema.index({ createdAt: -1 });
 PostSchema.index({ tags: 1, createdAt: -1 });
 PostSchema.index({ createdAt: -1, likeCount: -1 });
 PostSchema.index({ collegeId: 1, createdAt: -1 });
+PostSchema.index({ collegeId: 1, hidden: 1, isDeleted: 1, createdAt: -1 });
+PostSchema.index({ collegeId: 1, tags: 1, createdAt: -1 });
 PostSchema.index({ hidden: 1, createdAt: -1 });
 
 PostSchema.virtual('comments', {

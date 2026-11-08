@@ -7,6 +7,7 @@ import User from '../models/User.js'
 import { Conversation } from '../models/Conversation.js'
 import { isOriginAllowed } from '../config/cors.js'
 import { getPlatformConfig } from './platform-config.service.js'
+import { verifyConversationTenantAccess } from '../middleware/collegeAuth.middleware.js'
 
 // ── In-memory online users: userId → Set<socketId> (handles multiple tabs) ────
 const onlineUsers = new Map()
@@ -121,14 +122,20 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     const wasAlreadyOnline = onlineUsers.get(userId).size > 0
     onlineUsers.get(userId).add(socket.id)
 
-    // Only broadcast online event on first tab
+    // Only broadcast online event on first tab — scoped to user's college room
     if (!wasAlreadyOnline && socket.user.preferences?.privacy?.activity !== false) {
-      socket.broadcast.emit('user:online', { userId })
+      if (socket.user.collegeId) {
+        socket.to(`college:${socket.user.collegeId.toString()}`).emit('user:online', { userId })
+      }
     }
-    const visibleOnlineUsers = await User.find({
-      _id: { $in: getOnlineUsers() },
-      'preferences.privacy.activity': { $ne: false },
-    }).select('_id').lean()
+    let visibleOnlineUsers = []
+    if (socket.user.collegeId) {
+      visibleOnlineUsers = await User.find({
+        _id: { $in: getOnlineUsers() },
+        collegeId: socket.user.collegeId,
+        'preferences.privacy.activity': { $ne: false },
+      }).select('_id').lean()
+    }
     socket.emit('online:list', visibleOnlineUsers.map(user => user._id.toString()))
 
     console.log(`[Socket] Connected: ${socket.user.name} (${userId}) tab=${socket.id}`)
@@ -136,8 +143,17 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     // ── Join a conversation room ──────────────────────────────────────────────
     socket.on('conv:join', async (convId) => {
       try {
-        const conv = await Conversation.findOne({ _id: convId, participants: userId })
+        if (!convId || String(convId).length !== 24) return
+        const conv = await Conversation.findOne({
+          _id: convId,
+          participants: userId,
+          isArchived: { $ne: true },
+        }).select('collegeId participants').populate('participants', 'collegeId').lean()
         if (!conv) return
+
+        const isAllowed = await verifyConversationTenantAccess(conv, socket.user, User)
+        if (!isAllowed) return
+
         socket.join(`conv:${convId}`)
       } catch (err) {
         console.error('[Socket conv:join]', err)
@@ -200,9 +216,22 @@ export function initSocket(app, { pubClient, subClient } = {}) {
           ...(sanitizedReplyTo && { replyTo: sanitizedReplyTo }),
         }
 
+        const convCheck = await Conversation.findOne({
+          _id: convId,
+          participants: socket.user._id,
+          isArchived: { $ne: true },
+        }).select('collegeId participants').populate('participants', 'collegeId').lean()
+
+        if (!convCheck) return ack?.({ ok: false, error: 'Conversation not found or archived.' })
+
+        const isAllowed = await verifyConversationTenantAccess(convCheck, socket.user, User)
+        if (!isAllowed) {
+          return ack?.({ ok: false, error: 'Conversation not found or archived.' })
+        }
+
         // Atomic append with authorization verification in the database filter
         const conv = await Conversation.findOneAndUpdate(
-          { _id: convId, participants: socket.user._id },
+          { _id: convId, participants: socket.user._id, isArchived: { $ne: true } },
           {
             $push: { messages: newMsg },
             $set: {
@@ -263,13 +292,13 @@ export function initSocket(app, { pubClient, subClient } = {}) {
 
     // ── Typing indicator (direct room broadcast — no DB reads per keystroke) ──
     socket.on('typing:start', ({ convId }) => {
-      if (!convId) return
+      if (!convId || !socket.rooms.has(`conv:${convId}`)) return
       const payload = { convId, userId, name: socket.user.name }
       socket.to(`conv:${convId}`).emit('typing:start', payload)
     })
 
     socket.on('typing:stop', ({ convId }) => {
-      if (!convId) return
+      if (!convId || !socket.rooms.has(`conv:${convId}`)) return
       const payload = { convId, userId }
       socket.to(`conv:${convId}`).emit('typing:stop', payload)
     })
@@ -279,9 +308,22 @@ export function initSocket(app, { pubClient, subClient } = {}) {
       try {
         if (!convId) return ack?.({ ok: false, error: 'convId is required.' })
 
+        const convCheck = await Conversation.findOne({
+          _id: convId,
+          participants: socket.user._id,
+          isArchived: { $ne: true },
+        }).select('collegeId participants').populate('participants', 'collegeId').lean()
+
+        if (!convCheck) return ack?.({ ok: false, error: 'Conversation not found.' })
+
+        const isAllowed = await verifyConversationTenantAccess(convCheck, socket.user, User)
+        if (!isAllowed) {
+          return ack?.({ ok: false, error: 'Conversation not found.' })
+        }
+
         // Atomic read marking using arrayFilters without full-document fetch/save
         const updateRes = await Conversation.updateOne(
-          { _id: convId, participants: socket.user._id },
+          { _id: convId, participants: socket.user._id, isArchived: { $ne: true } },
           { $addToSet: { 'messages.$[elem].readBy': socket.user._id } },
           { arrayFilters: [{ 'elem.sender': { $ne: socket.user._id }, 'elem.readBy': { $ne: socket.user._id } }] }
         )
@@ -303,13 +345,23 @@ export function initSocket(app, { pubClient, subClient } = {}) {
     })
 
     // ── Follow notification ───────────────────────────────────────────────────
-    socket.on('follow:notify', ({ targetUserId }) => {
-      emitToUser(targetUserId, 'follow:received', {
-        fromUserId:   userId,
-        fromUserName: socket.user.name,
-        fromInitials: socket.user.initials,
-        fromColor:    socket.user.avatarColor,
-      })
+    socket.on('follow:notify', async ({ targetUserId }) => {
+      try {
+        if (!targetUserId) return
+        const target = await User.findById(targetUserId).select('collegeId').lean()
+        if (!target) return
+        if (!socket.user.collegeId || !target.collegeId || socket.user.collegeId.toString() !== target.collegeId.toString()) {
+          return
+        }
+        emitToUser(targetUserId, 'follow:received', {
+          fromUserId:   userId,
+          fromUserName: socket.user.name,
+          fromInitials: socket.user.initials,
+          fromColor:    socket.user.avatarColor,
+        })
+      } catch (err) {
+        console.error('[Socket follow:notify]', err)
+      }
     })
 
     // ── Disconnect ────────────────────────────────────────────────────────────
@@ -320,7 +372,9 @@ export function initSocket(app, { pubClient, subClient } = {}) {
         if (socketIds.size === 0) {
           // Last tab closed — user is truly offline
           onlineUsers.delete(userId)
-          socket.broadcast.emit('user:offline', { userId })
+          if (socket.user.collegeId) {
+            _io?.to(`college:${socket.user.collegeId.toString()}`).emit('user:offline', { userId })
+          }
         }
       }
       console.log(`[Socket] Disconnected: ${socket.user.name} (${userId}) tab=${socket.id}`)

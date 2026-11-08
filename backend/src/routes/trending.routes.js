@@ -11,6 +11,7 @@ import User from '../models/User.js'
 import Follow from '../models/Follow.js'
 import FollowRequest from '../models/FollowRequest.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
+import { requireCollegeContext } from '../middleware/collegeAuth.middleware.js'
 
 const router = Router()
 
@@ -24,6 +25,7 @@ const trendingLimiter = rateLimit({
 
 router.use(requireAuth)
 router.use(trendingLimiter)
+router.use(requireCollegeContext)
 
 function handleValidationErrors(req, res) {
   const errors = validationResult(req)
@@ -37,14 +39,15 @@ function handleValidationErrors(req, res) {
   return null
 }
 
-// ── In-memory 60s cache for hashtags ─────────────────────────────────────────
-let _hashtagCache = {
-  data: null,
-  expiresAt: 0,
-}
+// ── In-memory 60s cache for hashtags, partitioned by college ID ───────────────
+const _hashtagCacheByCollege = new Map()
 
-export function invalidateHashtagCache() {
-  _hashtagCache = { data: null, expiresAt: 0 }
+export function invalidateHashtagCache(collegeId) {
+  if (collegeId) {
+    _hashtagCacheByCollege.delete(collegeId.toString())
+  } else {
+    _hashtagCacheByCollege.clear()
+  }
 }
 
 // ── Post serializer matching the Swish feed shape ─────────────────────────────
@@ -138,16 +141,19 @@ router.get(
 
       const now = new Date()
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const tenantCollegeId = new mongoose.Types.ObjectId(req.targetCollegeId)
 
-      // Base query criteria: non-deleted and not hidden by moderation
+      // Base query criteria: non-deleted, not hidden, strictly scoped to verified tenant college
       const matchCriteria = {
+        collegeId: tenantCollegeId,
         isDeleted: false,
         hidden: { $ne: true },
       }
 
-      // Check if any posts were created in the last 7 days. If so, restrict to recent 7 days.
+      // Check if any posts were created in the last 7 days in this college. If so, restrict to recent 7 days.
       // If none (e.g. seed data or sparse activity), fall back to all-time posts so the feed is never empty.
       const hasRecentPosts = await Post.exists({
+        collegeId: tenantCollegeId,
         isDeleted: false,
         hidden: { $ne: true },
         createdAt: { $gte: sevenDaysAgo },
@@ -156,15 +162,15 @@ router.get(
         matchCriteria.createdAt = { $gte: sevenDaysAgo }
       }
 
-      // Fetch user follow context (used for privacy filtering & affinity)
-      const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
+      // Fetch user follow context (used for privacy filtering & affinity) with legacy compatibility
+      const follows = await Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following').lean()
       const followingIds = follows.map(f => f.following)
       const allowedAuthorIds = [req.user._id, ...followingIds]
 
       let viewerLikedTags = []
       if (tab === 'foryou') {
-        // Find tags the user has liked recently
-        const likedQuery = { likes: req.user._id, hidden: { $ne: true } }
+        // Find tags the user has liked recently in their college
+        const likedQuery = { collegeId: tenantCollegeId, likes: req.user._id, hidden: { $ne: true } }
         if (hasRecentPosts) likedQuery.createdAt = { $gte: sevenDaysAgo }
         const likedPosts = await Post.find(likedQuery).select('tags').limit(30).lean()
 
@@ -177,10 +183,7 @@ router.get(
         // Exclude viewer's own posts
         matchCriteria.user = { $ne: req.user._id }
       } else if (tab === 'college') {
-        if (!req.user.collegeId) {
-          return res.json({ ok: true, posts: [], nextCursor: null, hasMore: false, tab })
-        }
-        matchCriteria.collegeId = req.user.collegeId
+        // Base criteria already strictly scopes by collegeId: tenantCollegeId
       } else if (tab === 'hashtags') {
         if (rawTag) {
           const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -419,26 +422,32 @@ router.get(
     try {
       const limit = Math.min(Math.max(1, Number(req.query.limit) || 12), 30)
       const now = Date.now()
+      const tenantCollegeId = new mongoose.Types.ObjectId(req.targetCollegeId)
 
-      // Return cached results if still valid
-      if (_hashtagCache.data && _hashtagCache.expiresAt > now) {
+      // Return cached results if still valid for this college
+      const cached = _hashtagCacheByCollege.get(req.targetCollegeId)
+      if (cached && cached.expiresAt > now) {
         return res.json({
           ok: true,
-          hashtags: _hashtagCache.data.slice(0, limit),
+          hashtags: cached.data.slice(0, limit),
           cached: true,
         })
       }
 
       const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
 
-      // Exclude posts from private accounts and hidden posts from public trending hashtag aggregations
-      const privateUsers = await User.find({ 'preferences.privacy.private': true }).select('_id').lean()
+      // Exclude posts from private accounts of this college and hidden posts from public trending hashtag aggregations
+      const privateUsers = await User.find({
+        collegeId: tenantCollegeId,
+        'preferences.privacy.private': true,
+      }).select('_id').lean()
       const privateUserIds = privateUsers.map(u => u._id)
 
-      // First try posts in the last 7 days; if none, fall back to all-time tagged posts
+      // First try posts in the last 7 days within this college; if none, fall back to all-time tagged posts in this college
       let results = await Post.aggregate([
         {
           $match: {
+            collegeId: tenantCollegeId,
             isDeleted: false,
             hidden: { $ne: true },
             user: { $nin: privateUserIds },
@@ -479,6 +488,7 @@ router.get(
         results = await Post.aggregate([
           {
             $match: {
+              collegeId: tenantCollegeId,
               isDeleted: false,
               hidden: { $ne: true },
               user: { $nin: privateUserIds },
@@ -515,11 +525,11 @@ router.get(
         ])
       }
 
-      // Store in memory cache for 60 seconds
-      _hashtagCache = {
+      // Store in memory cache partitioned by college ID for 60 seconds
+      _hashtagCacheByCollege.set(req.targetCollegeId, {
         data: results,
         expiresAt: now + 60 * 1000,
-      }
+      })
 
       res.json({
         ok: true,
@@ -550,6 +560,7 @@ router.get(
       const tag = rawTag.toLowerCase()
       const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
       const cursor = req.query.cursor
+      const tenantCollegeId = new mongoose.Types.ObjectId(req.targetCollegeId)
 
       let skip = 0
       if (cursor) {
@@ -561,12 +572,13 @@ router.get(
         }
       }
 
-      const follows = await Follow.find({ follower: req.user._id }).select('following').lean()
+      const follows = await Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following').lean()
       const followingIds = follows.map(f => f.following)
       const allowedAuthorIds = [req.user._id, ...followingIds]
 
-      // Exclude deactivated, suspended, and private accounts that the viewer does not follow
+      // Exclude deactivated, suspended, and private accounts in this college that the viewer does not follow
       const excludedUsers = await User.find({
+        collegeId: tenantCollegeId,
         $or: [
           { deactivated: true },
           { suspended: true },
@@ -580,6 +592,7 @@ router.get(
 
       const escaped = rawTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const posts = await Post.find({
+        collegeId: tenantCollegeId,
         tags: {
           $in: [
             tag,
@@ -621,52 +634,34 @@ router.get(
 )
 
 // ── GET /api/trending/accounts ───────────────────────────────────────────────
-// Suggested accounts for trending page
+// Suggested accounts for trending page strictly isolated to viewer's college
 router.get('/accounts', async (req, res) => {
   try {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 8), 20)
+    const tenantCollegeId = new mongoose.Types.ObjectId(req.targetCollegeId)
 
     // Find users currently followed or requested by the viewer
     const [follows, requests] = await Promise.all([
-      Follow.find({ follower: req.user._id }).select('following').lean(),
+      Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following').lean(),
       FollowRequest.find({ requester: req.user._id, status: 'pending' }).select('recipient').lean(),
     ])
     const followingIds = [req.user._id, ...follows.map(f => f.following)]
     const requestedSet = new Set(requests.map(r => r.recipient.toString()))
 
-    // Strictly students and faculty only — NO admin, main_admin, or college_admin
+    // Strictly students and faculty from the same college only — NO cross-college fallback
     const baseFilter = {
+      collegeId: tenantCollegeId,
       _id: { $nin: followingIds },
       deactivated: false,
       suspended: false,
       role: { $in: ['student', 'faculty'] },
     }
 
-    // Try finding peers from the same college first if viewer has a collegeId
-    let suggested = []
-    if (req.user.collegeId) {
-      suggested = await User.find({ ...baseFilter, collegeId: req.user.collegeId })
-        .sort({ followers: -1, createdAt: -1 })
-        .limit(limit)
-        .select('name username initials avatarColor profilePhoto dept year college followers role preferences.privacy.private')
-        .lean()
-    }
-
-    // If fewer than limit, fill with general popular students/faculty across campus
-    if (suggested.length < limit) {
-      const remaining = limit - suggested.length
-      const existingIds = [...followingIds, ...suggested.map(u => u._id)]
-      const fallback = await User.find({
-        ...baseFilter,
-        _id: { $nin: existingIds },
-      })
-        .sort({ followers: -1, createdAt: -1 })
-        .limit(remaining)
-        .select('name username initials avatarColor profilePhoto dept year college followers role preferences.privacy.private')
-        .lean()
-
-      suggested = [...suggested, ...fallback]
-    }
+    const suggested = await User.find(baseFilter)
+      .sort({ followers: -1, createdAt: -1 })
+      .limit(limit)
+      .select('name username initials avatarColor profilePhoto dept year college followers role preferences.privacy.private')
+      .lean()
 
     res.json({
       ok: true,

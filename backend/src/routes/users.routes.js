@@ -63,12 +63,33 @@ function handleValidationErrors(req, res) {
 // ── GET /api/users/search?q= — search users (any authenticated user) ──────────
 router.get('/search', requireAuth, async (req, res) => {
   try {
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    let tenantCollegeId = req.user.collegeId ? req.user.collegeId.toString() : null
+
+    if (isMainAdmin) {
+      const candidateId = req.query.collegeId || req.headers['x-college-id']
+      if (!candidateId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Explicit college context (?collegeId=...) is required for administrative user search.',
+        })
+      }
+      const college = await College.findById(candidateId).select('_id').lean()
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'Specified college not found.' })
+      }
+      tenantCollegeId = college._id.toString()
+    } else if (!tenantCollegeId) {
+      return res.status(403).json({ ok: false, error: 'College membership required.' })
+    }
+
     const q = req.query.q?.trim()
     if (!q) return res.json({ ok: true, users: [] })
 
     const regex = new RegExp(q, 'i')
     const users = await User.find({
       _id:         { $ne: req.user._id },
+      collegeId:   tenantCollegeId,
       deactivated: false,
       suspended:   { $ne: true },
       role:        { $in: ['student', 'faculty'] },
@@ -78,10 +99,10 @@ router.get('/search', requireAuth, async (req, res) => {
       .select('name username initials avatarColor profilePhoto dept year role followers preferences.privacy.private')
       .lean()
 
-    // Check follow & request status for each result
+    // Check follow & request status for each result using legacy-safe query
     const ids = users.map(u => u._id)
     const [followDocs, requestDocs] = await Promise.all([
-      Follow.find({ follower: req.user._id, following: { $in: ids } }),
+      Follow.find({ follower: req.user._id, following: { $in: ids }, isActive: { $ne: false } }),
       FollowRequest.find({ requester: req.user._id, recipient: { $in: ids }, status: 'pending' }),
     ])
     const followingSet = new Set(followDocs.map(f => f.following.toString()))
@@ -105,19 +126,35 @@ router.get('/search', requireAuth, async (req, res) => {
 })
 
 // ── GET /api/users/all — list all users for Explore page ─────────────────────
-// College admin only sees users from their college; excludes admin roles from campus directory
+// Scoped exclusively to the user's college under Option A
 router.get('/all', requireAuth, async (req, res) => {
   try {
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    let tenantCollegeId = req.user.collegeId ? req.user.collegeId.toString() : null
+
+    if (isMainAdmin) {
+      const candidateId = req.query.collegeId || req.headers['x-college-id']
+      if (!candidateId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Explicit college context (?collegeId=...) is required for administrative directory exploration.',
+        })
+      }
+      const college = await College.findById(candidateId).select('_id').lean()
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'Specified college not found.' })
+      }
+      tenantCollegeId = college._id.toString()
+    } else if (!tenantCollegeId) {
+      return res.status(403).json({ ok: false, error: 'College membership required.' })
+    }
+
     const filter = {
       _id:         { $ne: req.user._id },
+      collegeId:   tenantCollegeId,
       deactivated: false,
       suspended:   { $ne: true },
       role:        { $in: ['student', 'faculty'] },
-    }
-    
-    // College admin can only see users from their college
-    if (req.user.role === 'college_admin' && req.user.collegeId) {
-      filter.collegeId = req.user.collegeId
     }
 
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
@@ -133,7 +170,7 @@ router.get('/all', requireAuth, async (req, res) => {
 
     const ids = users.map(u => u._id)
     const [followDocs, requestDocs] = await Promise.all([
-      Follow.find({ follower: req.user._id, following: { $in: ids } }),
+      Follow.find({ follower: req.user._id, following: { $in: ids }, isActive: { $ne: false } }),
       FollowRequest.find({ requester: req.user._id, recipient: { $in: ids }, status: 'pending' }),
     ])
     const followingSet = new Set(followDocs.map(f => f.following.toString()))
@@ -367,10 +404,19 @@ router.get('/:userId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
 
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    // Option A: Students and faculty can only discover and view profiles from their own college
+    if (!isMainAdmin && req.user.id !== user.id) {
+      if (!user.collegeId || !req.user.collegeId || user.collegeId.toString() !== req.user.collegeId.toString()) {
+        return res.status(404).json({ ok: false, error: 'User not found.' })
+      }
+    }
+
     const [isFollowing, isRequested] = await Promise.all([
       Follow.exists({
         follower: req.user.id,
         following: user.id,
+        isActive: { $ne: false },
       }),
       FollowRequest.exists({
         requester: req.user.id,
@@ -556,10 +602,48 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
       return res.status(403).json({ ok: false, error: 'Follow actions are only available for students and faculty.' })
     }
 
-    // Check if already following
+    // Option A: Strict College Isolation — both users must belong to the exact same college
+    if (!req.user.collegeId || !target.collegeId || req.user.collegeId.toString() !== target.collegeId.toString()) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Follow actions are only available between members of the same college.',
+      })
+    }
+
+    // Check if already following or historical relationship exists
     const existing = await Follow.findOne({ follower: req.user.id, following: targetId })
     if (existing) {
-      return res.status(200).json({ ok: true, following: true, requested: false, message: 'You already follow this user.' })
+      if (existing.isActive !== false) {
+        return res.status(200).json({ ok: true, following: true, requested: false, message: 'You already follow this user.' })
+      }
+      // Reactivate previously unfollowed same-college relationship
+      existing.isActive = true
+      existing.collegeId = req.user.collegeId
+      await existing.save()
+
+      const [updatedTarget] = await Promise.all([
+        User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
+        User.findByIdAndUpdate(req.user.id, { $inc: { following: 1 } }, { new: true }),
+      ])
+
+      try {
+        await createNotification({
+          recipient: targetId,
+          sender: req.user.id,
+          type: 'follow',
+          text: 'started following you',
+        })
+        emitToUser(targetId, 'follow:received', { fromUserName: req.user.name })
+      } catch (notifErr) {
+        console.error('[Notification follow error]', notifErr)
+      }
+
+      return res.status(200).json({
+        ok: true,
+        following: true,
+        requested: false,
+        followerCount: updatedTarget ? updatedTarget.followers : 0,
+      })
     }
 
     // Check if target account is private
@@ -582,7 +666,7 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
 
       await FollowRequest.findOneAndUpdate(
         { requester: req.user.id, recipient: targetId },
-        { requester: req.user.id, recipient: targetId, status: 'pending' },
+        { requester: req.user.id, recipient: targetId, collegeId: req.user.collegeId, status: 'pending' },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       )
 
@@ -611,8 +695,13 @@ router.post('/:userId/follow', requireAuth, async (req, res) => {
       })
     }
 
-    // Public account: Direct follow
-    await Follow.create({ follower: req.user.id, following: targetId })
+    // Public account: Direct follow within same college
+    await Follow.create({
+      follower: req.user.id,
+      following: targetId,
+      collegeId: req.user.collegeId,
+      isActive: true,
+    })
     const [updatedTarget] = await Promise.all([
       User.findByIdAndUpdate(targetId, { $inc: { followers: 1 } }, { new: true }),
       User.findByIdAndUpdate(req.user.id, { $inc: { following: 1 } }, { new: true }),
@@ -676,8 +765,9 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
       })
     }
 
-    const existing = await Follow.findOneAndDelete({ follower: req.user.id, following: targetId })
-    if (!existing) {
+    // Soft-deactivate to preserve historical records per Decision 1
+    const existing = await Follow.findOne({ follower: req.user.id, following: targetId })
+    if (!existing || existing.isActive === false) {
       const target = await User.findById(targetId).select('followers')
       return res.status(200).json({
         ok: true,
@@ -687,6 +777,9 @@ router.delete('/:userId/follow', requireAuth, async (req, res) => {
         followerCount: target?.followers || 0,
       })
     }
+
+    existing.isActive = false
+    await existing.save()
 
     const [target] = await Promise.all([
       User.findByIdAndUpdate(targetId, [{ $set: { followers: { $max: [0, { $subtract: ['$followers', 1] }] } } }], { new: true }),
@@ -712,6 +805,11 @@ router.post('/:userId/follow-request/accept', requireAuth, async (req, res) => {
     const requesterId = req.params.userId
     const recipientId = req.user.id
 
+    const requester = await User.findById(requesterId)
+    if (!requester || !requester.collegeId || !req.user.collegeId || requester.collegeId.toString() !== req.user.collegeId.toString()) {
+      return res.status(403).json({ ok: false, error: 'Cannot accept follow requests from other institutions.' })
+    }
+
     const followReq = await FollowRequest.findOneAndDelete({
       requester: requesterId,
       recipient: recipientId,
@@ -722,17 +820,31 @@ router.post('/:userId/follow-request/accept', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Follow request not found or already processed.' })
     }
 
-    // Create follow relationship if it doesn't already exist
+    // Create follow relationship if it doesn't already exist or reactivate
     const existingFollow = await Follow.findOne({ follower: requesterId, following: recipientId })
     let updatedSelf = null
     if (!existingFollow) {
-      await Follow.create({ follower: requesterId, following: recipientId })
+      await Follow.create({
+        follower: requesterId,
+        following: recipientId,
+        collegeId: req.user.collegeId,
+        isActive: true,
+      })
       const [self, reqUser] = await Promise.all([
         User.findByIdAndUpdate(recipientId, { $inc: { followers: 1 } }, { new: true }),
         User.findByIdAndUpdate(requesterId, { $inc: { following: 1 } }, { new: true }),
       ])
       updatedSelf = self
     } else {
+      if (existingFollow.isActive === false) {
+        existingFollow.isActive = true
+        existingFollow.collegeId = req.user.collegeId
+        await existingFollow.save()
+        await Promise.all([
+          User.findByIdAndUpdate(recipientId, { $inc: { followers: 1 } }, { new: true }),
+          User.findByIdAndUpdate(requesterId, { $inc: { following: 1 } }, { new: true }),
+        ])
+      }
       updatedSelf = await User.findById(recipientId).select('followers')
     }
 
@@ -1086,23 +1198,34 @@ router.get('/:userId/followers', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
 
-    const follows = await Follow.find({ following: req.params.userId })
-      .populate('follower', 'name username initials avatarColor profilePhoto dept year followers')
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    // Option A: Students and faculty cannot view followers from another college
+    if (!isMainAdmin && req.user.id !== targetUser.id) {
+      if (!targetUser.collegeId || !req.user.collegeId || targetUser.collegeId.toString() !== req.user.collegeId.toString()) {
+        return res.status(404).json({ ok: false, error: 'User not found.' })
+      }
+    }
+
+    const follows = await Follow.find({ following: req.params.userId, isActive: { $ne: false } })
+      .populate('follower', 'name username initials avatarColor profilePhoto dept year followers collegeId')
       .sort({ createdAt: -1 })
 
     // For each follower, check if the current user follows them
-    const followerIds = follows.map(f => f.follower._id)
+    const followerIds = follows.map(f => f.follower?._id).filter(Boolean)
     const currentUserFollows = await Follow.find({
       follower: req.user.id,
       following: { $in: followerIds },
+      isActive: { $ne: false },
     })
     const followingSet = new Set(currentUserFollows.map(f => f.following.toString()))
 
-    const users = follows.map(f => ({
-      ...f.follower.toJSON(),
-      isFollowing: followingSet.has(f.follower._id.toString()),
-      isSelf: f.follower._id.toString() === req.user.id,
-    }))
+    const users = follows
+      .filter(f => f.follower && (isMainAdmin || !f.follower.collegeId || !req.user.collegeId || f.follower.collegeId.toString() === req.user.collegeId.toString()))
+      .map(f => ({
+        ...f.follower.toJSON(),
+        isFollowing: followingSet.has(f.follower._id.toString()),
+        isSelf: f.follower._id.toString() === req.user.id,
+      }))
 
     res.json({ ok: true, users })
   } catch (err) {
@@ -1122,23 +1245,34 @@ router.get('/:userId/following', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found.' })
     }
 
-    const follows = await Follow.find({ follower: req.params.userId })
-      .populate('following', 'name username initials avatarColor profilePhoto dept year followers')
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    // Option A: Students and faculty cannot view following list from another college
+    if (!isMainAdmin && req.user.id !== targetUser.id) {
+      if (!targetUser.collegeId || !req.user.collegeId || targetUser.collegeId.toString() !== req.user.collegeId.toString()) {
+        return res.status(404).json({ ok: false, error: 'User not found.' })
+      }
+    }
+
+    const follows = await Follow.find({ follower: req.params.userId, isActive: { $ne: false } })
+      .populate('following', 'name username initials avatarColor profilePhoto dept year followers collegeId')
       .sort({ createdAt: -1 })
 
     // For each followed user, check if the current user also follows them
-    const followingIds = follows.map(f => f.following._id)
+    const followingIds = follows.map(f => f.following?._id).filter(Boolean)
     const currentUserFollows = await Follow.find({
       follower: req.user.id,
       following: { $in: followingIds },
+      isActive: { $ne: false },
     })
     const followingSet = new Set(currentUserFollows.map(f => f.following.toString()))
 
-    const users = follows.map(f => ({
-      ...f.following.toJSON(),
-      isFollowing: followingSet.has(f.following._id.toString()),
-      isSelf: f.following._id.toString() === req.user.id,
-    }))
+    const users = follows
+      .filter(f => f.following && (isMainAdmin || !f.following.collegeId || !req.user.collegeId || f.following.collegeId.toString() === req.user.collegeId.toString()))
+      .map(f => ({
+        ...f.following.toJSON(),
+        isFollowing: followingSet.has(f.following._id.toString()),
+        isSelf: f.following._id.toString() === req.user.id,
+      }))
 
     res.json({ ok: true, users })
   } catch (err) {

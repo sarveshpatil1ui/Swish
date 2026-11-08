@@ -68,12 +68,19 @@ const ConversationSchema = new Schema(
     lastMessage:  { type: String, default: '' },
     lastMessageAt:{ type: Date,   default: null },
     lastSender:   { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    // College tenancy of the conversation (derived from participants if same-college)
+    collegeId:    { type: Schema.Types.ObjectId, ref: 'College', default: null, index: true },
+    // Archival status for historical cross-college conversations (Decision 2)
+    isArchived:   { type: Boolean, default: false, index: true },
+    archiveReason:{ type: String, default: null },
   },
   { timestamps: true }
 )
 
 // Ensure fast participant queries and ordered conversation list without in-memory sort
 ConversationSchema.index({ participants: 1, lastMessageAt: -1 })
+ConversationSchema.index({ participants: 1, isArchived: 1, lastMessageAt: -1 })
+ConversationSchema.index({ collegeId: 1, lastMessageAt: -1 })
 
 ConversationSchema.set('toJSON', {
   virtuals: true,

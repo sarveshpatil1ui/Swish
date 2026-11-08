@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import mongoose from 'mongoose'
 import { requireAuth } from '../middleware/auth.middleware.js'
+import { requireCollegeMembership, verifyConversationTenantAccess } from '../middleware/collegeAuth.middleware.js'
 import { Conversation } from '../models/Conversation.js'
 import User from '../models/User.js'
 import { emitToUser, getIO } from '../services/socket.service.js'
@@ -8,8 +9,9 @@ import { getPlatformConfig } from '../services/platform-config.service.js'
 
 const router = Router()
 
-// All routes require auth
+// All routes require auth and verified college membership
 router.use(requireAuth)
+router.use(requireCollegeMembership)
 
 // ── Helper: format conversation for client ────────────────────────────────────
 function formatConv(conv, myId) {
@@ -50,8 +52,12 @@ router.get('/', async (req, res) => {
   try {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 100)
     const convs = await Conversation.find(
-      { participants: req.user._id },
       {
+        participants: req.user._id,
+        isArchived: { $ne: true },
+      },
+      {
+        collegeId: 1,
         participants: 1,
         lastMessage: 1,
         lastMessageAt: 1,
@@ -62,10 +68,18 @@ router.get('/', async (req, res) => {
     )
       .sort({ lastMessageAt: -1 })
       .limit(limit)
-      .populate('participants', 'name username initials avatarColor profilePhoto departmentName academicYear')
+      .populate('participants', 'name username initials avatarColor profilePhoto departmentName academicYear collegeId')
       .lean({ virtuals: true })
 
-    const result = convs.map(c => formatConv(c, req.user._id))
+    // Exclude any cross-college conversation if unarchived
+    const filteredConvs = []
+    for (const c of convs) {
+      if (await verifyConversationTenantAccess(c, req.user, User)) {
+        filteredConvs.push(c)
+      }
+    }
+
+    const result = filteredConvs.map(c => formatConv(c, req.user._id))
     const totalUnread = result.reduce((sum, c) => sum + (c.unread || 0), 0)
     res.json({ ok: true, conversations: result, unreadCount: totalUnread })
   } catch (err) {
@@ -79,12 +93,18 @@ router.get('/unread-count', async (req, res) => {
   try {
     const myIdStr = String(req.user?._id || req.user?.id || '')
     const convs = await Conversation.find(
-      { participants: req.user._id },
-      { messages: { $slice: -30 } }
-    ).lean()
+      {
+        participants: req.user._id,
+        isArchived: { $ne: true },
+      },
+      { collegeId: 1, participants: 1, messages: { $slice: -30 } }
+    ).populate('participants', 'collegeId').lean()
 
     let count = 0
     for (const conv of convs) {
+      if (!(await verifyConversationTenantAccess(conv, req.user, User))) {
+        continue
+      }
       for (const m of (conv.messages || [])) {
         if (!m) continue
         const senderId = String(m.sender?._id || m.sender || '')
@@ -112,6 +132,7 @@ router.get('/users/search', async (req, res) => {
     const regex = new RegExp(q, 'i')
     const users = await User.find({
       _id:  { $ne: req.user._id },
+      collegeId: req.user.collegeId,
       $or:  [{ name: regex }, { username: regex }],
       deactivated: false,
     })
@@ -139,13 +160,21 @@ router.get('/:convId', async (req, res) => {
       {
         _id:          req.params.convId,
         participants: req.user._id,
+        isArchived:   { $ne: true },
       },
       {
+        collegeId: 1,
+        participants: 1,
         messages: { $slice: -limit },
       }
-    ).lean()
+    ).populate('participants', 'collegeId').lean()
 
     if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+
+    const isAllowed = await verifyConversationTenantAccess(conv, req.user, User)
+    if (!isAllowed) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
 
     const messages = (conv.messages || []).map(m => ({
       id:        m._id ? m._id.toString() : m.id,
@@ -196,14 +225,25 @@ router.post('/', async (req, res) => {
     const other = await User.findById(participantId).lean()
     if (!other) return res.status(404).json({ ok: false, error: 'User not found.' })
 
+    // Validate college isolation: cannot start conversation with user from different college
+    if (!req.user.collegeId || !other.collegeId || req.user.collegeId.toString() !== other.collegeId.toString()) {
+      return res.status(403).json({ ok: false, error: 'Cross-college messaging is not permitted.' })
+    }
+
     // Find or create conversation
     let conv = await Conversation.findOne({
       participants: { $all: [req.user._id, participantId], $size: 2 },
     }).populate('participants', 'name username initials avatarColor profilePhoto')
 
-    if (!conv) {
+    if (conv) {
+      if (conv.isArchived === true) {
+        return res.status(403).json({ ok: false, error: 'This conversation has been archived.' })
+      }
+    } else {
       conv = await Conversation.create({
         participants: [req.user._id, participantId],
+        collegeId:    req.user.collegeId,
+        isArchived:   false,
         messages:     [],
       })
       conv = await conv.populate('participants', 'name username initials avatarColor profilePhoto')
@@ -224,8 +264,28 @@ router.patch('/:convId/read', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Invalid conversation ID.' })
     }
 
+    const conv = await Conversation.findOne(
+      {
+        _id:          convId,
+        participants: req.user._id,
+        isArchived:   { $ne: true },
+      },
+      { collegeId: 1, participants: 1 }
+    ).populate('participants', 'collegeId').lean()
+
+    if (!conv) return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+
+    const isAllowed = await verifyConversationTenantAccess(conv, req.user, User)
+    if (!isAllowed) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
+
     const updateRes = await Conversation.updateOne(
-      { _id: convId, participants: req.user._id },
+      {
+        _id: convId,
+        participants: req.user._id,
+        isArchived: { $ne: true },
+      },
       { $addToSet: { 'messages.$[elem].readBy': req.user._id } },
       { arrayFilters: [{ 'elem.sender': { $ne: req.user._id }, 'elem.readBy': { $ne: req.user._id } }] }
     )
@@ -257,6 +317,21 @@ router.post('/:convId/send', async (req, res) => {
     const { text, storyReply, postShare, replyTo } = req.body
     const cleanText = (text && typeof text === 'string' ? text.trim() : '') || (postShare ? 'Shared a post' : (storyReply ? 'Replied to story' : ''))
     if (!cleanText) return res.status(400).json({ ok: false, error: 'Message text is required.' })
+
+    const convCheck = await Conversation.findOne({
+      _id: req.params.convId,
+      participants: req.user._id,
+      isArchived: { $ne: true },
+    }).select('collegeId participants').populate('participants', 'collegeId').lean()
+
+    if (!convCheck) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
+
+    const isAllowed = await verifyConversationTenantAccess(convCheck, req.user, User)
+    if (!isAllowed) {
+      return res.status(404).json({ ok: false, error: 'Conversation not found.' })
+    }
 
     let sanitizedPostShare = null
     if (postShare && typeof postShare === 'object' && postShare.postId) {
@@ -296,6 +371,7 @@ router.post('/:convId/send', async (req, res) => {
       {
         _id: req.params.convId,
         participants: req.user._id,
+        isArchived: { $ne: true },
       },
       {
         $push: { messages: msg },

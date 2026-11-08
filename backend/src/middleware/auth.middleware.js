@@ -225,3 +225,14 @@ export function requireRole(...roles) {
     next()
   }
 }
+
+// ── Re-export Centralized College Authorization Utilities ───────────────────
+export {
+  isSameCollege,
+  requireCollegeMembership,
+  requireCollegeContext,
+  requireCollegeAdmin,
+  requireMainAdmin,
+  verifyConversationTenantAccess,
+} from './collegeAuth.middleware.js'
+

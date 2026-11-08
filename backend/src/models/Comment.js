@@ -64,6 +64,13 @@ const CommentSchema = new Schema(
       default: '',
       maxlength: 500,
     },
+
+    // College ownership for college-level isolation & moderation
+    collegeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'College',
+      default: null,
+    },
   },
   { 
     timestamps: true,
@@ -75,6 +82,8 @@ const CommentSchema = new Schema(
 // ── Indexes for performance ──────────────────────────────────────────────────
 CommentSchema.index({ post: 1, createdAt: -1 });
 CommentSchema.index({ user: 1, createdAt: -1 });
+CommentSchema.index({ collegeId: 1, post: 1, createdAt: -1 });
+CommentSchema.index({ collegeId: 1, createdAt: -1 });
 
 // ── toJSON transform ─────────────────────────────────────────────────────────
 CommentSchema.set('toJSON', {

@@ -11,6 +11,7 @@ import Post from '../models/Post.js'
 import Comment from '../models/Comment.js'
 import User from '../models/User.js'
 import Follow from '../models/Follow.js'
+import College from '../models/College.js'
 import { broadcastEvent } from '../services/socket.service.js'
 import { createNotification } from '../services/notification.service.js'
 import { getPlatformConfig } from '../services/platform-config.service.js'
@@ -124,13 +125,23 @@ router.post(
 
     let uploadedAsset = null
     try {
+      if (!req.user.collegeId) {
+        return res.status(403).json({
+          ok: false,
+          error: 'You must be affiliated with an active college to publish posts.',
+        })
+      }
+
       const { caption = '' } = req.body
       const rawTags = req.body.tags || []
       const tags = normalizeTags(rawTags, caption)
 
       const mentionedUsernames = [...caption.matchAll(/@([a-z0-9._-]+)/gi)].map(match => match[1].toLowerCase())
       if (mentionedUsernames.length > 0) {
-        const mentionedUsers = await User.find({ username: { $in: mentionedUsernames } })
+        const mentionedUsers = await User.find({
+          username: { $in: mentionedUsernames },
+          collegeId: req.user.collegeId,
+        })
           .select('username preferences')
           .lean()
         const blockedUser = mentionedUsers.find(user => user.preferences?.privacy?.tagged === false)
@@ -189,7 +200,7 @@ router.post(
         imagePublicId,
         music,
         tags,
-        collegeId: req.user.collegeId || null,
+        collegeId: req.user.collegeId,
         likeCount: 0,
       })
       await User.findByIdAndUpdate(req.user.id, { $inc: { posts: 1 } })
@@ -198,6 +209,7 @@ router.post(
         const mentionedUsers = await User.find({
           username: { $in: mentionedUsernames },
           _id: { $ne: req.user._id },
+          collegeId: req.user.collegeId,
           'preferences.privacy.tagged': { $ne: false },
         }).select('_id username')
         for (const mentionedUser of mentionedUsers) {
@@ -227,22 +239,46 @@ router.post(
 
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    let tenantCollegeId = req.user.collegeId ? req.user.collegeId.toString() : null
+
+    if (isMainAdmin) {
+      const candidateId = req.query.collegeId || req.headers['x-college-id']
+      if (!candidateId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Explicit college context (?collegeId=...) is required for administrative feed inspection.',
+        })
+      }
+      const college = await College.findById(candidateId).select('_id').lean()
+      if (!college) {
+        return res.status(404).json({ ok: false, error: 'Specified college not found.' })
+      }
+      tenantCollegeId = college._id.toString()
+    } else if (!tenantCollegeId) {
+      return res.status(403).json({
+        ok: false,
+        error: 'College membership required to access campus social feed.',
+      })
+    }
+
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 20), 50)
     const cursor = req.query.cursor // ISO date string of last-seen createdAt
 
-    const filter = { hidden: false }
+    const filter = {
+      collegeId: tenantCollegeId,
+      hidden: false,
+      isDeleted: false,
+    }
 
-    // College-specific feed for college_admin role
-    if (req.user.role === 'college_admin' && req.user.collegeId) {
-      // Get all users from the same college
-      const collegeUsers = await User.find({ collegeId: req.user.collegeId }).select('_id').lean()
-      const collegeUserIds = collegeUsers.map(u => u._id)
-      filter.user = { $in: collegeUserIds }
+    // College-specific feed for college_admin role or main_admin inspecting tenant
+    if (req.user.role === 'college_admin' || isMainAdmin) {
+      // Return all active posts belonging to this college
     } else {
       // Standard feed for students and faculty
       const [follows, privateUsers] = await Promise.all([
-        Follow.find({ follower: req.user._id }).select('following').lean(),
-        User.find({ 'preferences.privacy.private': true }).select('_id').lean(),
+        Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following').lean(),
+        User.find({ collegeId: tenantCollegeId, 'preferences.privacy.private': true }).select('_id').lean(),
       ])
       const visibleUserIds = [req.user._id, ...follows.map(follow => follow.following)]
       const privateUserIds = privateUsers.map(user => user._id)
@@ -269,7 +305,7 @@ router.get('/', requireAuth, async (req, res) => {
       ? posts[posts.length - 1].createdAt.toISOString()
       : null
 
-    const viewerFollows = await Follow.find({ follower: req.user._id }).select('following').lean()
+    const viewerFollows = await Follow.find({ follower: req.user._id, isActive: { $ne: false } }).select('following').lean()
     const followingSet = new Set(viewerFollows.map(f => f.following.toString()))
 
     res.json({
@@ -290,12 +326,19 @@ router.get('/', requireAuth, async (req, res) => {
 // ── Save / unsave a post ────────────────────────────────────────────────────
 router.post('/:postId/save', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findOneAndUpdate(
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const updated = await Post.findOneAndUpdate(
       { _id: req.params.postId, isDeleted: false },
       { $addToSet: { savedBy: req.user._id } },
       { new: true }
     )
-    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    if (!updated) return res.status(404).json({ ok: false, error: 'Post not found.' })
     res.json({ ok: true, saved: true })
   } catch (err) {
     console.error('[POST /api/posts/:postId/save] Error:', err)
@@ -305,12 +348,19 @@ router.post('/:postId/save', requireAuth, async (req, res) => {
 
 router.delete('/:postId/save', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findOneAndUpdate(
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const updated = await Post.findOneAndUpdate(
       { _id: req.params.postId, isDeleted: false },
       { $pull: { savedBy: req.user._id } },
       { new: true }
     )
-    if (!post) return res.status(404).json({ ok: false, error: 'Post not found.' })
+    if (!updated) return res.status(404).json({ ok: false, error: 'Post not found.' })
     res.json({ ok: true, saved: false })
   } catch (err) {
     console.error('[DELETE /api/posts/:postId/save] Error:', err)
@@ -321,22 +371,28 @@ router.delete('/:postId/save', requireAuth, async (req, res) => {
 // ── GET /api/posts/:postId ──────────────────────────────────────────────────
 router.get('/:postId', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
-      .populate('user', 'name username initials avatarColor profilePhoto preferences')
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
+      .populate('user', 'name username initials avatarColor profilePhoto preferences collegeId')
       .lean()
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
     const isOwner = post.user._id.toString() === req.user.id
     const isPrivate = post.user.preferences?.privacy?.private === true
     if (isPrivate && !isOwner) {
-      const isFollowing = await Follow.exists({ follower: req.user._id, following: post.user._id })
+      const isFollowing = await Follow.exists({ follower: req.user._id, following: post.user._id, isActive: { $ne: false } })
       if (!isFollowing) {
         return res.status(403).json({ ok: false, error: 'This account is private.' })
       }
     }
     const authorId = post.user?._id ? post.user._id.toString() : (post.user?.id ? post.user.id.toString() : post.user?.toString())
-    const isFollowing = authorId ? await Follow.exists({ follower: req.user._id, following: authorId }) : false
+    const isFollowing = authorId ? await Follow.exists({ follower: req.user._id, following: authorId, isActive: { $ne: false } }) : false
     res.json({ ok: true, post: serializePost(post, req.user.id, Boolean(isFollowing)) })
   } catch (err) {
     console.error('[GET /api/posts/:postId] Error:', err)
@@ -350,11 +406,16 @@ router.get('/:postId', requireAuth, async (req, res) => {
 // ── GET /api/posts/:postId/likes ─────────────────────────────────────────────
 router.get('/:postId/likes', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
       .populate('likes', 'name username initials avatarColor profilePhoto followers')
       .lean()
 
     if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
@@ -381,8 +442,13 @@ router.get('/:postId/likes', requireAuth, async (req, res) => {
 
 router.post('/:postId/like', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
     if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
@@ -412,7 +478,7 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
     }
 
     // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
-    const collegeId = post.user?.collegeId || req.user.collegeId
+    const collegeId = post.collegeId || post.user?.collegeId || req.user.collegeId
     broadcastEvent('post:like:update', {
       postId: updated.id,
       likeCount: updated.likes.length,
@@ -453,10 +519,16 @@ router.post('/:postId/like', requireAuth, async (req, res) => {
 
 router.delete('/:postId/like', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
     const updated = await Post.findByIdAndUpdate(
       req.params.postId,
       {
@@ -471,7 +543,7 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
     }
 
     // Broadcast real-time like count scoped to college room (avoids global broadcast storm)
-    const collegeId = post.user?.collegeId || req.user.collegeId
+    const collegeId = post.collegeId || post.user?.collegeId || req.user.collegeId
     broadcastEvent('post:like:update', {
       postId: updated.id,
       likeCount: updated.likes.length,
@@ -496,8 +568,13 @@ router.delete('/:postId/like', requireAuth, async (req, res) => {
 
 router.get('/:postId/comments', requireAuth, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
+    const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
     if (!post) {
+      return res.status(404).json({ ok: false, error: 'Post not found.' })
+    }
+
+    const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+    if (!isMainAdmin && (!post.collegeId || post.collegeId.toString() !== req.user.collegeId?.toString())) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
@@ -542,8 +619,13 @@ router.post(
     if (validationError) return
 
     try {
-      const post = await Post.findById(req.params.postId)
+      const post = await Post.findOne({ _id: req.params.postId, isDeleted: false })
       if (!post) {
+        return res.status(404).json({ ok: false, error: 'Post not found.' })
+      }
+
+      const isMainAdmin = req.user.role === 'main_admin' || req.user.role === 'admin'
+      if (!isMainAdmin && (!post.collegeId || !req.user.collegeId || post.collegeId.toString() !== req.user.collegeId.toString())) {
         return res.status(404).json({ ok: false, error: 'Post not found.' })
       }
 
@@ -551,6 +633,7 @@ router.post(
         post: req.params.postId,
         user: req.user.id,
         text: req.body.text,
+        collegeId: post.collegeId,
       })
 
       // Atomic increment
@@ -665,9 +748,10 @@ router.delete('/:postId', requireAuth, async (req, res) => {
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
-    // Ownership check — author or admin can delete
-    if (post.user.toString() !== req.user.id && !isAdmin) {
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isCollegeAdmin = req.user.role === 'college_admin' && post.collegeId?.toString() === req.user.collegeId?.toString()
+    // Ownership check — author, college admin of the post's college, or main admin can delete
+    if (post.user.toString() !== req.user.id && !isMainAdmin && !isCollegeAdmin) {
       return res.status(403).json({ ok: false, error: 'You can only delete your own posts.' })
     }
 
@@ -759,15 +843,17 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Comment not found.' })
     }
 
-    // Authorization: comment author OR post owner can delete
+    // Authorization: comment author OR post owner OR authorized admin can delete
     const post = await Post.findById(req.params.postId)
     if (!post) {
       return res.status(404).json({ ok: false, error: 'Post not found.' })
     }
 
+    const isMainAdmin = req.user.role === 'admin' || req.user.role === 'main_admin'
+    const isCollegeAdmin = req.user.role === 'college_admin' && post.collegeId?.toString() === req.user.collegeId?.toString()
     const isCommentAuthor = comment.user.toString() === req.user.id
     const isPostOwner = post.user.toString() === req.user.id
-    if (!isCommentAuthor && !isPostOwner) {
+    if (!isCommentAuthor && !isPostOwner && !isMainAdmin && !isCollegeAdmin) {
       return res.status(403).json({ ok: false, error: 'You cannot delete this comment.' })
     }
 
