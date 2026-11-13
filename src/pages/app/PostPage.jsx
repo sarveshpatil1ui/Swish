@@ -64,7 +64,7 @@ export default function PostPage() {
                 navigate('/home')
               }
             }}
-            className="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm font-medium"
+            className="p-2 -ml-2 rounded-xl text-base-500 hover:text-base-900 dark:hover:text-white hover:bg-base-100 dark:hover:bg-base-800 transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <ArrowLeft size={18} />
             <span>Back</span>
@@ -72,26 +72,26 @@ export default function PostPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-2" />
-            <p className="text-slate-400 text-sm">Loading post...</p>
+          <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xs">
+            <Loader2 className="w-8 h-8 animate-spin text-accent-500 mb-2" />
+            <p className="text-base-400 text-sm">Loading post...</p>
           </div>
         ) : error ? (
-          <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-12 text-center shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900 flex items-center justify-center mx-auto mb-3">
               <AlertCircle size={22} className="text-rose-500" />
             </div>
-            <h3 className="text-slate-900 dark:text-white font-semibold text-base mb-1">
+            <h3 className="text-base-900 dark:text-white font-semibold text-base mb-1">
               {error === 'This account is private.' ? 'This Account is Private' : 'Post Unavailable'}
             </h3>
-            <p className="text-slate-400 dark:text-gray-500 text-sm mb-5">
+            <p className="text-base-500 dark:text-base-400 text-sm mb-5">
               {error === 'This account is private.'
                 ? 'Follow this account to see their photos and posts.'
                 : error}
             </p>
             <button
               onClick={() => navigate('/home')}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-accent-500 text-white text-sm font-medium rounded-xl hover:bg-accent-600 shadow-xs transition-colors"
             >
               Go to Home Feed
             </button>

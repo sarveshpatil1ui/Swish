@@ -17,20 +17,20 @@ function YourStoryActionModal({ activeCount = 0, onView, onAdd, onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 8 }}
         transition={{ duration: 0.18, ease: 'easeOut' }}
-        className="relative w-full max-w-xs bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xs bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Your Story</h3>
+            <h3 className="text-sm font-bold text-base-900 dark:text-white">Your Story</h3>
             <p className="text-[11px] text-slate-400 dark:text-gray-500 mt-0.5">
               {activeCount > 0 ? `${activeCount} active ${activeCount === 1 ? 'story' : 'stories'}` : 'Share a photo'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg text-base-400 hover:text-base-600 dark:hover:text-base-300 hover:bg-base-100 dark:hover:bg-base-800 transition-colors"
             aria-label="Close menu"
           >
             <X size={16} />
@@ -104,12 +104,12 @@ function StoryBubble({ bubble, onClick }) {
           className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
           aria-label="Add your story"
         >
-          <div className="w-14 h-14 rounded-full border-2 border-dashed border-slate-300 dark:border-gray-600 bg-slate-50 dark:bg-gray-800 flex items-center justify-center transition-transform group-hover:scale-105">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 group-hover:bg-indigo-700 transition-colors flex items-center justify-center shadow-sm">
+          <div className="w-14 h-14 rounded-full border-2 border-dashed border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800 flex items-center justify-center transition-transform group-hover:scale-105">
+            <div className="w-7 h-7 rounded-full bg-accent-500 group-hover:bg-accent-600 transition-colors flex items-center justify-center shadow-sm">
               <Plus size={14} className="text-white stroke-[2.5]" />
             </div>
           </div>
-          <span className="text-slate-500 dark:text-gray-400 text-[11px] font-medium max-w-[64px] truncate text-center">
+          <span className="text-base-500 dark:text-base-400 text-[11px] font-medium max-w-[64px] truncate text-center">
             Your Story
           </span>
         </button>
@@ -127,10 +127,10 @@ function StoryBubble({ bubble, onClick }) {
           className="relative w-14 h-14 rounded-full p-[2px] transition-transform group-hover:scale-105 group-active:scale-95"
           style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)' }}
         >
-          <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[2px] overflow-hidden">
+          <div className="w-full h-full rounded-full bg-white dark:bg-base-900 p-[2px] overflow-hidden">
             <div
               className="w-full h-full rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden"
-              style={{ backgroundColor: bubble.avatarColor || '#6366f1' }}
+              style={{ backgroundColor: bubble.avatarColor || '#5B5FEF' }}
             >
               {bubble.profilePhoto ? (
                 <img src={bubble.profilePhoto} alt="" className="w-full h-full object-cover" />
@@ -140,11 +140,11 @@ function StoryBubble({ bubble, onClick }) {
             </div>
           </div>
           {/* Subtle plus badge in corner for quick add recognition */}
-          <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center border-2 border-white dark:border-gray-900 shadow-xs">
+          <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-accent-500 text-white flex items-center justify-center border-2 border-white dark:border-base-900 shadow-xs">
             <Plus size={10} className="stroke-[3]" />
           </div>
         </div>
-        <span className="text-slate-700 dark:text-gray-300 text-[11px] font-semibold max-w-[64px] truncate text-center">
+        <span className="text-base-600 dark:text-base-300 text-[11px] font-semibold max-w-[64px] truncate text-center">
           Your Story
         </span>
       </button>
@@ -164,10 +164,10 @@ function StoryBubble({ bubble, onClick }) {
           className="w-14 h-14 rounded-full p-[2px] transition-transform group-hover:scale-105 group-active:scale-95"
           style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #ec4899 50%, #8b5cf6 100%)' }}
         >
-          <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 p-[2px] overflow-hidden">
+          <div className="w-full h-full rounded-full bg-white dark:bg-base-900 p-[2px] overflow-hidden">
             <div
               className="w-full h-full rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden"
-              style={{ backgroundColor: bubble.avatarColor || '#6366f1' }}
+              style={{ backgroundColor: bubble.avatarColor || '#5B5FEF' }}
             >
               {bubble.profilePhoto ? (
                 <img src={bubble.profilePhoto} alt="" className="w-full h-full object-cover" />
@@ -177,7 +177,7 @@ function StoryBubble({ bubble, onClick }) {
             </div>
           </div>
         </div>
-        <span className="text-slate-700 dark:text-gray-300 text-[11px] font-semibold max-w-[64px] truncate text-center">
+        <span className="text-base-600 dark:text-base-300 text-[11px] font-semibold max-w-[64px] truncate text-center">
           {bubble.label}
         </span>
       </button>
@@ -192,8 +192,8 @@ function StoryBubble({ bubble, onClick }) {
       aria-label={`View ${bubble.label}'s story`}
     >
       <div
-        className="w-14 h-14 rounded-full ring-2 ring-slate-200 dark:ring-gray-700 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 flex items-center justify-center text-white text-xs font-bold overflow-hidden transition-transform group-hover:scale-105 group-active:scale-95"
-        style={{ backgroundColor: bubble.avatarColor || '#6366f1' }}
+        className="w-14 h-14 rounded-full ring-2 ring-base-200 dark:ring-base-700 ring-offset-2 ring-offset-white dark:ring-offset-base-900 flex items-center justify-center text-white text-xs font-bold overflow-hidden transition-transform group-hover:scale-105 group-active:scale-95"
+        style={{ backgroundColor: bubble.avatarColor || '#5B5FEF' }}
       >
         {bubble.profilePhoto ? (
           <img src={bubble.profilePhoto} alt="" className="w-full h-full object-cover" />
@@ -201,7 +201,7 @@ function StoryBubble({ bubble, onClick }) {
           bubble.initials
         )}
       </div>
-      <span className="text-slate-400 dark:text-gray-500 text-[11px] max-w-[64px] truncate text-center">
+      <span className="text-base-400 dark:text-base-500 text-[11px] max-w-[64px] truncate text-center">
         {bubble.label}
       </span>
     </button>
@@ -365,7 +365,7 @@ export default function Stories() {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl px-4 py-4">
+      <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl px-4 py-4">
         {/* Cross-browser scrollbar hide */}
         <style>{`
           .stories-scroll::-webkit-scrollbar { display: none; }

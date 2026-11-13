@@ -79,15 +79,15 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="fixed inset-0 z-[55] flex items-center justify-center p-4"
       >
-        <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '70vh' }}>
+        <div className="w-full max-w-md bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '70vh' }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-gray-800">
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300 transition-all"
+              className="p-2 rounded-lg text-base-400 dark:text-base-500 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-700 dark:hover:text-base-300 transition-all"
               aria-label="Close"
             >
               <X size={18} />
@@ -96,15 +96,15 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
 
           {/* Search */}
           {!loading && users.length > 0 && (
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-800">
+            <div className="px-4 py-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
               <div className="relative">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 dark:text-base-500" />
                 <input
                   type="text"
                   placeholder="Search…"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-accent-400 dark:focus:border-accent-500 transition-all"
                 />
               </div>
             </div>
@@ -114,7 +114,7 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 size={22} className="animate-spin text-slate-300 dark:text-gray-600" />
+                <Loader2 size={22} className="animate-spin text-accent-400" />
               </div>
             ) : error ? (
               <div className="text-center py-12 px-4">
@@ -122,8 +122,8 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <Users size={28} className="text-slate-200 dark:text-gray-700 mx-auto mb-3" />
-                <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
+                <Users size={28} className="text-base-300 dark:text-base-700 mx-auto mb-3" />
+                <p className="text-base-500 dark:text-base-400 text-sm font-medium">
                   {query ? `No results for "${query}"` : mode === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
                 </p>
               </div>
@@ -135,31 +135,31 @@ export default function FollowListModal({ userId, mode = 'followers', onClose })
                     : null
 
                   return (
-                    <div key={user.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div key={user.id} className="flex items-center gap-3 px-5 py-3 hover:bg-base-50 dark:hover:bg-base-800/50 transition-colors">
                       <Link to={`/profile/${user.id}`} onClick={onClose} className="flex-shrink-0">
                         {avatarSrc ? (
                           <img src={avatarSrc} alt="" className="w-11 h-11 rounded-full object-cover" />
                         ) : (
                           <div
                             className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                            style={{ backgroundColor: user.avatarColor }}
+                            style={{ backgroundColor: user.avatarColor || '#5B5FEF' }}
                           >
                             {user.initials}
                           </div>
                         )}
                       </Link>
                       <Link to={`/profile/${user.id}`} onClick={onClose} className="flex-1 min-w-0">
-                        <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">{user.name}</p>
-                        <p className="text-slate-400 dark:text-gray-500 text-xs truncate">@{user.username}</p>
+                        <p className="text-base-900 dark:text-white text-sm font-semibold truncate">{user.name}</p>
+                        <p className="text-base-400 dark:text-base-500 text-xs truncate">@{user.username}</p>
                       </Link>
                       {!user.isSelf && (
                         <button
                           onClick={() => handleFollowToggle(user)}
                           disabled={followLoadingIds.has(user.id)}
-                          className={`text-xs font-semibold px-4 py-2 rounded-xl transition-all flex-shrink-0 disabled:opacity-60 ${
+                          className={`text-xs font-semibold px-4 py-1.5 rounded-lg transition-all flex-shrink-0 disabled:opacity-60 ${
                             user.isFollowing
-                              ? 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400'
-                              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              ? 'sw-btn-following'
+                              : 'sw-btn-follow'
                           }`}
                         >
                           {user.isFollowing ? 'Following' : 'Follow'}

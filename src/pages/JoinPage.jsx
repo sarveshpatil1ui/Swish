@@ -70,11 +70,11 @@ const VERIFY_STEPS = [
 
 // ── Reusable field styles ─────────────────────────────────────────────────────
 const INPUT_BASE =
-  'w-full bg-slate-50 dark:bg-gray-900 border text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all'
+  'w-full bg-base-50 dark:bg-base-800 border text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all'
 const borderFor = (err) =>
   err
     ? 'border-rose-300 dark:border-rose-700'
-    : 'border-slate-200 dark:border-gray-800'
+    : 'border-base-200 dark:border-base-700'
 
 // ── Blank form per role ───────────────────────────────────────────────────────
 const blankForm = (role) => ({
@@ -329,19 +329,19 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen flex bg-base-25 dark:bg-base-950 transition-colors duration-300">
 
       {/* ── LEFT — verification panel (desktop only) ──────────────────── */}
       <div className="hidden lg:flex lg:w-[44%] xl:w-[46%] relative overflow-hidden flex-col flex-shrink-0">
 
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950" />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-600 via-accent-700 to-accent-900" />
         <div
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 55% 45% at 15% 85%, rgba(99,102,241,0.22) 0%, transparent 65%),' +
-              'radial-gradient(ellipse 50% 40% at 85% 15%, rgba(139,92,246,0.18) 0%, transparent 65%)',
+              'radial-gradient(ellipse 55% 45% at 15% 85%, rgba(91,95,239,0.25) 0%, transparent 65%),' +
+              'radial-gradient(ellipse 50% 40% at 85% 15%, rgba(129,140,248,0.2) 0%, transparent 65%)',
           }}
         />
         {/* Dot pattern */}
@@ -362,12 +362,12 @@ useEffect(() => {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2.5"
           >
-            <div className="w-9 h-9 rounded-xl bg-white/12 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-white/12 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-xs">
               <Zap size={18} className="text-white fill-white" />
             </div>
             <span
-              className="font-extrabold text-2xl text-white"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              className="font-extrabold text-2xl text-white tracking-tight"
+              style={{ fontFamily: 'var(--font-heading)' }}
             >
               Swish
             </span>
@@ -385,11 +385,11 @@ useEffect(() => {
             >
               <h2
                 className="font-extrabold text-3xl xl:text-[38px] leading-[1.08] tracking-tight text-white mb-4"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                style={{ fontFamily: 'var(--font-heading)' }}
               >
                 Not open<br />to the public.
               </h2>
-              <p className="text-white/55 text-sm leading-relaxed max-w-[260px]">
+              <p className="text-white/70 text-sm leading-relaxed max-w-[280px]">
                 Swish is a closed network. Every account is linked to a verified campus email. No exceptions.
               </p>
             </motion.div>
@@ -399,16 +399,16 @@ useEffect(() => {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 mb-7"
+              className="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl p-5 mb-7 shadow-xs"
             >
               {/* Card header */}
               <div className="flex items-center gap-2.5 mb-5 pb-4 border-b border-white/12">
-                <div className="w-8 h-8 bg-indigo-500/25 border border-indigo-400/35 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield size={15} className="text-indigo-300" />
+                <div className="w-8 h-8 bg-white/15 border border-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield size={15} className="text-accent-200" />
                 </div>
                 <div>
                   <p className="text-white text-sm font-semibold leading-tight">Campus Verification</p>
-                  <p className="text-white/40 text-xs mt-0.5">How access works</p>
+                  <p className="text-white/60 text-xs mt-0.5">How access works</p>
                 </div>
               </div>
 
@@ -444,7 +444,7 @@ useEffect(() => {
                     {/* Text */}
                     <div className="pb-4">
                       <p className="text-white text-sm font-medium leading-tight">{step.label}</p>
-                      <p className="text-white/40 text-xs mt-0.5 leading-relaxed">{step.sub}</p>
+                      <p className="text-white/60 text-xs mt-0.5 leading-relaxed">{step.sub}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -464,9 +464,9 @@ useEffect(() => {
                 'Clubs & events',
                 'Faculty connect',
               ].map(perk => (
-                <div key={perk} className="flex items-center gap-2 text-white/60 text-xs">
-                  <div className="w-4 h-4 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center flex-shrink-0">
-                    <Check size={9} className="text-indigo-300" />
+                <div key={perk} className="flex items-center gap-2 text-white/70 text-xs">
+                  <div className="w-4 h-4 rounded-full bg-accent-500/30 border border-accent-400/30 flex items-center justify-center flex-shrink-0">
+                    <Check size={9} className="text-accent-200" />
                   </div>
                   {perk}
                 </div>
@@ -481,21 +481,21 @@ useEffect(() => {
             transition={{ delay: 0.7 }}
             className="pt-5 border-t border-white/10"
           >
-            <p className="text-white/30 text-xs leading-relaxed italic mb-3">
+            <p className="text-white/60 text-xs leading-relaxed italic mb-3">
               "Swish is the only place where I can share campus moments with people who were actually there."
             </p>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-violet-400/80 flex items-center justify-center text-white font-bold" style={{ fontSize: '9px' }}>
+              <div className="w-6 h-6 rounded-full bg-accent-400/80 flex items-center justify-center text-white font-bold" style={{ fontSize: '9px' }}>
                 VS
               </div>
-              <p className="text-white/40 text-xs">Verified Student · Campus Member</p>
+              <p className="text-white/60 text-xs">Verified Student · Campus Member</p>
             </div>
           </motion.div>
         </div>
       </div>
 
       {/* ── RIGHT — form panel ─────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white dark:bg-gray-950 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white dark:bg-base-900 overflow-y-auto">
         <AnimatePresence mode="wait">
 
         {/* ═══════════════ OTP VERIFICATION STEP ═══════════════════════════ */}
@@ -512,7 +512,7 @@ useEffect(() => {
             <button
               type="button"
               onClick={() => { setOtpStep(false); setOtp(''); setOtpError('') }}
-              className="inline-flex items-center gap-1.5 text-slate-400 dark:text-gray-600 hover:text-slate-600 dark:hover:text-gray-400 text-sm mb-8 transition-colors group"
+              className="inline-flex items-center gap-1.5 text-base-400 dark:text-base-500 hover:text-base-600 dark:hover:text-base-300 text-sm mb-8 transition-colors group"
             >
               <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
               Back
@@ -520,23 +520,23 @@ useEffect(() => {
 
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2 mb-8">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-accent-500 flex items-center justify-center shadow-xs">
                 <Zap size={15} className="text-white fill-white" />
               </div>
-              <span className="font-extrabold text-xl text-slate-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Swish</span>
+              <span className="font-extrabold text-xl text-base-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Swish</span>
             </div>
 
             {/* Header */}
             <div className="mb-7">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center mb-4">
-                <Mail size={22} className="text-indigo-500 dark:text-indigo-400" />
+              <div className="w-12 h-12 rounded-xl bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 flex items-center justify-center mb-4">
+                <Mail size={22} className="text-accent-500 dark:text-accent-400" />
               </div>
-              <h1 className="text-slate-900 dark:text-white font-bold text-[26px] mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <h1 className="text-base-900 dark:text-white font-bold text-[26px] mb-1.5 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
                 Check your email
               </h1>
-              <p className="text-slate-500 dark:text-gray-500 text-sm leading-relaxed">
+              <p className="text-base-500 dark:text-base-400 text-sm leading-relaxed">
                 We sent a 6-digit verification code to{' '}
-                <span className="font-semibold text-slate-700 dark:text-gray-300">{pendingEmail}</span>.
+                <span className="font-semibold text-base-800 dark:text-base-200">{pendingEmail}</span>.
                 Enter it below to activate your account.
               </p>
             </div>
@@ -550,7 +550,7 @@ useEffect(() => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl px-4 py-3 mb-4"
+                  className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl px-4 py-3 mb-4"
                 >
                   <AlertCircle size={15} className="text-rose-500 flex-shrink-0 mt-0.5" />
                   <p className="text-rose-600 dark:text-rose-400 text-sm leading-snug">{otpError}</p>
@@ -561,7 +561,7 @@ useEffect(() => {
             {/* OTP form */}
             <form onSubmit={handleOtpSubmit} className="space-y-4" noValidate>
               <div>
-                <label htmlFor="otp-code" className="block text-slate-700 dark:text-gray-300 text-sm font-medium mb-1.5">
+                <label htmlFor="otp-code" className="block text-base-700 dark:text-base-300 text-sm font-medium mb-1.5">
                   Verification Code
                 </label>
                 <input
@@ -573,7 +573,7 @@ useEffect(() => {
                   placeholder="000000"
                   value={otp}
                   onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError('') }}
-                  className={`w-full bg-slate-50 dark:bg-gray-900 border ${otpError ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-gray-700 rounded-xl px-4 py-4 text-3xl font-mono font-bold tracking-[0.5em] text-center focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                  className={`w-full bg-base-50 dark:bg-base-800 border ${otpError ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-300 dark:placeholder-base-600 rounded-xl px-4 py-4 text-3xl font-mono font-bold tracking-[0.5em] text-center focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                   autoFocus
                 />
               </div>
@@ -582,7 +582,7 @@ useEffect(() => {
                 id="otp-submit"
                 type="submit"
                 disabled={otpLoading || otp.length < 6}
-                className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-sm flex items-center justify-center gap-2"
+                className="w-full py-3 bg-accent-500 text-white font-semibold rounded-xl hover:bg-accent-600 active:bg-accent-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-xs flex items-center justify-center gap-2"
               >
                 {otpLoading ? (
                   <>
@@ -600,13 +600,13 @@ useEffect(() => {
 
             {/* Resend OTP */}
             <div className="mt-5 text-center">
-              <p className="text-slate-500 dark:text-gray-500 text-sm">
+              <p className="text-base-500 dark:text-base-400 text-sm">
                 Didn't receive the code?{' '}
                 <button
                   type="button"
                   onClick={handleResendOtp}
                   disabled={resendCooldown > 0}
-                  className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="inline-flex items-center gap-1 text-accent-500 dark:text-accent-400 font-semibold hover:text-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   {resendCooldown > 0 ? (
                     <>
@@ -638,7 +638,7 @@ useEffect(() => {
           {/* Back link */}
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-slate-400 dark:text-gray-600 hover:text-slate-600 dark:hover:text-gray-400 text-sm mb-8 transition-colors group"
+            className="inline-flex items-center gap-1.5 text-base-400 dark:text-base-500 hover:text-base-600 dark:hover:text-base-300 text-sm mb-8 transition-colors group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
             Back to Swish
@@ -646,12 +646,12 @@ useEffect(() => {
 
           {/* Mobile-only logo */}
           <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-accent-500 flex items-center justify-center shadow-xs">
               <Zap size={15} className="text-white fill-white" />
             </div>
             <span
-              className="font-extrabold text-xl text-slate-900 dark:text-white"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              className="font-extrabold text-xl text-base-900 dark:text-white tracking-tight"
+              style={{ fontFamily: 'var(--font-heading)' }}
             >
               Swish
             </span>
@@ -659,32 +659,32 @@ useEffect(() => {
 
           {/* Heading */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 rounded-full px-3 py-1 mb-4">
-              <Shield size={11} className="text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
-              <span className="text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold">
+            <div className="inline-flex items-center gap-1.5 bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 rounded-full px-3 py-1 mb-4">
+              <Shield size={11} className="text-accent-500 dark:text-accent-400 flex-shrink-0" />
+              <span className="text-accent-600 dark:text-accent-400 text-[11px] font-semibold">
                 Campus Verified Access Only
               </span>
             </div>
             <h1
-              className="text-slate-900 dark:text-white font-bold text-[26px] mb-1.5"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              className="text-base-900 dark:text-white font-bold text-[26px] mb-1.5 tracking-tight"
+              style={{ fontFamily: 'var(--font-heading)' }}
             >
               Join your campus
             </h1>
-            <p className="text-slate-500 dark:text-gray-500 text-sm">
+            <p className="text-base-500 dark:text-base-400 text-sm">
               Create your verified campus account on Swish.
             </p>
           </div>
 
           {/* ── Role toggle ── */}
-          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-gray-800/60 rounded-xl mb-5">
+          <div className="flex gap-2 p-1 bg-base-100 dark:bg-base-800/60 rounded-xl mb-5">
             <button
               type="button"
               onClick={() => switchRole('student')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
                 role === 'student'
-                  ? 'bg-white dark:bg-gray-900 text-indigo-700 dark:text-indigo-400 shadow-sm'
-                  : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-base-900 text-accent-600 dark:text-accent-400 shadow-xs'
+                  : 'text-base-500 dark:text-base-400 hover:text-base-700 dark:hover:text-base-300'
               }`}
             >
               <GraduationCap size={15} />
@@ -695,8 +695,8 @@ useEffect(() => {
               onClick={() => switchRole('faculty')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
                 role === 'faculty'
-                  ? 'bg-white dark:bg-gray-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-base-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-base-500 dark:text-base-400 hover:text-base-700 dark:hover:text-base-300'
               }`}
             >
               <Briefcase size={15} />
@@ -1054,15 +1054,15 @@ useEffect(() => {
                   type="checkbox"
                   checked={agreed}
                   onChange={e => { setAgreed(e.target.checked); setErrors(err => ({ ...err, agreed: '' })) }}
-                  className="w-4 h-4 mt-0.5 rounded border-slate-300 dark:border-gray-700 accent-indigo-600 cursor-pointer flex-shrink-0"
+                  className="w-4 h-4 mt-0.5 rounded border-base-300 dark:border-base-700 accent-accent-500 cursor-pointer flex-shrink-0"
                 />
-                <label htmlFor="join-terms" className="text-slate-600 dark:text-gray-400 text-sm leading-relaxed cursor-pointer">
+                <label htmlFor="join-terms" className="text-base-600 dark:text-base-400 text-sm leading-relaxed cursor-pointer">
                   I agree to the{' '}
-                  <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium transition-colors">
+                  <a href="#" className="text-accent-500 dark:text-accent-400 hover:text-accent-600 font-medium transition-colors">
                     Terms of Service
                   </a>
                   {' '}and{' '}
-                  <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium transition-colors">
+                  <a href="#" className="text-accent-500 dark:text-accent-400 hover:text-accent-600 font-medium transition-colors">
                     Privacy Policy
                   </a>
                 </label>
@@ -1080,7 +1080,7 @@ useEffect(() => {
               id="join-submit"
               type="submit"
               disabled={loading || isRegistrationPaused}
-              className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-sm flex items-center justify-center gap-2 mt-1"
+              className="w-full py-3 bg-accent-500 text-white font-semibold rounded-xl hover:bg-accent-600 active:bg-accent-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm shadow-xs flex items-center justify-center gap-2 mt-1"
             >
               {isRegistrationPaused ? (
                 'Registrations Temporarily Paused'
@@ -1099,21 +1099,21 @@ useEffect(() => {
           </form>
 
           {/* Sign in and Forgot password links */}
-          <div className="flex items-center justify-center gap-2.5 text-sm mt-6 text-slate-500 dark:text-gray-500">
+          <div className="flex items-center justify-center gap-2.5 text-sm mt-6 text-base-500 dark:text-base-400">
             <span>
               Already have an account?{' '}
               <Link
                 to="/login"
                 state={fromLocation ? { from: fromLocation } : undefined}
-                className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                className="text-accent-500 dark:text-accent-400 font-semibold hover:text-accent-600 transition-colors"
               >
                 Sign in
               </Link>
             </span>
-            <span className="text-slate-300 dark:text-gray-700">·</span>
+            <span className="text-base-300 dark:text-base-700">·</span>
             <Link
               to="/forgot-password"
-              className="text-slate-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium"
+              className="text-base-500 dark:text-base-400 hover:text-accent-500 dark:hover:text-accent-400 transition-colors font-medium"
             >
               Forgot password?
             </Link>

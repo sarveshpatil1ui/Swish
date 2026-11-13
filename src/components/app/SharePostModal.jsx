@@ -262,20 +262,20 @@ export default function SharePostModal({ post, onClose }) {
         className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none"
       >
         <div
-          className="w-full max-w-md bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto"
+          className="w-full max-w-md bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto"
           style={{ maxHeight: '88vh' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-gray-800 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] flex-shrink-0">
             <div className="flex items-center gap-2">
-              <Share2 size={18} className="text-indigo-600 dark:text-indigo-400" />
-              <h2 className="text-slate-900 dark:text-white font-bold text-base">
+              <Share2 size={18} className="text-accent-500 dark:text-accent-400" />
+              <h2 className="text-base-900 dark:text-white font-bold text-base">
                 Share Post
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1.5 rounded-lg text-base-400 hover:text-base-700 dark:hover:text-base-200 hover:bg-base-100 dark:hover:bg-base-800 transition-colors"
               aria-label="Close"
             >
               <X size={18} />
@@ -283,21 +283,21 @@ export default function SharePostModal({ post, onClose }) {
           </div>
 
           {/* Post Preview Strip */}
-          <div className="px-4 py-2.5 bg-slate-50 dark:bg-gray-800/40 border-b border-slate-100 dark:border-gray-800 flex items-center gap-3 flex-shrink-0">
+          <div className="px-4 py-2.5 bg-base-50 dark:bg-base-850/40 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] flex items-center gap-3 flex-shrink-0">
             {postImg ? (
-              <div className="w-11 h-11 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
+              <div className="w-11 h-11 rounded-lg overflow-hidden bg-base-900 flex-shrink-0">
                 <img src={postImg} alt="Preview" className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-11 h-11 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 font-bold text-xs">
+              <div className="w-11 h-11 rounded-lg bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400 flex items-center justify-center flex-shrink-0 font-bold text-xs">
                 Post
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+              <p className="text-xs font-semibold text-base-900 dark:text-white truncate">
                 {authorName}
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400 truncate">
+              <p className="text-[11px] text-base-500 dark:text-base-400 truncate">
                 {postSnippet || 'Swish campus post'}
               </p>
             </div>
@@ -310,7 +310,7 @@ export default function SharePostModal({ post, onClose }) {
               placeholder="Write a message... (optional)"
               value={note}
               onChange={e => setNote(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400/40 transition-all"
+              className="w-full bg-base-100 dark:bg-base-800 text-base-900 dark:text-white placeholder-base-400 text-xs rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-accent-500/20 transition-all"
             />
           </div>
 
@@ -323,25 +323,25 @@ export default function SharePostModal({ post, onClose }) {
           {/* Search Contacts Bar */}
           <div className="px-4 py-2.5 flex-shrink-0">
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-400" />
               <input
                 type="text"
                 placeholder="Search friends or classmates..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs rounded-xl pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400/40 transition-all"
+                className="w-full bg-base-100 dark:bg-base-800 text-base-900 dark:text-white placeholder-base-400 text-xs rounded-xl pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-accent-500/20 transition-all"
               />
             </div>
           </div>
 
           {/* Contacts / Recent Chats List */}
-          <div className="flex-1 overflow-y-auto px-2 divide-y divide-slate-100 dark:divide-gray-800/60 min-h-[160px] max-h-64">
+          <div className="flex-1 overflow-y-auto px-2 divide-y divide-base-100 dark:divide-[rgba(255,255,255,0.07)] min-h-[160px] max-h-64">
             {loadingChats || searching ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 size={20} className="animate-spin text-indigo-500" />
+                <Loader2 size={20} className="animate-spin text-accent-500" />
               </div>
             ) : displayList.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-1.5">
+              <div className="py-8 text-center text-base-400 text-xs flex flex-col items-center gap-1.5">
                 <MessageSquare size={22} className="opacity-40" />
                 <span>{showSearchResults ? 'No users found' : 'No recent chats'}</span>
               </div>
@@ -352,7 +352,7 @@ export default function SharePostModal({ post, onClose }) {
                 const isSending = Boolean(sendingMap[itemKey])
 
                 return (
-                  <div key={itemKey} className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-gray-800/40 rounded-xl transition-colors">
+                  <div key={itemKey} className="flex items-center justify-between px-3 py-2.5 hover:bg-base-50 dark:hover:bg-base-850/40 rounded-xl transition-colors">
                     <div className="flex items-center gap-3 min-w-0 flex-1 mr-3">
                       <Avatar
                         name={item.name}
@@ -362,10 +362,10 @@ export default function SharePostModal({ post, onClose }) {
                         size="sm"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                        <p className="text-xs font-semibold text-base-900 dark:text-white truncate">
                           {item.name}
                         </p>
-                        <p className="text-[10px] text-slate-400 truncate">
+                        <p className="text-[10px] text-base-400 truncate">
                           @{item.username || 'user'}
                         </p>
                       </div>
@@ -378,8 +378,8 @@ export default function SharePostModal({ post, onClose }) {
                         isSent
                           ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
                           : isSending
-                          ? 'bg-indigo-400 text-white cursor-wait'
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                          ? 'bg-accent-400 text-white cursor-wait'
+                          : 'bg-accent-500 hover:bg-accent-600 text-white shadow-xs active:scale-95'
                       }`}
                     >
                       {isSent ? (
@@ -403,8 +403,8 @@ export default function SharePostModal({ post, onClose }) {
           </div>
 
           {/* Quick External Actions Row */}
-          <div className="p-4 border-t border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-gray-900/60 flex-shrink-0">
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-gray-400 mb-2.5">
+          <div className="p-4 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-base-50/50 dark:bg-base-900/60 flex-shrink-0">
+            <p className="text-[11px] font-semibold text-base-500 dark:text-base-400 mb-2.5">
               Share outside Swish:
             </p>
 
@@ -414,11 +414,11 @@ export default function SharePostModal({ post, onClose }) {
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + postUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 transition-colors"
                 title="Share to WhatsApp"
               >
                 <WhatsAppIcon size={20} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-gray-300">WhatsApp</span>
+                <span className="text-[10px] font-medium text-base-600 dark:text-base-300">WhatsApp</span>
               </a>
 
               {/* Twitter / X */}
@@ -426,11 +426,11 @@ export default function SharePostModal({ post, onClose }) {
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(postUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 text-slate-800 dark:text-white transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-base-100 dark:hover:bg-base-700 text-base-800 dark:text-white transition-colors"
                 title="Share to Twitter / X"
               >
                 <TwitterIcon size={18} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-gray-300">X</span>
+                <span className="text-[10px] font-medium text-base-600 dark:text-base-300">X</span>
               </a>
 
               {/* Telegram */}
@@ -438,11 +438,11 @@ export default function SharePostModal({ post, onClose }) {
                 href={`https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-sky-50 dark:hover:bg-sky-950/30 text-sky-500 transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-sky-50 dark:hover:bg-sky-950/30 text-sky-500 transition-colors"
                 title="Share to Telegram"
               >
                 <TelegramIcon size={19} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-gray-300">Telegram</span>
+                <span className="text-[10px] font-medium text-base-600 dark:text-base-300">Telegram</span>
               </a>
 
               {/* LinkedIn */}
@@ -450,22 +450,22 @@ export default function SharePostModal({ post, onClose }) {
                 href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-600 transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-600 transition-colors"
                 title="Share to LinkedIn"
               >
                 <LinkedInIcon size={19} />
-                <span className="text-[10px] font-medium text-slate-600 dark:text-gray-300">LinkedIn</span>
+                <span className="text-[10px] font-medium text-base-600 dark:text-base-300">LinkedIn</span>
               </a>
 
               {/* Copy Link / Native Share */}
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-indigo-600 transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-accent-50 dark:hover:bg-accent-950/30 text-accent-500 transition-colors"
                 title={copied ? 'Copied!' : 'Copy Link'}
               >
                 {copied ? <Check size={19} className="text-emerald-500" /> : <Copy size={19} />}
-                <span className="text-[10px] font-medium text-slate-600 dark:text-gray-300">{copied ? 'Copied!' : 'Copy'}</span>
+                <span className="text-[10px] font-medium text-base-600 dark:text-base-300">{copied ? 'Copied!' : 'Copy'}</span>
               </button>
             </div>
           </div>

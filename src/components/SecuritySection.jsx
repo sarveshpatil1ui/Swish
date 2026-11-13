@@ -16,7 +16,7 @@ export default function SecuritySection() {
   const inView = useInView(ref, { once: true, margin: '-60px' })
 
   return (
-    <section id="security" className="py-24 bg-slate-50/70 dark:bg-gray-900/50 transition-colors duration-300" ref={ref}>
+    <section id="security" className="py-24 bg-base-50/70 dark:bg-base-900/50 transition-colors duration-300" ref={ref}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-2 gap-14 lg:gap-20 items-center">
 
@@ -29,13 +29,13 @@ export default function SecuritySection() {
           >
             <div className="relative">
               {/* Rings */}
-              <div className="w-60 h-60 sm:w-64 sm:h-64 rounded-full border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-center">
-                <div className="w-44 h-44 sm:w-48 sm:h-48 rounded-full border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-center">
+              <div className="w-60 h-60 sm:w-64 sm:h-64 rounded-full border border-accent-200 dark:border-accent-900/60 flex items-center justify-center">
+                <div className="w-44 h-44 sm:w-48 sm:h-48 rounded-full border border-accent-200 dark:border-accent-900/60 flex items-center justify-center">
                   <div
-                    className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shadow-md"
-                    style={{ boxShadow: '0 0 30px rgba(99,102,241,0.12)' }}
+                    className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-accent-50 dark:bg-accent-950/60 border border-accent-200 dark:border-accent-800 flex items-center justify-center shadow-md"
+                    style={{ boxShadow: '0 0 30px rgba(91,95,239,0.15)' }}
                   >
-                    <Lock size={36} className="text-indigo-600 dark:text-indigo-400" />
+                    <Lock size={36} className="text-accent-600 dark:text-accent-400" />
                   </div>
                 </div>
               </div>
@@ -44,7 +44,7 @@ export default function SecuritySection() {
               {[0, 60, 120, 180, 240, 300].map((deg, i) => (
                 <div
                   key={i}
-                  className="absolute w-2.5 h-2.5 rounded-full bg-indigo-400 dark:bg-indigo-600"
+                  className="absolute w-2.5 h-2.5 rounded-full bg-accent-400 dark:bg-accent-600"
                   style={{ top: '50%', left: '50%', transform: `rotate(${deg}deg) translateX(120px) translateY(-50%)` }}
                 />
               ))}
@@ -54,15 +54,15 @@ export default function SecuritySection() {
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={inView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.5 }}
-                className="absolute -right-6 top-6 bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-2 shadow-sm"
+                className="absolute -right-6 top-6 bg-white dark:bg-base-900 border border-accent-200 dark:border-accent-800 rounded-xl px-3 py-2 shadow-sm"
               >
-                <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold">🔒 End-to-end verified</p>
+                <p className="text-accent-600 dark:text-accent-400 text-xs font-semibold">🔒 End-to-end verified</p>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={inView ? { opacity: 1, scale: 1 } : {}}
                 transition={{ delay: 0.7 }}
-                className="absolute -left-6 bottom-6 bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2 shadow-sm"
+                className="absolute -left-6 bottom-6 bg-white dark:bg-base-900 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2 shadow-sm"
               >
                 <p className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold">✅ Campus-only access</p>
               </motion.div>
@@ -77,11 +77,11 @@ export default function SecuritySection() {
               transition={{ duration: 0.5 }}
               className="mb-9"
             >
-              <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-3">Privacy & Security</p>
-              <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white mb-4">
-                Your campus. <span className="text-indigo-600">Your privacy.</span>
+              <p className="text-accent-600 dark:text-accent-400 text-xs font-semibold uppercase tracking-widest mb-3">Privacy & Security</p>
+              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-base-900 dark:text-white mb-4">
+                Your campus. <span className="text-accent-600 dark:text-accent-400">Your privacy.</span>
               </h2>
-              <p className="text-slate-500 dark:text-gray-400 text-base leading-relaxed">
+              <p className="text-base-500 dark:text-base-400 text-base leading-relaxed">
                 Swish is designed with privacy and campus safety as core principles — not afterthoughts.
               </p>
             </motion.div>
@@ -95,14 +95,14 @@ export default function SecuritySection() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={inView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.45, delay: 0.1 + i * 0.07 }}
-                    className="flex gap-3 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-xl p-4 transition-colors duration-200"
+                    className="flex gap-3 bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.08)] hover:border-accent-200 dark:hover:border-accent-800 rounded-xl p-4 transition-colors duration-200"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center flex-shrink-0">
-                      <Icon size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    <div className="w-8 h-8 rounded-lg bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 flex items-center justify-center flex-shrink-0">
+                      <Icon size={14} className="text-accent-600 dark:text-accent-400" />
                     </div>
                     <div>
-                      <p className="text-slate-800 dark:text-gray-200 text-xs font-semibold mb-0.5">{p.title}</p>
-                      <p className="text-slate-400 dark:text-gray-500 text-xs leading-relaxed">{p.description}</p>
+                      <p className="text-base-800 dark:text-base-200 text-xs font-semibold mb-0.5">{p.title}</p>
+                      <p className="text-base-400 dark:text-base-500 text-xs leading-relaxed">{p.description}</p>
                     </div>
                   </motion.div>
                 )

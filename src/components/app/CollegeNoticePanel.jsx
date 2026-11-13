@@ -52,12 +52,12 @@ export function NoticeDetailModal({ notice, onClose }) {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-xl overflow-hidden"
+        className="relative w-full max-w-lg bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xl overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-gray-800">
+        <div className="flex items-center justify-between p-5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <div className="w-8 h-8 rounded-lg bg-accent-50 dark:bg-accent-900/40 flex items-center justify-center text-accent-600 dark:text-accent-400">
               <Megaphone size={18} />
             </div>
             <div>
@@ -68,7 +68,7 @@ export function NoticeDetailModal({ notice, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg text-base-400 hover:text-base-600 dark:hover:text-base-200 hover:bg-base-100 dark:hover:bg-base-800 transition-colors"
           >
             <X size={18} />
           </button>
@@ -101,13 +101,13 @@ export function NoticeDetailModal({ notice, onClose }) {
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-snug">
+          <h2 className="text-xl font-bold text-base-900 dark:text-white leading-snug">
             {notice.title}
           </h2>
 
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-gray-400 py-2 border-y border-slate-100 dark:border-gray-800">
-            <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-gray-300">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-base-500 dark:text-base-400 py-2 border-y border-base-100 dark:border-[rgba(255,255,255,0.07)]">
+            <span className="flex items-center gap-1.5 font-medium text-base-700 dark:text-base-300">
               <User size={14} className="text-indigo-500" />
               {getNoticeAuthor(notice.createdBy)}
             </span>
@@ -123,16 +123,16 @@ export function NoticeDetailModal({ notice, onClose }) {
           </div>
 
           {/* Main Notice Body */}
-          <div className="text-sm text-slate-700 dark:text-gray-300 leading-relaxed whitespace-pre-line pt-2">
+          <div className="text-sm text-base-700 dark:text-base-300 leading-relaxed whitespace-pre-line pt-2">
             {notice.content}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-4 border-t border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-gray-900/50">
+        <div className="flex justify-end p-4 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-base-50/50 dark:bg-base-900/50">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+            className="px-5 py-2 bg-accent-500 text-white text-xs font-semibold rounded-lg hover:bg-accent-600 transition-colors"
           >
             Close
           </button>
@@ -188,7 +188,7 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
 
   return (
     <>
-      <div className={`bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm ${className}`}>
+      <div className={`bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-4 ${className}`}>
         {/* Header */}
         {showHeader && (
           <div className="flex items-center justify-between mb-4">
@@ -197,11 +197,11 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
               <Megaphone size={15} />
             </div>
             <div>
-              <h3 className="text-slate-900 dark:text-white font-semibold text-sm leading-tight">
+              <h3 className="text-base-900 dark:text-white font-semibold text-sm leading-tight">
                 {title}
               </h3>
               {user?.college && (
-                <p className="text-[11px] text-slate-400 dark:text-gray-500 truncate max-w-[170px]">
+                <p className="text-[11px] text-base-400 dark:text-base-500 truncate max-w-[170px]">
                   {user.college}
                 </p>
               )}
@@ -238,10 +238,10 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
         {loading && notices.length === 0 && (
           <div className="space-y-3 py-2">
             {[1, 2].map(i => (
-              <div key={i} className="animate-pulse p-3.5 bg-slate-50 dark:bg-gray-800/40 rounded-xl space-y-2">
-                <div className="h-3.5 bg-slate-200 dark:bg-gray-700 rounded w-3/4" />
-                <div className="h-2.5 bg-slate-200 dark:bg-gray-700 rounded w-full" />
-                <div className="h-2 bg-slate-200 dark:bg-gray-700 rounded w-1/3 pt-1" />
+              <div key={i} className="animate-pulse p-3.5 bg-base-50 dark:bg-base-800/40 rounded-xl space-y-2">
+                <div className="h-3.5 bg-base-200 dark:bg-base-700 rounded w-3/4" />
+                <div className="h-2.5 bg-base-200 dark:bg-base-700 rounded w-full" />
+                <div className="h-2 bg-base-200 dark:bg-base-700 rounded w-1/3 pt-1" />
               </div>
             ))}
           </div>
@@ -254,7 +254,7 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
             <p className="text-xs text-rose-600 dark:text-rose-400 mb-2">{error}</p>
             <button
               onClick={fetchNotices}
-              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-[11px] font-semibold text-accent-500 dark:text-accent-400 hover:underline"
             >
               Retry
             </button>
@@ -264,13 +264,13 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
         {/* Empty State */}
         {!loading && !error && notices.length === 0 && (
           <div className="text-center py-6 px-2">
-            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-2 text-slate-400 dark:text-gray-500">
+            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-2 text-base-400 dark:text-base-500">
               <Megaphone size={18} />
             </div>
-            <p className="text-slate-700 dark:text-gray-300 font-medium text-xs">
+            <p className="text-base-700 dark:text-base-300 font-medium text-xs">
               No new notices
             </p>
-            <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-0.5">
+            <p className="text-base-400 dark:text-base-500 text-[11px] mt-0.5">
               No new notices from your college.
             </p>
           </div>
@@ -295,11 +295,11 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
                       ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40 hover:border-rose-300 dark:hover:border-rose-800'
                       : isHigh
                       ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/70 dark:border-amber-900/40 hover:border-amber-300 dark:hover:border-amber-800'
-                      : 'bg-slate-50/80 dark:bg-gray-800/40 border-slate-200/60 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-900/60 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20'
+                      : 'bg-base-50/80 dark:bg-base-800/40 border-base-100 dark:border-[rgba(255,255,255,0.07)] hover:border-accent-300 dark:hover:border-accent-800/60 hover:bg-accent-50/30 dark:hover:bg-accent-900/20'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h4 className="text-xs font-bold text-base-900 dark:text-white line-clamp-2 group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                       {notice.title}
                     </h4>
                     {isUrgent && (
@@ -310,11 +310,11 @@ export default function CollegeNoticePanel({ title = 'College Notices', classNam
                     )}
                   </div>
 
-                  <p className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-2 mb-2 leading-relaxed">
+                  <p className="text-[11px] text-base-500 dark:text-base-400 line-clamp-2 mb-2 leading-relaxed">
                     {notice.content}
                   </p>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-gray-500 pt-1 border-t border-slate-200/40 dark:border-gray-800/60">
+                  <div className="flex items-center justify-between text-[10px] text-base-400 dark:text-base-500 pt-1 border-t border-slate-200/40 dark:border-gray-800/60">
                     <span className="font-medium text-slate-600 dark:text-gray-400 truncate max-w-[180px]">
                       {getNoticeAuthor(notice.createdBy)}
                     </span>

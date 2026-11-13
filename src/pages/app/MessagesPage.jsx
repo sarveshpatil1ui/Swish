@@ -71,12 +71,12 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
           className={`${sizes[size]} rounded-full object-cover`}
         />
       ) : (
-        <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold`} style={{ backgroundColor: avatarColor || '#6366f1' }}>
+        <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold`} style={{ backgroundColor: avatarColor || '#5B5FEF' }}>
           {initials || '?'}
         </div>
       )}
       {online !== undefined && (
-        <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-gray-950 ${online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'}`} />
+        <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-base-950 ${online ? 'bg-emerald-500' : 'bg-base-300 dark:bg-base-600'}`} />
       )}
     </div>
   )
@@ -91,13 +91,13 @@ function SharedPostCard({ postShare, isMe }) {
     <div
       className={`rounded-xl overflow-hidden border transition-all ${
         isMe
-          ? 'bg-indigo-700/60 border-indigo-500/60 text-white'
-          : 'bg-slate-50 dark:bg-gray-900/60 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white'
+          ? 'bg-accent-600 border-accent-400/50 text-white'
+          : 'bg-base-50 dark:bg-base-850 border-base-200 dark:border-base-750 text-base-900 dark:text-white'
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 dark:border-gray-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 dark:border-base-800">
+        <span className="w-1.5 h-1.5 rounded-full bg-accent-400" />
         <span className="text-[11px] font-semibold truncate">
           {postShare.authorName || 'Swish user'}
         </span>
@@ -105,7 +105,7 @@ function SharedPostCard({ postShare, isMe }) {
 
       {/* Media thumbnail */}
       {resolvedImg && !imgError && (
-        <div className="relative w-full h-44 sm:h-52 bg-slate-950 overflow-hidden">
+        <div className="relative w-full h-44 sm:h-52 bg-base-950 overflow-hidden">
           <img
             src={resolvedImg}
             alt=""
@@ -130,8 +130,8 @@ function SharedPostCard({ postShare, isMe }) {
           to={`/post/${postShare.postId}`}
           className={`flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg transition-all ${
             isMe
-              ? 'bg-white text-indigo-700 hover:bg-white/90 shadow-xs'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+              ? 'bg-white text-accent-700 hover:bg-white/90 shadow-xs'
+              : 'bg-accent-500 hover:bg-accent-600 text-white shadow-xs'
           }`}
         >
           <span>View Post</span>
@@ -179,7 +179,7 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
             type="button"
             onClick={() => onReply?.(msg)}
             title="Reply"
-            className="opacity-0 md:group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-gray-800 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex-shrink-0 hidden md:flex items-center justify-center"
+            className="opacity-0 md:group-hover/bubble:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-base-200 dark:hover:bg-base-800 text-base-400 hover:text-accent-500 dark:hover:text-accent-400 flex-shrink-0 hidden md:flex items-center justify-center"
           >
             <Reply size={14} />
           </button>
@@ -189,10 +189,10 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
             {/* ── Story Reaction / Reply Preview Card (Instagram Style) ── */}
             {storyReply && resolvedStoryImg ? (
               <div
-                className={`rounded-2xl p-2 shadow-sm border transition-all ${
+                className={`rounded-2xl p-2 shadow-xs border transition-all ${
                   isMe
-                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
-                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                    ? 'bg-accent-500 text-white border-accent-400 rounded-br-sm'
+                    : 'bg-white dark:bg-base-800 text-base-900 dark:text-white border-base-100 dark:border-base-700 rounded-bl-sm'
                 }`}
               >
                 {/* Quoted Reply Preview inside story reply bubble if present */}
@@ -212,11 +212,11 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
                     }}
                     className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
                       isMe
-                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
-                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                        ? 'bg-accent-700/60 hover:bg-accent-700/80 text-white/95 border-white/70'
+                        : 'bg-base-100 dark:bg-base-700/70 hover:bg-base-200 dark:hover:bg-base-700 text-base-800 dark:text-base-100 border-accent-500'
                     }`}
                   >
-                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-accent-200' : 'text-accent-600 dark:text-accent-400'}`}>
                       {msg.replyTo.senderName || 'Replied message'}
                     </p>
                     <p className="truncate opacity-90 text-[11px] mt-0.5">
@@ -232,7 +232,7 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
                 </div>
 
                 {/* Story Thumbnail Card with vertical aspect ratio */}
-                <div className="relative w-40 h-56 sm:w-48 sm:h-64 rounded-xl overflow-hidden bg-slate-950 shadow-inner group/card">
+                <div className="relative w-40 h-56 sm:w-48 sm:h-64 rounded-xl overflow-hidden bg-base-950 shadow-inner group/card">
                   <img
                     src={resolvedStoryImg}
                     alt="Story"
@@ -245,7 +245,7 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
                   {/* Story caption overlay if present */}
                   {storyReply.caption && (
                     <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
-                      <p className="text-white text-[11px] line-clamp-2 leading-tight drop-shadow font-medium">
+                      <p className="text-white text-[11px] line-clamp-2 leading-tight drop-shadow-xs font-medium">
                         {storyReply.caption}
                       </p>
                     </div>
@@ -253,7 +253,7 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
 
                   {/* Floating Reaction Emoji Badge on bottom corner */}
                   {reactionEmoji && (
-                    <div className="absolute -bottom-1 -right-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-full p-1 shadow-lg ring-2 ring-white/30 transform scale-110 flex items-center justify-center">
+                    <div className="absolute -bottom-1 -right-1 bg-white/95 dark:bg-base-900/95 backdrop-blur-xs rounded-full p-1 shadow-lg ring-2 ring-white/30 transform scale-110 flex items-center justify-center">
                       <span className="text-2xl leading-none select-none">{reactionEmoji}</span>
                     </div>
                   )}
@@ -274,10 +274,10 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
             ) : isReaction ? (
               /* Fallback for older reaction messages: Instagram-like reaction pill */
               <div
-                className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed flex items-center gap-2 border shadow-sm ${
+                className={`px-3.5 py-2 rounded-2xl text-sm leading-relaxed flex items-center gap-2 border shadow-xs ${
                   isMe
-                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
-                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                    ? 'bg-accent-500 text-white border-accent-400 rounded-br-sm'
+                    : 'bg-white dark:bg-base-800 text-base-900 dark:text-white border-base-100 dark:border-base-700 rounded-bl-sm'
                 }`}
               >
                 <span className="text-2xl leading-none">{reactionEmoji}</span>
@@ -286,10 +286,10 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
             ) : msg.postShare?.postId ? (
               /* ── Shared Post Card ── */
               <div
-                className={`rounded-2xl p-2.5 shadow-sm border transition-all w-64 sm:w-72 ${
+                className={`rounded-2xl p-2.5 shadow-xs border transition-all w-64 sm:w-72 ${
                   isMe
-                    ? 'bg-indigo-600 text-white border-indigo-500 rounded-br-sm'
-                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border-slate-200/80 dark:border-gray-700 rounded-bl-sm'
+                    ? 'bg-accent-500 text-white border-accent-400 rounded-br-sm'
+                    : 'bg-white dark:bg-base-800 text-base-900 dark:text-white border-base-100 dark:border-base-700 rounded-bl-sm'
                 }`}
               >
                 {/* Quoted Reply Preview inside bubble */}
@@ -309,11 +309,11 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
                     }}
                     className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
                       isMe
-                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
-                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                        ? 'bg-accent-700/60 hover:bg-accent-700/80 text-white/95 border-white/70'
+                        : 'bg-base-100 dark:bg-base-700/70 hover:bg-base-200 dark:hover:bg-base-700 text-base-800 dark:text-base-100 border-accent-500'
                     }`}
                   >
-                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-accent-200' : 'text-accent-600 dark:text-accent-400'}`}>
                       {msg.replyTo.senderName || 'Replied message'}
                     </p>
                     <p className="truncate opacity-90 text-[11px] mt-0.5">
@@ -337,8 +337,8 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
               <div
                 className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   isMe
-                    ? 'bg-indigo-600 text-white rounded-br-sm'
-                    : 'bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-slate-100 dark:border-gray-700 rounded-bl-sm'
+                    ? 'bg-accent-500 text-white rounded-br-sm shadow-xs'
+                    : 'bg-white dark:bg-base-800 text-base-900 dark:text-white border border-base-100 dark:border-base-700 rounded-bl-sm shadow-xs'
                 }`}
               >
                 {/* Quoted Reply Preview inside bubble */}
@@ -358,11 +358,11 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
                     }}
                     className={`mb-2 px-2.5 py-1.5 rounded-lg border-l-4 text-xs cursor-pointer select-none transition-all ${
                       isMe
-                        ? 'bg-indigo-700/60 hover:bg-indigo-700/80 text-white/95 border-white/70'
-                        : 'bg-slate-100 dark:bg-gray-700/70 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-800 dark:text-gray-100 border-indigo-500'
+                        ? 'bg-accent-700/60 hover:bg-accent-700/80 text-white/95 border-white/70'
+                        : 'bg-base-100 dark:bg-base-700/70 hover:bg-base-200 dark:hover:bg-base-700 text-base-800 dark:text-base-100 border-accent-500'
                     }`}
                   >
-                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-indigo-200' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                    <p className={`font-semibold text-[11px] truncate ${isMe ? 'text-accent-200' : 'text-accent-600 dark:text-accent-400'}`}>
                       {msg.replyTo.senderName || 'Replied message'}
                     </p>
                     <p className="truncate opacity-90 text-[11px] mt-0.5">
@@ -378,11 +378,11 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
         </div>
 
         <div className={`flex items-center gap-1 mt-0.5 opacity-0 group-hover/bubble:opacity-100 transition-opacity ${isMe ? 'flex-row-reverse' : ''}`}>
-          <span className="text-[10px] text-slate-400 dark:text-gray-500">{msgTime(msg.createdAt)}</span>
+          <span className="text-[10px] text-base-400 dark:text-base-500">{msgTime(msg.createdAt)}</span>
           {isMe && (
             msg.readBy?.length > 1
-              ? <CheckCheck size={12} className="text-indigo-400" />
-              : <Check size={12} className="text-slate-400" />
+              ? <CheckCheck size={12} className="text-accent-400" />
+              : <Check size={12} className="text-base-400" />
           )}
         </div>
 
@@ -393,7 +393,7 @@ function MessageBubble({ msg, isMe, showSeen, onReply, onScrollToMessage }) {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-end gap-1 mt-0.5 pr-1"
           >
-            <span className="text-[11px] font-medium text-slate-400 dark:text-gray-500 select-none">
+            <span className="text-[11px] font-medium text-base-400 dark:text-base-500 select-none">
               Seen
             </span>
           </motion.div>
@@ -412,16 +412,16 @@ function TypingIndicator({ name }) {
       exit={{ opacity: 0, y: 6 }}
       className="flex justify-start mb-2"
     >
-      <div className="bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+      <div className="bg-white dark:bg-base-800 border border-base-100 dark:border-base-700 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 shadow-xs">
         {[0, 1, 2].map(i => (
           <motion.span
             key={i}
-            className="w-1.5 h-1.5 bg-slate-400 dark:bg-gray-400 rounded-full block"
+            className="w-1.5 h-1.5 bg-base-400 dark:bg-base-400 rounded-full block"
             animate={{ y: [0, -4, 0] }}
             transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
           />
         ))}
-        <span className="text-slate-400 text-[11px] ml-1">{name} is typing…</span>
+        <span className="text-base-400 dark:text-base-500 text-[11px] ml-1">{name} is typing…</span>
       </div>
     </motion.div>
   )
@@ -433,7 +433,7 @@ function ConvRow({ conv, myId, isActive, onClick, isOnline }) {
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 text-left ${
-        isActive ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-slate-50 dark:hover:bg-gray-800/60'
+        isActive ? 'bg-accent-50 dark:bg-accent-950/40 text-accent-700 dark:text-accent-300' : 'hover:bg-base-50 dark:hover:bg-base-800/60'
       }`}
     >
       <Avatar
@@ -442,19 +442,19 @@ function ConvRow({ conv, myId, isActive, onClick, isOnline }) {
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold text-slate-800 dark:text-slate-200'}`}>
+          <span className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-base-900 dark:text-white' : 'font-semibold text-base-800 dark:text-base-200'}`}>
             {conv.name}
           </span>
-          <span className={`text-[11px] flex-shrink-0 ml-2 ${conv.unread > 0 ? 'text-indigo-500 font-semibold' : 'text-slate-400 dark:text-gray-500'}`}>
+          <span className={`text-[11px] flex-shrink-0 ml-2 ${conv.unread > 0 ? 'text-accent-500 font-semibold' : 'text-base-400 dark:text-base-500'}`}>
             {relativeTime(conv.lastMessageAt)}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className={`text-xs truncate ${conv.unread > 0 ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-400 dark:text-gray-500'}`}>
+          <p className={`text-xs truncate ${conv.unread > 0 ? 'text-base-700 dark:text-base-300 font-medium' : 'text-base-400 dark:text-base-500'}`}>
             {conv.lastSenderId === myId ? `You: ${conv.lastMessage}` : conv.lastMessage || 'Start a conversation'}
           </p>
           {conv.unread > 0 && (
-            <span className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+            <span className="flex-shrink-0 w-5 h-5 bg-accent-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
               {conv.unread}
             </span>
           )}
@@ -468,14 +468,14 @@ function ConvRow({ conv, myId, isActive, onClick, isOnline }) {
 function EmptyState({ onNewChat }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-      <div className="w-20 h-20 rounded-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-        <MessageSquare size={32} className="text-indigo-400" />
+      <div className="w-20 h-20 rounded-full bg-accent-50 dark:bg-accent-950/40 flex items-center justify-center">
+        <MessageSquare size={32} className="text-accent-400" />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Your Messages</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Send private messages to a friend or classmate.</p>
+        <h2 className="text-xl font-bold text-base-900 dark:text-white mb-1">Your Messages</h2>
+        <p className="text-sm text-base-500 dark:text-base-400">Send private messages to a friend or classmate.</p>
       </div>
-      <button onClick={onNewChat} className="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors">
+      <button onClick={onNewChat} className="mt-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-xs">
         New Message
       </button>
     </div>
@@ -501,41 +501,41 @@ function NewChatModal({ onClose, onStart }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="relative bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+        className="relative bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl w-full max-w-md shadow-2xl overflow-hidden"
       >
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800">
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">New Message</h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 transition-colors">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
+          <h3 className="font-bold text-base-900 dark:text-white text-sm">New Message</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-base-100 dark:hover:bg-base-800 text-base-400 transition-colors">
             <X size={16} />
           </button>
         </div>
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-800">
+        <div className="px-4 py-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-400" />
             <input autoFocus type="text" placeholder="Search people…" value={q} onChange={e => setQ(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-gray-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-400/40 transition-all" />
+              className="w-full bg-base-100 dark:bg-base-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-base-900 dark:text-white placeholder-base-400 outline-none focus:ring-2 focus:ring-accent-500/20 transition-all" />
           </div>
         </div>
         <div className="max-h-72 overflow-y-auto">
-          {loading && <div className="flex items-center justify-center py-8"><Loader2 size={20} className="animate-spin text-indigo-400" /></div>}
+          {loading && <div className="flex items-center justify-center py-8"><Loader2 size={20} className="animate-spin text-accent-400" /></div>}
           {!loading && results.length === 0 && q.trim() && (
-            <div className="py-10 text-center text-slate-400 dark:text-gray-500 text-sm flex flex-col items-center gap-2">
+            <div className="py-10 text-center text-base-400 dark:text-base-500 text-sm flex flex-col items-center gap-2">
               <UserSearch size={28} className="opacity-40" />No users found
             </div>
           )}
-          {!loading && !q.trim() && <div className="py-10 text-center text-slate-400 dark:text-gray-500 text-sm">Search for someone to message</div>}
+          {!loading && !q.trim() && <div className="py-10 text-center text-base-400 dark:text-base-500 text-sm">Search for someone to message</div>}
           {results.map(user => (
             <button key={user.id} onClick={() => onStart(user.id)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-gray-800/60 transition-colors">
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-base-50 dark:hover:bg-base-800/60 transition-colors">
               <Avatar name={user.name} initials={user.initials} avatarColor={user.avatarColor} profilePhoto={user.profilePhoto} size="sm" />
               <div className="text-left min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user.name}</p>
-                <p className="text-xs text-slate-400 dark:text-gray-500">@{user.username}</p>
+                <p className="text-sm font-semibold text-base-900 dark:text-white truncate">{user.name}</p>
+                <p className="text-xs text-base-400 dark:text-base-500">@{user.username}</p>
               </div>
             </button>
           ))}
@@ -952,7 +952,7 @@ export default function MessagesPage() {
   const activeTyping = activeConvId ? typingUsers[activeConvId] : null
 
   return (
-    <div className="flex h-screen max-h-screen overflow-hidden">
+    <div className="flex h-[calc(100vh-56px)] md:h-screen max-h-screen overflow-hidden bg-white dark:bg-base-900 border-x border-base-100 dark:border-[rgba(255,255,255,0.07)]">
 
       {/* ── Toast notifications for messages in other convs ─────────────── */}
       <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
@@ -960,13 +960,13 @@ export default function MessagesPage() {
           {unreadNotifs.map((n, i) => (
             <motion.div key={i}
               initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80 }}
-              className="pointer-events-auto bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-xs">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              className="pointer-events-auto bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-xs">
+              <div className="w-8 h-8 rounded-full bg-accent-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {n.senderName?.[0]?.toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-slate-900 dark:text-white text-xs font-semibold">{n.senderName}</p>
-                <p className="text-slate-500 dark:text-gray-400 text-xs truncate">{n.text}</p>
+                <p className="text-base-900 dark:text-white text-xs font-semibold">{n.senderName}</p>
+                <p className="text-base-500 dark:text-base-400 text-xs truncate">{n.text}</p>
               </div>
             </motion.div>
           ))}
@@ -974,35 +974,35 @@ export default function MessagesPage() {
       </div>
 
       {/* ── Conversation List ─────────────────────────────────────────────── */}
-      <div className={`flex flex-col border-r border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-950 flex-shrink-0 w-full md:w-80 lg:w-96 ${mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex flex-col border-r border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-white dark:bg-base-900 flex-shrink-0 w-full md:w-80 lg:w-96 ${mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
 
-        <div className="px-5 pt-6 pb-4 border-b border-slate-100 dark:border-gray-800">
+        <div className="px-5 pt-6 pb-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Messages</h1>
+              <h1 className="text-xl font-black text-base-900 dark:text-white tracking-tight">Messages</h1>
               {totalUnread > 0 && (
-                <span className="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">{totalUnread}</span>
+                <span className="text-xs font-bold bg-accent-500 text-white px-2 py-0.5 rounded-full">{totalUnread}</span>
               )}
             </div>
             <div className="flex items-center gap-2">
               {/* Connection status */}
-              <span className={`text-[10px] font-medium flex items-center gap-1 ${connected ? 'text-emerald-500' : 'text-slate-400'}`}>
+              <span className={`text-[10px] font-medium flex items-center gap-1 ${connected ? 'text-emerald-500' : 'text-base-400'}`}>
                 {connected ? <Wifi size={11} /> : <WifiOff size={11} />}
                 {connected ? 'Live' : 'Offline'}
               </span>
               <button onClick={() => setShowNewChat(true)}
-                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-400 transition-colors" aria-label="New message">
+                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-base-100 dark:hover:bg-base-800 text-base-600 dark:text-base-400 transition-colors" aria-label="New message">
                 <Edit size={18} />
               </button>
             </div>
           </div>
 
           <div className="relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400" />
             <input type="text" placeholder="Search messages…" value={query} onChange={e => setQuery(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-gray-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 outline-none focus:ring-2 focus:ring-indigo-400/40 transition-all" />
+              className="w-full bg-base-100 dark:bg-base-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-base-900 dark:text-white placeholder-base-400 outline-none focus:ring-2 focus:ring-accent-500/20 transition-all" />
             {query && (
-              <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-600">
                 <X size={14} />
               </button>
             )}
@@ -1011,12 +1011,12 @@ export default function MessagesPage() {
 
         <div className="flex-1 overflow-y-auto py-2 px-2">
           {loadingConvs ? (
-            <div className="flex items-center justify-center py-16"><Loader2 size={22} className="animate-spin text-indigo-400" /></div>
+            <div className="flex items-center justify-center py-16"><Loader2 size={22} className="animate-spin text-accent-400" /></div>
           ) : filteredConvs.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 dark:text-gray-500 text-sm flex flex-col items-center gap-2 px-4">
+            <div className="text-center py-12 text-base-400 dark:text-base-500 text-sm flex flex-col items-center gap-2 px-4">
               <MessageSquare size={28} className="opacity-30" />
               {query ? 'No conversations found' : 'No messages yet.'}
-              {!query && <button onClick={() => setShowNewChat(true)} className="mt-1 text-indigo-600 dark:text-indigo-400 font-semibold text-sm">New Message</button>}
+              {!query && <button onClick={() => setShowNewChat(true)} className="mt-1 text-accent-600 dark:text-accent-400 font-semibold text-sm">New Message</button>}
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -1034,18 +1034,18 @@ export default function MessagesPage() {
       </div>
 
       {/* ── Chat Window ───────────────────────────────────────────────────── */}
-      <div className={`flex-1 flex min-w-0 bg-white dark:bg-gray-950 ${!mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex-1 flex min-w-0 bg-white dark:bg-base-950 ${!mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
         {!activeConv ? (
           <EmptyState onNewChat={() => setShowNewChat(true)} />
         ) : (
           <div className="flex-1 flex flex-col min-w-0">
 
             {/* Chat header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-gray-800 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] flex-shrink-0 bg-white dark:bg-base-900">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { emit('conv:leave', activeConvId); setMobileShowChat(false); setActiveConvId(null); setActiveConv(null); setActiveChatConvId?.(null) }}
-                  className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-400 transition-colors -ml-1"
+                  className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-base-100 dark:hover:bg-base-800 text-base-600 dark:text-base-400 transition-colors -ml-1"
                 >
                   <ChevronLeft size={22} />
                 </button>
@@ -1054,18 +1054,18 @@ export default function MessagesPage() {
                     profilePhoto={activeConv.profilePhoto} size="sm" online={isOnline(activeConv.participantId)} />
                 </Link>
                 <Link to={`/profile/${activeConv.participantId}`} className="min-w-0 group">
-                  <p className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{activeConv.name}</p>
+                  <p className="font-bold text-base-900 dark:text-white text-sm leading-tight truncate group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">{activeConv.name}</p>
                   <p className="text-xs leading-tight">
                     {isOnline(activeConv.participantId)
                       ? <span className="text-emerald-500 font-medium">● Active now</span>
-                      : <span className="text-slate-400 dark:text-gray-500">@{activeConv.username}</span>
+                      : <span className="text-base-400 dark:text-base-500">@{activeConv.username}</span>
                     }
                   </p>
                 </Link>
               </div>
               <button
                 onClick={() => setShowInfo(v => !v)}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${showInfo ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-600 dark:text-gray-400'}`}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${showInfo ? 'bg-accent-50 dark:bg-accent-950/40 text-accent-600 dark:text-accent-400' : 'hover:bg-base-100 dark:hover:bg-base-800 text-base-600 dark:text-base-400'}`}
               >
                 <Info size={18} />
               </button>
@@ -1073,13 +1073,13 @@ export default function MessagesPage() {
 
             {/* Messages + info panel */}
             <div className="flex flex-1 min-h-0">
-              <div className="flex-1 overflow-y-auto px-5 py-4 bg-slate-50/60 dark:bg-gray-900/40">
+              <div className="flex-1 overflow-y-auto px-5 py-4 bg-base-50/60 dark:bg-base-950/40">
                 {loadingMsgs ? (
-                  <div className="flex items-center justify-center h-full"><Loader2 size={22} className="animate-spin text-indigo-400" /></div>
+                  <div className="flex items-center justify-center h-full"><Loader2 size={22} className="animate-spin text-accent-400" /></div>
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-slate-400 dark:text-gray-500">
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-base-400 dark:text-base-500">
                     <Avatar name={activeConv.name} initials={activeConv.initials} avatarColor={activeConv.avatarColor} profilePhoto={activeConv.profilePhoto} size="lg" />
-                    <p className="font-medium text-slate-700 dark:text-gray-300 mt-1">{activeConv.name}</p>
+                    <p className="font-medium text-base-700 dark:text-base-300 mt-1">{activeConv.name}</p>
                     <p className="text-xs">Say hi to start the conversation 👋</p>
                   </div>
                 ) : (
@@ -1115,18 +1115,18 @@ export default function MessagesPage() {
               <AnimatePresence>
                 {showInfo && (
                   <motion.aside key="info" initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.22, ease: 'easeInOut' }}
-                    className="border-l border-slate-100 dark:border-gray-800 overflow-hidden flex-shrink-0">
+                    className="border-l border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-white dark:bg-base-900 overflow-hidden flex-shrink-0">
                     <div className="w-60 p-5 flex flex-col items-center gap-4">
                       <Avatar name={activeConv.name} initials={activeConv.initials} avatarColor={activeConv.avatarColor} profilePhoto={activeConv.profilePhoto} size="lg" online={isOnline(activeConv.participantId)} />
                       <div className="text-center">
-                        <p className="font-bold text-slate-900 dark:text-white">{activeConv.name}</p>
-                        <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">@{activeConv.username}</p>
+                        <p className="font-bold text-base-900 dark:text-white">{activeConv.name}</p>
+                        <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">@{activeConv.username}</p>
                         {isOnline(activeConv.participantId) && (
                           <span className="inline-block mt-2 text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full">Active now</span>
                         )}
                       </div>
                       <Link to={`/profile/${activeConv.participantId}`}
-                        className="w-full text-center py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors">
+                        className="w-full text-center py-2 text-sm font-semibold text-accent-600 dark:text-accent-400 border border-accent-200 dark:border-accent-800 rounded-xl hover:bg-accent-50 dark:hover:bg-accent-950/30 transition-colors">
                         View Profile
                       </Link>
                     </div>
@@ -1136,7 +1136,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Input bar */}
-            <div className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
+            <div className="px-4 py-3 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-white dark:bg-base-900 flex-shrink-0">
               {isMessagingPaused ? (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
                   <Lock size={15} className="shrink-0 text-amber-600 dark:text-amber-400" />
@@ -1152,21 +1152,21 @@ export default function MessagesPage() {
                         animate={{ opacity: 1, height: 'auto', y: 0 }}
                         exit={{ opacity: 0, height: 0, y: 8 }}
                         transition={{ duration: 0.16 }}
-                        className="mb-2 bg-slate-100 dark:bg-gray-800/90 border-l-4 border-indigo-600 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-sm overflow-hidden"
+                        className="mb-2 bg-base-100 dark:bg-base-800/90 border-l-4 border-accent-500 rounded-r-xl px-3 py-2 flex items-center justify-between gap-3 text-xs shadow-xs overflow-hidden"
                       >
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 font-semibold text-indigo-600 dark:text-indigo-400">
+                          <div className="flex items-center gap-1.5 font-semibold text-accent-600 dark:text-accent-400">
                             <Reply size={13} className="inline-block" />
                             <span>Replying to {replyingTo.senderName}</span>
                           </div>
-                          <p className="text-slate-600 dark:text-gray-300 truncate mt-0.5 max-w-full">
+                          <p className="text-base-700 dark:text-base-300 truncate mt-0.5 max-w-full">
                             {replyingTo.text}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setReplyingTo(null)}
-                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-base-200 dark:hover:bg-base-700 text-base-400 hover:text-base-600 dark:hover:text-base-200 transition-colors flex-shrink-0"
                           aria-label="Cancel reply"
                         >
                           <X size={14} />
@@ -1184,7 +1184,7 @@ export default function MessagesPage() {
                         onChange={handleInput}
                         onKeyDown={handleKeyDown}
                         placeholder="Message…"
-                        className="w-full bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 transition-all leading-relaxed"
+                        className="w-full bg-base-100 dark:bg-base-800 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-2xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-accent-500/20 transition-all leading-relaxed"
                         style={{ maxHeight: 120 }}
                       />
                     </div>
@@ -1194,8 +1194,8 @@ export default function MessagesPage() {
                         onClick={() => setShowEmojiPicker(v => !v)}
                         className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 ${
                           showEmojiPicker
-                            ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                            : 'hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-500 dark:text-gray-400'
+                            ? 'bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400'
+                            : 'hover:bg-base-100 dark:hover:bg-base-800 text-base-500 dark:text-base-400'
                         }`}
                         aria-label="Insert emoji"
                       >
@@ -1216,7 +1216,7 @@ export default function MessagesPage() {
                         <motion.button key="send"
                           initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.14 }}
                           onClick={sendMessage} disabled={sending || !connected}
-                          className="w-9 h-9 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-60 rounded-xl transition-all flex-shrink-0">
+                          className="w-9 h-9 flex items-center justify-center bg-accent-500 hover:bg-accent-600 active:scale-95 disabled:opacity-60 rounded-xl transition-all flex-shrink-0 shadow-xs">
                           {sending ? <Loader2 size={15} className="text-white animate-spin" /> : <Send size={15} className="text-white" />}
                         </motion.button>
                       )}

@@ -42,12 +42,12 @@ import {
 function CustomChartTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm text-white px-3 py-2 rounded-xl shadow-lg border border-slate-700/50 text-xs">
-        <p className="font-semibold text-slate-300 mb-1">{label}</p>
+      <div className="bg-base-900/95 dark:bg-base-900/95 backdrop-blur-sm text-white px-3 py-2 rounded-xl shadow-lg border border-base-700/50 text-xs">
+        <p className="font-semibold text-base-300 mb-1">{label}</p>
         {payload.map((entry, idx) => (
           <div key={`tooltip-${idx}`} className="flex items-center gap-2 text-[11px] py-0.5">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-            <span className="text-slate-300">{entry.name}:</span>
+            <span className="text-base-300">{entry.name}:</span>
             <span className="font-bold text-white">{entry.value?.toLocaleString?.() ?? entry.value}</span>
           </div>
         ))}
@@ -73,7 +73,7 @@ function PrimaryHubCard({
   return (
     <div
       onClick={onClick}
-      className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 hover:border-indigo-300 dark:hover:border-indigo-700/60 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
+      className="group bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 hover:border-accent-300 dark:hover:border-accent-700/60 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
     >
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -82,18 +82,18 @@ function PrimaryHubCard({
           >
             <Icon size={20} className={iconColor} />
           </div>
-          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          <span className="text-xs font-semibold text-accent-600 dark:text-accent-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
             {manageLabel || 'Manage'} <ChevronRight size={12} />
           </span>
         </div>
 
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-        <p className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
+        <p className="text-xs font-semibold text-base-500 dark:text-base-400 mb-1">{title}</p>
+        <p className="text-3xl font-extrabold text-base-900 dark:text-white tracking-tight leading-none font-heading">
           {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
         </p>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
+      <div className="mt-4 pt-3 border-t border-base-100 dark:border-[rgba(255,255,255,0.06)] flex items-center justify-between text-xs">
         {activeCount !== undefined && suspendedCount !== undefined ? (
           <>
             <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
@@ -106,7 +106,7 @@ function PrimaryHubCard({
             </div>
           </>
         ) : (
-          <span className="text-slate-400 dark:text-slate-500 font-medium">{subtext || 'Active in directory'}</span>
+          <span className="text-base-400 dark:text-base-500 font-medium">{subtext || 'Active in directory'}</span>
         )}
       </div>
     </div>
@@ -125,7 +125,7 @@ function PulseTile({
   clickable,
 }) {
   const colorMap = {
-    indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400',
+    indigo: 'bg-accent-50 text-accent-600 dark:bg-accent-950/60 dark:text-accent-400',
     emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
     blue: 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400',
     amber: 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400',
@@ -136,9 +136,9 @@ function PulseTile({
   return (
     <div
       onClick={onClick}
-      className={`p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex flex-col justify-between transition-all ${
+      className={`p-3.5 rounded-xl bg-base-50/80 dark:bg-base-800/40 border border-base-150 dark:border-[rgba(255,255,255,0.06)] flex flex-col justify-between transition-all ${
         clickable
-          ? 'cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/70 hover:border-slate-300 dark:hover:border-slate-700'
+          ? 'cursor-pointer hover:bg-base-100/80 dark:hover:bg-base-800/70 hover:border-base-300 dark:hover:border-base-700'
           : ''
       }`}
     >
@@ -153,7 +153,7 @@ function PulseTile({
                 ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                 : growthDirection === 'down'
                 ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                : 'bg-base-200 dark:bg-base-700 text-base-600 dark:text-base-300'
             }`}
           >
             {growthLabel}
@@ -161,10 +161,10 @@ function PulseTile({
         )}
       </div>
       <div>
-        <p className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
+        <p className="text-xl font-bold text-base-900 dark:text-white leading-tight font-heading">
           {typeof value === 'number' ? value.toLocaleString() : (value ?? '0')}
         </p>
-        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 truncate">{label}</p>
+        <p className="text-[11px] font-medium text-base-500 dark:text-base-400 mt-0.5 truncate">{label}</p>
       </div>
     </div>
   )
@@ -284,23 +284,23 @@ export default function CollegeAdminDashboard() {
   if (loading && !stats) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        <p className="text-xs text-slate-400">Loading dashboard statistics...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-600"></div>
+        <p className="text-xs text-base-400">Loading dashboard statistics...</p>
       </div>
     )
   }
 
   if (error && !stats) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-rose-200 dark:border-rose-900/40 p-8 text-center max-w-lg mx-auto my-12 shadow-sm">
+      <div className="bg-white dark:bg-base-900 rounded-2xl border border-rose-200 dark:border-rose-900/40 p-8 text-center max-w-lg mx-auto my-12 shadow-sm">
         <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center mx-auto mb-4">
           <AlertCircle size={24} className="text-rose-600 dark:text-rose-400" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Unable to Load Dashboard</h2>
-        <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">{error}</p>
+        <h2 className="text-lg font-bold text-base-900 dark:text-white mb-2 font-heading">Unable to Load Dashboard</h2>
+        <p className="text-sm text-base-500 dark:text-base-400 mb-6">{error}</p>
         <button
           onClick={fetchDashboardData}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
         >
           <RefreshCw size={16} /> Retry Connection
         </button>
@@ -314,15 +314,15 @@ export default function CollegeAdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-base-900 dark:text-white font-heading">
               {getGreeting()}, {currentUser?.name}
             </h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400 border border-accent-200/60 dark:border-accent-800/60">
               {currentUser?.college || 'College Admin'}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
-            <Clock size={13} className="text-slate-400" />
+          <div className="flex items-center gap-2 mt-1 text-xs text-base-500 dark:text-base-400">
+            <Clock size={13} className="text-base-400" />
             <span>
               {formatDate(currentTime)} • {formatTime(currentTime)}
             </span>
@@ -332,7 +332,7 @@ export default function CollegeAdminDashboard() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             onClick={() => navigate('/college-admin/analytics')}
-            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-xl transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-accent-50 dark:bg-accent-950/50 hover:bg-accent-100 text-accent-700 dark:text-accent-300 text-xs font-semibold rounded-xl transition-colors"
           >
             <TrendingUp size={14} />
             <span>Deep Analytics</span>
@@ -340,7 +340,7 @@ export default function CollegeAdminDashboard() {
           <button
             onClick={fetchDashboardData}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all shadow-xs disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 hover:bg-base-50 dark:hover:bg-base-700/60 text-base-700 dark:text-base-200 text-xs font-semibold rounded-xl transition-all shadow-xs disabled:opacity-50"
             title="Refresh statistics"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -371,8 +371,8 @@ export default function CollegeAdminDashboard() {
           icon={Users}
           title="Total Students"
           value={stats?.totalStudents}
-          iconBg="bg-indigo-50 dark:bg-indigo-950/60"
-          iconColor="text-indigo-600 dark:text-indigo-400"
+          iconBg="bg-accent-50 dark:bg-accent-950/60"
+          iconColor="text-accent-600 dark:text-accent-400"
           activeCount={stats?.activeStudents}
           suspendedCount={stats?.suspendedStudents}
           onClick={() => navigate('/college-admin/students')}
@@ -418,19 +418,19 @@ export default function CollegeAdminDashboard() {
       </div>
 
       {/* ── 3. CAMPUS PULSE (Period Activity Executive Ribbon) ────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs">
+      <div className="bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Activity size={18} className="text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            <Activity size={18} className="text-accent-600 dark:text-accent-400" />
+            <h2 className="text-sm font-bold text-base-900 dark:text-white uppercase tracking-wider font-heading">
               Campus Activity Pulse
             </h2>
-            <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
+            <span className="text-xs text-base-400 dark:text-base-500 font-normal">
               ({period === 'today' ? 'Today' : period === '7days' ? 'Past 7 Days' : 'Past 30 Days'})
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-base-100 dark:bg-base-800 p-1 rounded-xl">
             {[
               { id: 'today', label: 'Today' },
               { id: '7days', label: '7 Days' },
@@ -441,8 +441,8 @@ export default function CollegeAdminDashboard() {
                 onClick={() => setPeriod(tab.id)}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                   period === tab.id
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-base-700 text-accent-600 dark:text-white shadow-xs'
+                    : 'text-base-600 dark:text-base-400 hover:text-base-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -507,20 +507,20 @@ export default function CollegeAdminDashboard() {
       {/* ── 4. ANALYTICS CHARTS (Balanced 2-Column Responsive Layout) ─────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Chart 1: Post & Comment Activity */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <h2 className="text-sm font-bold text-base-900 dark:text-white flex items-center gap-2 font-heading">
+                <Activity size={16} className="text-accent-600 dark:text-accent-400" />
                 Post & Comment Activity
               </h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">
                 {period === 'today' ? 'Hourly distribution' : 'Daily volume'}
               </p>
             </div>
             <button
               onClick={() => navigate('/college-admin/analytics')}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+              className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline flex items-center gap-0.5"
             >
               <span>Details</span>
               <ChevronRight size={12} />
@@ -552,9 +552,9 @@ export default function CollegeAdminDashboard() {
                     type="monotone"
                     dataKey="posts"
                     name="Posts"
-                    stroke="#6366f1"
+                    stroke="#5B5FEF"
                     strokeWidth={2.5}
-                    dot={{ fill: '#6366f1', r: 2.5 }}
+                    dot={{ fill: '#5B5FEF', r: 2.5 }}
                     activeDot={{ r: 5 }}
                   />
                   <Line
@@ -570,7 +570,7 @@ export default function CollegeAdminDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-60 text-slate-400 dark:text-slate-500 text-xs">
+            <div className="flex flex-col items-center justify-center h-60 text-base-400 dark:text-base-500 text-xs">
               <MessageSquare size={28} className="mb-2 opacity-40" />
               <span>No activity recorded for this period</span>
             </div>
@@ -578,20 +578,20 @@ export default function CollegeAdminDashboard() {
         </div>
 
         {/* Chart 2: User Registrations & Growth */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-sm font-bold text-base-900 dark:text-white flex items-center gap-2 font-heading">
                 <Users size={16} className="text-emerald-600 dark:text-emerald-400" />
                 User Registrations & Growth
               </h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">
                 New students & faculty onboarded
               </p>
             </div>
             <button
               onClick={() => navigate('/college-admin/analytics')}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+              className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline flex items-center gap-0.5"
             >
               <span>Details</span>
               <ChevronRight size={12} />
@@ -629,7 +629,7 @@ export default function CollegeAdminDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-60 text-slate-400 dark:text-slate-500 text-xs">
+            <div className="flex flex-col items-center justify-center h-60 text-base-400 dark:text-base-500 text-xs">
               <Users size={28} className="mb-2 opacity-40" />
               <span>No user registrations recorded for this period</span>
             </div>
@@ -640,16 +640,16 @@ export default function CollegeAdminDashboard() {
       {/* ── 5. OPERATIONAL DUAL SECTION (Recent Notices & Activity Logs) ──── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Left: Recent Notices */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs">
+        <div className="bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-sm font-bold text-base-900 dark:text-white flex items-center gap-2 font-heading">
               <Megaphone size={16} className="text-amber-500" />
               Recent Notices
             </h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/college-admin/notices')}
-                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline flex items-center gap-1"
               >
                 <span>View All</span>
                 <ArrowRight size={12} />
@@ -659,11 +659,11 @@ export default function CollegeAdminDashboard() {
 
           {recentNotices.length === 0 ? (
             <div className="text-center py-10">
-              <Megaphone size={28} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">No notices published yet</p>
+              <Megaphone size={28} className="text-base-300 dark:text-base-600 mx-auto mb-2" />
+              <p className="text-base-500 dark:text-base-400 text-xs font-medium">No notices published yet</p>
               <button
                 onClick={() => navigate('/college-admin/notices')}
-                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-600 text-white text-xs font-semibold rounded-lg hover:bg-accent-700 transition-colors"
               >
                 <Plus size={13} /> Create Notice
               </button>
@@ -673,7 +673,7 @@ export default function CollegeAdminDashboard() {
               {recentNotices.map((notice, idx) => (
                 <div
                   key={notice._id || notice.id || `notice-${idx}`}
-                  className="flex items-start gap-3 p-3 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800/80"
+                  className="flex items-start gap-3 p-3 bg-base-50 dark:bg-base-800/50 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.06)]"
                 >
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
@@ -681,30 +681,30 @@ export default function CollegeAdminDashboard() {
                         ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600'
                         : notice.priority === 'high'
                         ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600'
-                        : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600'
+                        : 'bg-accent-50 dark:bg-accent-950/60 text-accent-600'
                     }`}
                   >
                     <Megaphone size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-slate-900 dark:text-white font-semibold text-xs truncate">
+                      <p className="text-base-900 dark:text-white font-semibold text-xs truncate">
                         {notice.title}
                       </p>
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           notice.published
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
-                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                            : 'bg-base-200 text-base-600 dark:bg-base-700 dark:text-base-400'
                         }`}
                       >
                         {notice.published ? 'Published' : 'Draft'}
                       </span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 line-clamp-1">
+                    <p className="text-base-500 dark:text-base-400 text-xs mt-0.5 line-clamp-1">
                       {notice.content}
                     </p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
+                    <span className="text-[10px] text-base-400 mt-1 block">
                       {new Date(notice.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -715,38 +715,38 @@ export default function CollegeAdminDashboard() {
         </div>
 
         {/* Right: Activity Log & Quick Navigation */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-base-900 rounded-2xl border border-base-150 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <h2 className="text-sm font-bold text-base-900 dark:text-white flex items-center gap-2 font-heading">
+                <Activity size={16} className="text-accent-600 dark:text-accent-400" />
                 Recent Administration Actions
               </h2>
-              <span className="text-xs text-slate-400">Live logs</span>
+              <span className="text-xs text-base-400">Live logs</span>
             </div>
 
             {activityLogs.length === 0 ? (
               <div className="text-center py-10">
-                <Activity size={28} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">No recent actions logged</p>
+                <Activity size={28} className="text-base-300 dark:text-base-600 mx-auto mb-2" />
+                <p className="text-base-500 dark:text-base-400 text-xs font-medium">No recent actions logged</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {activityLogs.map((log, idx) => (
                   <div
                     key={log._id || log.id || `log-${idx}`}
-                    className="flex items-center justify-between gap-3 p-2.5 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60 text-xs"
+                    className="flex items-center justify-between gap-3 p-2.5 bg-base-50 dark:bg-base-800/40 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.06)] text-xs"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-accent-500 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-slate-800 dark:text-slate-200 font-medium truncate">
+                        <p className="text-base-800 dark:text-base-200 font-medium truncate">
                           {getActionDescription(log.actionType, log.resourceName)}
                         </p>
-                        <p className="text-[10px] text-slate-400">By {log.adminName || 'Admin'}</p>
+                        <p className="text-[10px] text-base-400">By {log.adminName || 'Admin'}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] text-slate-400 shrink-0">
+                    <span className="text-[10px] text-base-400 shrink-0">
                       {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -756,28 +756,28 @@ export default function CollegeAdminDashboard() {
           </div>
 
           {/* Quick Hub Navigation Toolbar */}
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="mt-4 pt-3 border-t border-base-100 dark:border-[rgba(255,255,255,0.06)] grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               onClick={() => navigate('/college-admin/students')}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+              className="px-2.5 py-1.5 bg-base-50 dark:bg-base-800/70 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg text-xs font-semibold text-base-700 dark:text-base-300 transition-colors text-center"
             >
               Students
             </button>
             <button
               onClick={() => navigate('/college-admin/faculty')}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+              className="px-2.5 py-1.5 bg-base-50 dark:bg-base-800/70 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg text-xs font-semibold text-base-700 dark:text-base-300 transition-colors text-center"
             >
               Faculty
             </button>
             <button
               onClick={() => navigate('/college-admin/moderation')}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+              className="px-2.5 py-1.5 bg-base-50 dark:bg-base-800/70 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg text-xs font-semibold text-base-700 dark:text-base-300 transition-colors text-center"
             >
               Moderation
             </button>
             <button
               onClick={() => navigate('/college-admin/reports')}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors text-center"
+              className="px-2.5 py-1.5 bg-base-50 dark:bg-base-800/70 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg text-xs font-semibold text-base-700 dark:text-base-300 transition-colors text-center"
             >
               Reports
             </button>

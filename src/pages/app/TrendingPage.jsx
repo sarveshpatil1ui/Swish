@@ -55,7 +55,7 @@ function UserAvatar({ user, size = 'w-7 h-7', textSize = 'text-xs' }) {
   return (
     <div
       className={`${size} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${textSize}`}
-      style={{ backgroundColor: user?.avatarColor || '#6366f1' }}
+      style={{ backgroundColor: user?.avatarColor || '#5B5FEF' }}
     >
       {user?.initials || user?.name?.[0]?.toUpperCase() || 'U'}
     </div>
@@ -88,16 +88,16 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
   }
 
   return (
-    <div className="flex-shrink-0 w-44 bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-2xl p-3.5 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all">
+    <div className="flex-shrink-0 w-44 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-3.5 flex flex-col items-center text-center shadow-xs hover:shadow-md transition-all">
       <Link to={`/profile/${account.id}`} className="flex flex-col items-center group">
         <UserAvatar user={account} size="w-12 h-12" textSize="text-sm" />
-        <p className="mt-2 text-xs font-bold text-slate-900 dark:text-white truncate max-w-[140px] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+        <p className="mt-2 text-xs font-bold text-base-900 dark:text-white truncate max-w-[140px] group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
           {account.name}
         </p>
-        <p className="text-[11px] text-slate-400 dark:text-gray-500 truncate max-w-[140px]">
+        <p className="text-[11px] text-base-400 dark:text-base-500 truncate max-w-[140px]">
           @{account.username}
         </p>
-        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-medium truncate max-w-[140px]">
+        <p className="text-[10px] text-accent-600 dark:text-accent-400 mt-1 font-medium truncate max-w-[140px]">
           {account.dept || account.college || 'Student'}
         </p>
       </Link>
@@ -106,13 +106,12 @@ function SuggestedAccountCard({ account, onToggleFollow }) {
         type="button"
         onClick={handleToggle}
         disabled={loading}
-        className={`mt-3 w-full py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-          following
-            ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+        className={`mt-3 w-full py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${following
+            ? 'sw-btn-following'
             : requested
-            ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 hover:bg-rose-50 hover:text-rose-600'
-            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/20 active:scale-95'
-        }`}
+              ? 'bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-300 border border-base-200 dark:border-base-700 hover:bg-rose-50 hover:text-rose-600'
+              : 'sw-btn-follow'
+          }`}
       >
         {loading ? (
           <Loader2 size={13} className="animate-spin" />
@@ -164,7 +163,7 @@ function PostTile({ post, onClick, onSelectTag }) {
         }
       }}
       aria-label={`View post by ${post.user?.name || 'User'}: ${post.caption?.slice(0, 50) || 'photo'}`}
-      className="group relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-gray-900 border border-slate-200/60 dark:border-gray-800/80 cursor-pointer select-none shadow-sm hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="group relative aspect-square w-full rounded-xl overflow-hidden bg-base-100 dark:bg-base-850 border border-base-100/60 dark:border-base-800/80 cursor-pointer select-none shadow-xs hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent-500"
     >
       {/* Tile Content: Photo or Gradient Card */}
       {hasImage ? (
@@ -276,7 +275,7 @@ function GridSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="aspect-square rounded-xl sm:rounded-2xl bg-slate-200/80 dark:bg-gray-800 animate-pulse"
+          className="aspect-square rounded-xl bg-base-100 dark:bg-base-850 animate-pulse"
         />
       ))}
     </div>
@@ -530,11 +529,11 @@ export default function TrendingPage() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
               <Flame size={19} className="fill-white" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-base-900 dark:text-white tracking-tight">
               Trending
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-base-400 dark:text-base-500 mt-1">
             Discover what’s lighting up campus discussions, events, and creations
           </p>
         </div>
@@ -544,15 +543,15 @@ export default function TrendingPage() {
           type="button"
           onClick={() => fetchPosts(false, null)}
           disabled={loadingPosts}
-          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-base-200 dark:border-base-750 bg-white dark:bg-base-900 text-xs font-semibold text-base-600 dark:text-base-300 hover:bg-base-50 dark:hover:bg-base-800 transition-all shadow-xs active:scale-95 disabled:opacity-50"
         >
-          <RefreshCw size={13} className={loadingPosts ? 'animate-spin text-indigo-500' : ''} />
+          <RefreshCw size={13} className={loadingPosts ? 'animate-spin text-accent-500' : ''} />
           <span>Refresh</span>
         </button>
       </div>
 
       {/* ── Tabs Navigation ── */}
-      <div className="flex p-1 gap-1 bg-slate-100 dark:bg-gray-900/90 rounded-2xl border border-slate-200/60 dark:border-gray-800/80 overflow-x-auto scrollbar-none">
+      <div className="flex p-1 gap-1 bg-base-100 dark:bg-base-850 rounded-xl border border-base-200/60 dark:border-base-750/80 overflow-x-auto scrollbar-none">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = tab.id === 'hashtags' ? isHashtagsActive : (!activeTag && activeTab === tab.id)
@@ -560,11 +559,10 @@ export default function TrendingPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 min-w-[90px] py-2 sm:py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-                isActive
-                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
-              }`}
+              className={`flex-1 min-w-[90px] py-2 sm:py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${isActive
+                  ? 'bg-white dark:bg-base-900 text-accent-600 dark:text-accent-400 shadow-xs'
+                  : 'text-base-500 dark:text-base-400 hover:text-base-800 dark:hover:text-base-200'
+                }`}
             >
               <Icon size={15} className={isActive ? 'stroke-[2.5]' : 'stroke-2'} />
               <span>{tab.label}</span>
@@ -580,19 +578,19 @@ export default function TrendingPage() {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 rounded-2xl"
+            className="flex items-center justify-between px-4 py-3 bg-accent-50 dark:bg-accent-950/40 border border-accent-200/80 dark:border-accent-800/60 rounded-xl"
           >
-            <div className="flex items-center gap-2.5 text-indigo-950 dark:text-indigo-200">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <div className="flex items-center gap-2.5 text-accent-950 dark:text-accent-200">
+              <div className="w-8 h-8 rounded-lg bg-accent-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
                 #
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-300">
-                    Showing posts tagged <span className="font-black text-indigo-600 dark:text-indigo-400">#{activeTag}</span>
+                  <span className="text-xs sm:text-sm font-bold text-base-700 dark:text-base-300">
+                    Showing posts tagged <span className="font-black text-accent-600 dark:text-accent-400">#{activeTag}</span>
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 dark:text-gray-400">
+                <p className="text-[11px] text-base-400 dark:text-base-500">
                   Campus posts & conversations filtered by hashtag
                 </p>
               </div>
@@ -600,7 +598,7 @@ export default function TrendingPage() {
             <button
               type="button"
               onClick={handleClearTag}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-base-900 text-base-700 dark:text-base-200 hover:bg-base-50 dark:hover:bg-base-800 border border-base-200 dark:border-base-750 transition-colors shadow-xs"
             >
               <X size={13} />
               <span>All #{activeTab === 'hashtags' ? 'hashtags' : 'trending'}</span>
@@ -611,21 +609,21 @@ export default function TrendingPage() {
 
       {/* ── Dedicated Hashtags Explorer (when in Hashtags tab) ── */}
       {isHashtagsActive ? (
-        <div className="p-4 sm:p-5 bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-3xl space-y-4 shadow-sm">
+        <div className="p-4 sm:p-5 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl space-y-4 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white">
-                <Hash size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <div className="flex items-center gap-1.5 text-sm font-bold text-base-900 dark:text-white">
+                <Hash size={16} className="text-accent-600 dark:text-accent-400" />
                 <span>Explore Campus Hashtags</span>
               </div>
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
+              <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">
                 Select a hashtag below or search to find targeted discussions
               </p>
             </div>
 
             {/* Hashtag search input */}
             <div className="relative min-w-[220px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-400" />
               <input
                 type="text"
                 value={tagSearch}
@@ -636,13 +634,13 @@ export default function TrendingPage() {
                   }
                 }}
                 placeholder="Search hashtags..."
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-gray-800 text-xs text-slate-800 dark:text-gray-200 rounded-xl border border-transparent focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-400"
+                className="w-full pl-8 pr-3 py-1.5 bg-base-100 dark:bg-base-800 text-xs text-base-900 dark:text-white rounded-lg border border-transparent focus:border-accent-400 focus:outline-none transition-all placeholder:text-base-400"
               />
               {tagSearch && (
                 <button
                   type="button"
                   onClick={() => setTagSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-600 dark:hover:text-base-200"
                 >
                   <X size={12} />
                 </button>
@@ -655,11 +653,10 @@ export default function TrendingPage() {
             <button
               type="button"
               onClick={handleClearTag}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                !activeTag
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
-                  : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${!activeTag
+                  ? 'bg-accent-500 text-white shadow-xs'
+                  : 'bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-300 hover:bg-base-200 dark:hover:bg-base-700'
+                }`}
             >
               <Sparkles size={13} />
               <span>All Tagged Posts</span>
@@ -672,19 +669,17 @@ export default function TrendingPage() {
                   key={h.tag}
                   type="button"
                   onClick={() => handleSelectTag(h.tag)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
-                      : 'bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${isSelected
+                      ? 'bg-accent-500 text-white border-accent-500 shadow-xs'
+                      : 'bg-white dark:bg-base-900 border-base-200 dark:border-base-750 text-base-700 dark:text-base-300 hover:border-accent-300 dark:hover:border-accent-700'
+                    }`}
                 >
                   <span className="font-bold">#{h.tag}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                      isSelected
+                    className={`text-[10px] px-1.5 py-0.2 rounded-md ${isSelected
                         ? 'bg-white/20 text-white'
-                        : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 font-medium'
-                    }`}
+                        : 'bg-base-100 dark:bg-base-800 text-base-500 dark:text-base-400 font-medium'
+                      }`}
                   >
                     {h.count}
                   </span>
@@ -697,7 +692,7 @@ export default function TrendingPage() {
               <button
                 type="button"
                 onClick={() => handleSelectTag(tagSearch.trim())}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-dashed border-indigo-400 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-accent-400 text-accent-600 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/40 transition-all"
               >
                 <Search size={12} />
                 <span>Explore #{tagSearch.trim().replace(/^#+/, '')}</span>
@@ -705,7 +700,7 @@ export default function TrendingPage() {
             )}
 
             {filteredHashtags.length === 0 && !tagSearch && (
-              <span className="text-xs text-slate-400 dark:text-gray-500 py-1">
+              <span className="text-xs text-base-400 dark:text-base-500 py-1">
                 No hashtags indexed yet. Create a post with #tag to start trending!
               </span>
             )}
@@ -716,14 +711,14 @@ export default function TrendingPage() {
         hashtags.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-300">
-                <Hash size={14} className="text-indigo-500" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-base-700 dark:text-base-300">
+                <Hash size={14} className="text-accent-500" />
                 <span>Popular Tags</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleTabChange('hashtags')}
-                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="text-[11px] font-semibold text-accent-600 dark:text-accent-400 hover:underline"
               >
                 Explore all hashtags
               </button>
@@ -736,19 +731,17 @@ export default function TrendingPage() {
                     key={h.tag}
                     type="button"
                     onClick={() => handleSelectTag(h.tag)}
-                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
-                        : 'bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-800 text-slate-700 dark:text-gray-300 hover:border-indigo-300 dark:hover:border-indigo-700'
-                    }`}
+                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${isSelected
+                        ? 'bg-accent-500 text-white border-accent-500 shadow-xs'
+                        : 'bg-white dark:bg-base-900 border-base-200 dark:border-base-750 text-base-700 dark:text-base-300 hover:border-accent-300 dark:hover:border-accent-700'
+                      }`}
                   >
                     <span>#{h.tag}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                        isSelected
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected
                           ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400'
-                      }`}
+                          : 'bg-base-100 dark:bg-base-800 text-base-500 dark:text-base-400'
+                        }`}
                     >
                       {h.count}
                     </span>
@@ -764,13 +757,13 @@ export default function TrendingPage() {
       {!activeTag && activeTab === 'trending' && suggestedAccounts.length > 0 && (
         <div className="space-y-2.5 pt-1">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-gray-300">
-              <Users size={14} className="text-indigo-500" />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-base-700 dark:text-base-300">
+              <Users size={14} className="text-accent-500" />
               <span>Suggested Accounts on Campus</span>
             </div>
             <Link
               to="/explore"
-              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="text-[11px] font-semibold text-accent-600 dark:text-accent-400 hover:underline"
             >
               See all
             </Link>
@@ -789,7 +782,7 @@ export default function TrendingPage() {
 
       {/* ── Error Banner ── */}
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-center justify-between text-rose-800 dark:text-rose-200">
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-center justify-between text-rose-800 dark:text-rose-200">
           <div className="flex items-center gap-2 text-xs sm:text-sm font-medium">
             <AlertCircle size={16} className="text-rose-600 flex-shrink-0" />
             <span>{error}</span>
@@ -797,7 +790,7 @@ export default function TrendingPage() {
           <button
             type="button"
             onClick={() => fetchPosts(false, null)}
-            className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-sm"
+            className="px-3 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 transition-colors shadow-xs"
           >
             Retry
           </button>
@@ -808,8 +801,8 @@ export default function TrendingPage() {
       {loadingPosts ? (
         <GridSkeleton />
       ) : posts.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800 rounded-3xl space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center">
+        <div className="text-center py-16 px-4 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl space-y-3 shadow-xs">
+          <div className="w-12 h-12 rounded-xl bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400 mx-auto flex items-center justify-center">
             {activeTab === 'college' ? (
               <GraduationCap size={24} />
             ) : activeTag ? (
@@ -818,31 +811,31 @@ export default function TrendingPage() {
               <TrendingUp size={24} />
             )}
           </div>
-          <h3 className="text-slate-900 dark:text-white font-bold text-base">
+          <h3 className="text-base-900 dark:text-white font-bold text-base">
             {activeTag
               ? `No posts found with #${activeTag}`
               : activeTab === 'college'
-              ? 'No posts from your college yet'
-              : activeTab === 'hashtags'
-              ? 'No posts with hashtags yet'
-              : activeTab === 'foryou'
-              ? 'Your personalized feed is being curated'
-              : 'No trending posts right now'}
+                ? 'No posts from your college yet'
+                : activeTab === 'hashtags'
+                  ? 'No posts with hashtags yet'
+                  : activeTab === 'foryou'
+                    ? 'Your personalized feed is being curated'
+                    : 'No trending posts right now'}
           </h3>
-          <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm max-w-sm mx-auto">
+          <p className="text-base-400 dark:text-base-500 text-xs sm:text-sm max-w-sm mx-auto">
             {activeTag
               ? 'Be the first to create a post and include this hashtag!'
               : activeTab === 'college'
-              ? 'Posts created by students or faculty in your college will appear here.'
-              : activeTab === 'hashtags'
-              ? 'Posts that include hashtags like #webdev, #design, or #campus will appear here.'
-              : 'Check back soon as new campus stories and discussions get posted!'}
+                ? 'Posts created by students or faculty in your college will appear here.'
+                : activeTab === 'hashtags'
+                  ? 'Posts that include hashtags like #webdev, #design, or #campus will appear here.'
+                  : 'Check back soon as new campus stories and discussions get posted!'}
           </p>
           {activeTag && (
             <button
               type="button"
               onClick={handleClearTag}
-              className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+              className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-accent-500 text-white rounded-lg text-xs font-bold hover:bg-accent-600 transition-colors shadow-xs"
             >
               <span>Back to all {activeTab === 'hashtags' ? 'hashtags' : 'trending'}</span>
             </button>
@@ -868,11 +861,11 @@ export default function TrendingPage() {
                 type="button"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
-                className="px-6 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-xs sm:text-sm font-bold text-slate-800 dark:text-gray-200 hover:border-indigo-400 dark:hover:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-sm transition-all active:scale-95 inline-flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-white dark:bg-base-900 border border-base-200 dark:border-base-750 text-xs sm:text-sm font-bold text-base-800 dark:text-base-200 hover:border-accent-400 dark:hover:border-accent-600 hover:text-accent-600 dark:hover:text-accent-400 shadow-xs transition-all active:scale-95 inline-flex items-center gap-2 disabled:opacity-50"
               >
                 {loadingMore ? (
                   <>
-                    <Loader2 size={15} className="animate-spin text-indigo-500" />
+                    <Loader2 size={15} className="animate-spin text-accent-500" />
                     <span>Loading more posts...</span>
                   </>
                 ) : (
@@ -883,7 +876,7 @@ export default function TrendingPage() {
           )}
 
           {!hasMore && posts.length > 0 && (
-            <div className="py-6 text-center text-xs text-slate-400 dark:text-gray-600 font-medium">
+            <div className="py-6 text-center text-xs text-base-400 dark:text-base-600 font-medium">
               You're all caught up ✨
             </div>
           )}

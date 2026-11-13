@@ -256,7 +256,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="fixed inset-0 z-[55] flex items-center justify-center p-3 sm:p-6"
       >
-        <div className="w-full max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row" style={{ maxHeight: '90vh' }}>
+        <div className="w-full max-w-4xl bg-white dark:bg-base-900 rounded-2xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] shadow-2xl overflow-hidden flex flex-col lg:flex-row" style={{ maxHeight: '90vh' }}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -270,7 +270,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
           <div className="lg:flex-1 bg-black flex items-center justify-center relative min-h-[200px] max-h-[50vh] lg:max-h-none">
             {post.imageUrl ? (
               <>
-                {!imgLoaded && <div className="absolute inset-0 bg-gray-800 animate-pulse" />}
+                {!imgLoaded && <div className="absolute inset-0 bg-base-800 animate-pulse" />}
                 <img
                   src={post.imageUrl}
                   alt=""
@@ -279,9 +279,9 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                 />
               </>
             ) : (
-              <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-6">
+              <div className="w-full h-full min-h-[300px] flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-accent-50 to-purple-50 dark:from-accent-950/40 dark:to-purple-950/40 p-6">
                 <span className="text-5xl">{post.emoji}</span>
-                <p className="text-indigo-700 dark:text-indigo-300 text-sm font-medium text-center max-w-xs leading-relaxed">{post.caption}</p>
+                <p className="text-accent-700 dark:text-accent-300 text-sm font-medium text-center max-w-xs leading-relaxed">{post.caption}</p>
               </div>
             )}
             {/* Audio toggle button on media */}
@@ -308,9 +308,9 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
           </div>
 
           {/* Info side */}
-          <div className="lg:w-[380px] flex flex-col border-l-0 lg:border-l border-slate-100 dark:border-gray-800">
+          <div className="lg:w-[380px] flex flex-col border-l-0 lg:border-l border-base-100 dark:border-[rgba(255,255,255,0.07)]">
             {/* Author header */}
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
               <Link to={`/profile/${post.userId || post.user?.id || post.user?._id}`} onClick={onClose} className="flex items-center gap-3 group min-w-0">
                 {resolveImageUrl(post.userProfilePhoto || post.user?.profilePhoto) ? (
                   <img
@@ -321,16 +321,16 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                 ) : (
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                    style={{ backgroundColor: post.userAvatarColor || post.user?.avatarColor || '#6366f1', fontSize: '12px' }}
+                    style={{ backgroundColor: post.userAvatarColor || post.user?.avatarColor || '#5B5FEF', fontSize: '12px' }}
                   >
                     {post.userInitials || post.user?.initials || (post.userName || post.user?.name || 'U')[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="text-slate-900 dark:text-white text-sm font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                  <p className="text-base-900 dark:text-white text-sm font-semibold group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors truncate">
                     {post.userName || post.user?.name || 'User'}
                   </p>
-                  <p className="text-slate-400 dark:text-gray-500 text-xs">{post.createdAt}</p>
+                  <p className="text-base-400 dark:text-base-500 text-xs">{post.createdAt}</p>
                   {post.music && (
                     <button
                       type="button"
@@ -338,11 +338,11 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       className={`inline-flex items-center gap-1.5 text-[11px] font-medium mt-1 px-2.5 py-0.5 rounded-full transition-all max-w-[200px] truncate cursor-pointer ${
                         isPlayingMusic
                           ? 'bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 text-pink-600 dark:text-pink-400 border border-pink-500/30'
-                          : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700'
+                          : 'bg-base-100 dark:bg-base-800 text-base-600 dark:text-base-300 hover:bg-base-200 dark:hover:bg-base-750'
                       }`}
                       title={`${post.music.title} · ${post.music.artist} (${post.music.language})`}
                     >
-                      <Music2 size={11} className={`flex-shrink-0 ${isPlayingMusic ? 'animate-spin text-pink-500' : 'text-slate-400'}`} />
+                      <Music2 size={11} className={`flex-shrink-0 ${isPlayingMusic ? 'animate-spin text-pink-500' : 'text-base-400'}`} />
                       <span className="truncate">{post.music.title} · {post.music.artist}</span>
                       {isPlayingMusic ? (
                         <span className="flex items-center gap-0.5 flex-shrink-0 ml-1">
@@ -350,7 +350,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                           <span className="w-0.5 h-3 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
                         </span>
                       ) : (
-                        <Volume2 size={11} className="text-slate-400 flex-shrink-0 ml-0.5" />
+                        <Volume2 size={11} className="text-base-400 flex-shrink-0 ml-0.5" />
                       )}
                     </button>
                   )}
@@ -361,7 +361,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
               <div className="relative">
                 <button
                   onClick={() => setShowMenu(m => !m)}
-                  className="p-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all"
+                  className="p-1.5 rounded-lg text-base-400 dark:text-base-500 hover:text-base-700 dark:hover:text-base-300 hover:bg-base-100 dark:hover:bg-base-800 transition-all"
                 >
                   <MoreHorizontal size={16} />
                 </button>
@@ -372,12 +372,12 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -4 }}
                       onMouseLeave={() => setShowMenu(false)}
-                      className="absolute right-0 top-9 z-20 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-lg py-1 min-w-[140px]"
+                      className="absolute right-0 top-9 z-20 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-lg py-1 min-w-[140px]"
                     >
-                      <button onClick={() => { handleShare(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
+                      <button onClick={() => { handleShare(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-base-700 dark:text-base-300 hover:bg-base-50 dark:hover:bg-base-800 transition-colors">
                         Share post
                       </button>
-                      <button onClick={() => { handleCopyLink(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors">
+                      <button onClick={() => { handleCopyLink(); setShowMenu(false) }} className="w-full text-left px-4 py-2.5 text-sm text-base-700 dark:text-base-300 hover:bg-base-50 dark:hover:bg-base-800 transition-colors">
                         Copy link
                       </button>
                       {isOwnPost ? (
@@ -403,10 +403,10 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
 
             {/* Caption & Tags */}
             {(post.caption || (post.tags && post.tags.length > 0)) && (
-              <div className="px-4 py-3 border-b border-slate-100 dark:border-gray-800">
+              <div className="px-4 py-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
                 {post.caption && (
-                  <p className="text-slate-800 dark:text-gray-200 text-sm leading-relaxed">
-                    <span className="font-semibold text-slate-900 dark:text-white mr-1.5">
+                  <p className="text-base-800 dark:text-base-200 text-sm leading-relaxed">
+                    <span className="font-semibold text-base-900 dark:text-white mr-1.5">
                       {(post.userName || post.user?.name || 'user').toLowerCase().replace(/\s+/g, '.')}
                     </span>
                     {post.caption}
@@ -421,7 +421,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                           key={tag}
                           to={`/trending?tab=hashtags&tag=${encodeURIComponent(clean)}`}
                           onClick={onClose}
-                          className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline transition-colors"
+                          className="text-xs font-semibold text-accent-500 dark:text-accent-400 hover:text-accent-600 dark:hover:text-accent-300 hover:underline transition-colors"
                         >
                           #{clean}
                         </Link>
@@ -436,14 +436,14 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" style={{ minHeight: '120px' }}>
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 size={18} className="animate-spin text-slate-300 dark:text-gray-600" />
+                  <Loader2 size={18} className="animate-spin text-base-300 dark:text-base-600" />
                 </div>
               ) : error && comments.length === 0 ? (
                 <p className="text-rose-500 text-sm text-center py-6">{error}</p>
               ) : comments.length === 0 ? (
                 <div className="text-center py-6">
-                  <p className="text-slate-400 dark:text-gray-500 text-sm">No comments yet.</p>
-                  <p className="text-slate-300 dark:text-gray-600 text-xs mt-0.5">Be the first to comment!</p>
+                  <p className="text-base-400 dark:text-base-500 text-sm">No comments yet.</p>
+                  <p className="text-base-300 dark:text-base-600 text-xs mt-0.5">Be the first to comment!</p>
                 </div>
               ) : (
                 comments.map(c => (
@@ -464,15 +464,15 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">
-                        <span className="font-semibold text-slate-900 dark:text-white mr-1.5">{c.userName}</span>
-                        <span className="text-slate-700 dark:text-gray-300">{c.text}</span>
+                        <span className="font-semibold text-base-900 dark:text-white mr-1.5">{c.userName}</span>
+                        <span className="text-base-700 dark:text-base-300">{c.text}</span>
                       </p>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-slate-400 dark:text-gray-600 text-[11px]">{formatRelativeTime(c.createdAt)}</span>
+                        <span className="text-base-400 dark:text-base-600 text-[11px]">{formatRelativeTime(c.createdAt)}</span>
                         {(c.userId === currentUser?.id || isOwnPost) && (
                           <button
                             onClick={() => handleDeleteComment(c.id)}
-                            className="text-slate-300 dark:text-gray-700 hover:text-rose-500 dark:hover:text-rose-400 text-[11px] opacity-0 group-hover:opacity-100 transition-all"
+                            className="text-base-300 dark:text-base-600 hover:text-rose-500 dark:hover:text-rose-400 text-[11px] opacity-0 group-hover:opacity-100 transition-all"
                           >
                             Delete
                           </button>
@@ -485,21 +485,21 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
             </div>
 
             {/* Action bar */}
-            <div className="px-4 py-2.5 border-t border-slate-100 dark:border-gray-800">
+            <div className="px-4 py-2.5 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-0">
                   <motion.button
                     onClick={handleLike}
                     disabled={liking}
                     whileTap={{ scale: 0.82 }}
-                    className={`p-2 rounded-xl transition-all ${post.liked ? 'text-rose-500' : 'text-slate-400 dark:text-gray-500 hover:text-rose-400'}`}
+                    className={`p-2 rounded-xl transition-all ${post.liked ? 'text-rose-500' : 'text-base-400 dark:text-base-500 hover:text-rose-400'}`}
                   >
                     <Heart size={22} className={post.liked ? 'fill-rose-500 stroke-rose-500' : ''} />
                   </motion.button>
-                  <button className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:text-indigo-500 transition-all flex items-center gap-1.5">
+                  <button className="p-2 rounded-xl text-base-400 dark:text-base-500 hover:text-accent-500 transition-all flex items-center gap-1.5">
                     <MessageCircle size={22} />
                     {post.commentCount > 0 && (
-                      <span className="text-xs font-semibold text-slate-700 dark:text-gray-300">
+                      <span className="text-xs font-semibold text-base-700 dark:text-base-300">
                         {post.commentCount}
                       </span>
                     )}
@@ -510,7 +510,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                       className={`p-2 rounded-xl transition-all ${
                         copied
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30'
-                          : 'text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800'
+                          : 'text-base-400 dark:text-base-500 hover:text-base-700 dark:hover:text-base-300 hover:bg-base-100 dark:hover:bg-base-800'
                       }`}
                       aria-label="Share"
                       title={copied ? 'Link copied!' : 'Share post'}
@@ -525,7 +525,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 4, scale: 0.9 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm text-white text-[11px] font-semibold rounded-full shadow-xl whitespace-nowrap pointer-events-none z-30 flex items-center gap-1 border border-white/10"
+                          className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-base-900/95 dark:bg-base-800/95 backdrop-blur-xs text-white text-[11px] font-semibold rounded-full shadow-xl whitespace-nowrap pointer-events-none z-30 flex items-center gap-1 border border-white/10"
                         >
                           <Check size={12} className="text-emerald-400" />
                           <span>Link copied!</span>
@@ -536,16 +536,16 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                 </div>
                 <button
                   onClick={handleSave}
-                  className={`p-2 rounded-xl transition-all ${post.saved ? 'text-indigo-600' : 'text-slate-400 dark:text-gray-500 hover:text-indigo-500'}`}
+                  className={`p-2 rounded-xl transition-all ${post.saved ? 'text-accent-500' : 'text-base-400 dark:text-base-500 hover:text-accent-500'}`}
                 >
-                  <Bookmark size={22} className={post.saved ? 'fill-indigo-600 dark:fill-indigo-400 stroke-indigo-600 dark:stroke-indigo-400' : ''} />
+                  <Bookmark size={22} className={post.saved ? 'fill-accent-500 dark:fill-accent-400 stroke-accent-500 dark:stroke-accent-400' : ''} />
                 </button>
               </div>
               <button
                 type="button"
                 onClick={() => setShowLikesModal(true)}
                 disabled={!post.likes || post.likes === 0}
-                className="text-slate-900 dark:text-white text-sm font-semibold mb-1 text-left hover:underline disabled:hover:no-underline disabled:cursor-default transition-colors block"
+                className="text-base-900 dark:text-white text-sm font-semibold mb-1 text-left hover:underline disabled:hover:no-underline disabled:cursor-default transition-colors block"
                 title={post.likes > 0 ? 'View who liked' : undefined}
               >
                 {post.likes.toLocaleString()} {post.likes === 1 ? 'like' : 'likes'}
@@ -553,7 +553,7 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
             </div>
 
             {/* Comment input */}
-            <form onSubmit={handleSubmitComment} className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 flex gap-2 items-center">
+            <form onSubmit={handleSubmitComment} className="px-4 py-3 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] flex gap-2 items-center">
               <input
                 value={text}
                 onChange={e => setText(e.target.value)}
@@ -561,12 +561,12 @@ export default function PostViewerModal({ post: initialPost, onClose }) {
                 maxLength={1000}
                 disabled={submitting}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitComment() } }}
-                className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 text-sm focus:outline-none disabled:opacity-60"
+                className="flex-1 bg-transparent text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 text-sm focus:outline-none disabled:opacity-60"
               />
               <button
                 type="submit"
                 disabled={!text.trim() || submitting}
-                className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                className="text-accent-500 dark:text-accent-400 text-sm font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:text-accent-600 dark:hover:text-accent-300 transition-colors"
               >
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : 'Post'}
               </button>

@@ -95,20 +95,20 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden z-10 border border-slate-200 dark:border-gray-800 max-h-[85vh] flex flex-col"
+            className="relative w-full max-w-md bg-white dark:bg-base-900 rounded-2xl shadow-2xl overflow-hidden z-10 border border-base-100 dark:border-[rgba(255,255,255,0.07)] max-h-[85vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-gray-800 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-accent-500 flex items-center justify-center text-white shadow-xs">
                   <Music2 size={16} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
+                  <h3 className="font-bold text-base text-base-900 dark:text-white leading-tight">
                     Campus Soundtrack
                   </h3>
-                  <p className="text-[11px] text-slate-400 dark:text-gray-500">
+                  <p className="text-[11px] text-base-400 dark:text-base-500">
                     50 Top College Anthems & Trending Reels
                   </p>
                 </div>
@@ -116,28 +116,28 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-base-100 dark:hover:bg-base-800 text-base-400 hover:text-base-600 dark:hover:text-base-300 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Search Box */}
-            <div className="p-3 border-b border-slate-100 dark:border-gray-800 shrink-0">
+            <div className="p-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] shrink-0">
               <div className="relative">
-                <Search size={15} className="absolute left-3.5 top-3 text-slate-400" />
+                <Search size={15} className="absolute left-3.5 top-3 text-base-400" />
                 <input
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search tracks, artists, winning themes..."
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-gray-800/80 text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all"
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-base-100 dark:bg-base-800 text-base-800 dark:text-base-100 placeholder-base-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20 transition-all"
                 />
               </div>
             </div>
 
             {/* Language & Category Filters */}
-            <div className="px-4 py-2.5 border-b border-slate-100 dark:border-gray-800 flex flex-col gap-2 shrink-0 bg-slate-50/50 dark:bg-gray-900/50">
+            <div className="px-4 py-2.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] flex flex-col gap-2 shrink-0 bg-base-50/50 dark:bg-base-900/50">
               {/* Language Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
                 <button
@@ -145,8 +145,8 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                   onClick={() => setLanguageFilter('All')}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     languageFilter === 'All'
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
-                      : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700'
+                      ? 'bg-base-900 dark:bg-white text-white dark:text-base-900 shadow-xs'
+                      : 'bg-white dark:bg-base-800 text-base-600 dark:text-base-400 border border-base-200 dark:border-base-700'
                   }`}
                 >
                   All (50)
@@ -157,7 +157,7 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     languageFilter === 'Hindi'
                       ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs'
-                      : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700 hover:border-orange-300'
+                      : 'bg-white dark:bg-base-800 text-base-600 dark:text-base-400 border border-base-200 dark:border-base-700 hover:border-orange-300'
                   }`}
                 >
                   🇮🇳 Hindi ({hindiCount})
@@ -168,7 +168,7 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     languageFilter === 'Marathi'
                       ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-xs'
-                      : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700 hover:border-pink-300'
+                      : 'bg-white dark:bg-base-800 text-base-600 dark:text-base-400 border border-base-200 dark:border-base-700 hover:border-pink-300'
                   }`}
                 >
                   🚩 Marathi ({marathiCount})
@@ -184,8 +184,8 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                     onClick={() => setCategoryFilter(cat)}
                     className={`px-2.5 py-0.5 rounded-lg font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                       categoryFilter === cat
-                        ? 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-300 dark:border-pink-800'
-                        : 'text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200'
+                        ? 'bg-accent-500/10 text-accent-600 dark:text-accent-400 border border-accent-300 dark:border-accent-800'
+                        : 'text-base-500 dark:text-base-400 hover:text-base-800 dark:hover:text-base-200'
                     }`}
                   >
                     {cat}
@@ -195,9 +195,9 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
             </div>
 
             {/* Track List */}
-            <div className="p-3 overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-gray-800/60">
+            <div className="p-3 overflow-y-auto flex-1 divide-y divide-base-100 dark:divide-[rgba(255,255,255,0.07)]">
               {filteredTracks.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-xs">
+                <div className="py-12 text-center text-base-400 text-xs">
                   No matching tracks found for "{search}"
                 </div>
               ) : (
@@ -209,10 +209,10 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                     <div
                       key={track.id}
                       onClick={() => handleSelect(track)}
-                      className={`flex items-center justify-between p-2.5 rounded-2xl transition-all group cursor-pointer ${
+                      className={`flex items-center justify-between p-2.5 rounded-xl transition-all group cursor-pointer ${
                         isSelected
-                          ? 'bg-pink-50/80 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-900/40'
-                          : 'hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                          ? 'bg-accent-50/80 dark:bg-accent-950/30 border border-accent-200 dark:border-accent-900/40'
+                          : 'hover:bg-base-50 dark:hover:bg-base-850/50'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -222,8 +222,8 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                           onClick={(e) => togglePreview(track, e)}
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 cursor-pointer shadow-xs ${
                             isPlaying
-                              ? 'bg-pink-600 text-white animate-pulse'
-                              : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 hover:bg-pink-500 hover:text-white'
+                              ? 'bg-accent-500 text-white animate-pulse'
+                              : 'bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-200 hover:bg-accent-500 hover:text-white'
                           }`}
                           aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
                         >
@@ -232,10 +232,10 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-mono font-bold text-slate-300 dark:text-gray-600">
+                            <span className="text-[11px] font-mono font-bold text-base-300 dark:text-base-600">
                               #{idx + 1}
                             </span>
-                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            <p className="text-xs font-bold text-base-900 dark:text-white truncate">
                               {track.title}
                             </p>
                             <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold uppercase tracking-wider shrink-0 ${
@@ -247,11 +247,11 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                             </span>
                           </div>
 
-                          <p className="text-[11px] text-slate-500 dark:text-gray-400 truncate mt-0.5">
+                          <p className="text-[11px] text-base-500 dark:text-base-400 truncate mt-0.5">
                             {track.artist}
                           </p>
 
-                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400 font-medium truncate mt-0.5">
+                          <p className="text-[10px] text-accent-500 dark:text-accent-400 font-medium truncate mt-0.5">
                             {track.vibe}
                           </p>
                         </div>
@@ -267,7 +267,7 @@ export default function MusicPickerModal({ isOpen, onClose, onSelectTrack, selec
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-200 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-slate-900'
+                            : 'bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-200 hover:bg-base-900 hover:text-white dark:hover:bg-white dark:hover:text-base-900'
                         }`}
                       >
                         {isSelected ? '✓ Chosen' : 'Select'}

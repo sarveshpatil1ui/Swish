@@ -2,8 +2,37 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* ── Fonts ─────────────────────────────────────────────────────────── */
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
+
+  /* ── Swish brand accent (5B5FEF family — indigo-blue, 2° cooler) ──── */
+  --color-accent-50:  #EEEFFE;
+  --color-accent-100: #DCDDFA;
+  --color-accent-200: #B9BBF5;
+  --color-accent-400: #7B7FF4;
+  --color-accent-500: #5B5FEF;
+  --color-accent-600: #4A4EDE;
+  --color-accent-700: #3B3FC0;
+  --color-accent-900: #1A1C4A;
+
+  /* ── Warm neutrals (3° warm shift from pure gray) ─────────────────── */
+  --color-base-25:  #FAFAF9;
+  --color-base-50:  #F5F4F2;
+  --color-base-100: #EBEBEA;
+  --color-base-200: #D6D5D3;
+  --color-base-300: #B8B6B3;
+  --color-base-400: #9B9A97;
+  --color-base-500: #787774;
+  --color-base-600: #565553;
+  --color-base-700: #3D3C3A;
+  --color-base-800: #2D2D2C;
+  --color-base-850: #232322;
+  --color-base-900: #1A1A19;
+  --color-base-950: #111110;
+
+  /* ── Campus semantic accent ────────────────────────────────────────── */
+  --color-campus-amber: #D97706;
 }
 
 *, *::before, *::after {
@@ -17,8 +46,8 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: #ffffff;
-  color: #0f172a;
+  background-color: #F7F6F4;
+  color: #1A1A18;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -27,13 +56,13 @@ body {
 
 /* ── Selection colour ──────────────────────────────────────────────────────── */
 ::selection {
-  background-color: #6366f1;
+  background-color: #5B5FEF;
   color: #ffffff;
 }
 
 /* ── Focus ring ────────────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid #5B5FEF;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -51,18 +80,18 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #5B5FEF;
 }
 
 /* ── Scrollbar — dark ──────────────────────────────────────────────────────── */
 .dark ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: #1A1A19;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: #2D2D2C;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #5B5FEF;
 }
 
 /* ── iOS safe-area bottom padding for fixed bottom nav ─────────────────────── */
@@ -77,4 +106,104 @@ body {
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Swish design system utilities ──────────────────────────────────────────── */
+
+/* Verification indicator dot — role-aware */
+.sw-verified-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Campus affiliation pill — reads from user context/props, never hardcoded */
+.sw-campus-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #EEEFFE;
+  color: #5B5FEF;
+  border: 1px solid #DCDDFA;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.dark .sw-campus-pill {
+  background: #1A1C4A;
+  color: #A5A8F8;
+  border-color: rgba(91, 95, 239, 0.25);
+}
+
+/* Campus context block in sidebar */
+.sw-campus-block {
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: #F5F4F2;
+  border: 1px solid #EBEBEA;
+}
+.dark .sw-campus-block {
+  background: #232322;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Follow button visual states */
+.sw-btn-follow {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  background-color: #EEEFFE;
+  color: #5B5FEF;
+  border: 1px solid #DCDDFA;
+}
+.sw-btn-follow:hover {
+  background-color: #5B5FEF;
+  color: #ffffff;
+  border-color: #5B5FEF;
+}
+.dark .sw-btn-follow {
+  background-color: rgba(91, 95, 239, 0.18);
+  color: #A5A8F8;
+  border-color: rgba(91, 95, 239, 0.35);
+}
+.dark .sw-btn-follow:hover {
+  background-color: #5B5FEF;
+  color: #ffffff;
+  border-color: #5B5FEF;
+}
+
+.sw-btn-following {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  background-color: #F5F4F2;
+  color: #565553;
+  border: 1px solid #EBEBEA;
+}
+.sw-btn-following:hover {
+  background-color: #FEF0F0;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+.dark .sw-btn-following {
+  background-color: #2D2D2C;
+  color: #9B9A97;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .sw-btn-following:hover {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #F87171;
+  border-color: rgba(220, 38, 38, 0.3);
 }

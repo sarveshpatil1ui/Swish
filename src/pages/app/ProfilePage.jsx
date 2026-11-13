@@ -21,22 +21,22 @@ function formatCount(n) {
 function ProfileSkeleton() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 animate-pulse">
-      <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6 mb-5">
+      <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-6 mb-5">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-gray-700 flex-shrink-0" />
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-base-100 dark:bg-base-800 flex-shrink-0" />
           <div className="flex-1 w-full space-y-3">
-            <div className="h-5 w-32 bg-slate-200 dark:bg-gray-700 rounded-lg mx-auto sm:mx-0" />
-            <div className="h-3 w-24 bg-slate-200 dark:bg-gray-700 rounded-lg mx-auto sm:mx-0" />
-            <div className="h-3 w-48 bg-slate-200 dark:bg-gray-700 rounded-lg mx-auto sm:mx-0" />
-            <div className="h-9 w-28 bg-slate-200 dark:bg-gray-700 rounded-xl mx-auto sm:mx-0" />
+            <div className="h-5 w-32 bg-base-100 dark:bg-base-800 rounded-lg mx-auto sm:mx-0" />
+            <div className="h-3 w-24 bg-base-100 dark:bg-base-800 rounded-lg mx-auto sm:mx-0" />
+            <div className="h-3 w-48 bg-base-100 dark:bg-base-800 rounded-lg mx-auto sm:mx-0" />
+            <div className="h-9 w-28 bg-base-100 dark:bg-base-800 rounded-xl mx-auto sm:mx-0" />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-6">
-          {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-100 dark:bg-gray-800 rounded-xl" />)}
+          {[1,2,3].map(i => <div key={i} className="h-12 bg-base-50 dark:bg-base-850 rounded-xl" />)}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
-        {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-slate-200 dark:bg-gray-800 rounded-xl" />)}
+        {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square bg-base-100 dark:bg-base-850 rounded-xl" />)}
       </div>
     </div>
   )
@@ -221,11 +221,11 @@ export default function ProfilePage() {
   if (notFound || !profileUser) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <Grid3X3 size={40} className="text-slate-200 dark:text-gray-700 mx-auto mb-4" />
-        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg mb-2">
+        <Grid3X3 size={40} className="text-base-300 dark:text-base-700 mx-auto mb-4" />
+        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg mb-2">
           User not found
         </h2>
-        <p className="text-slate-400 dark:text-gray-500 text-sm">
+        <p className="text-base-400 dark:text-base-500 text-sm">
           This profile doesn't exist or isn't available.
         </p>
       </div>
@@ -238,6 +238,17 @@ export default function ProfilePage() {
        : profileUser.profilePhoto)
     : null
 
+  const isVerified = Boolean(
+    profileUser.verifiedBadge ||
+    profileUser.isEmailVerified ||
+    ['admin', 'college_admin', 'faculty'].includes(profileUser.role)
+  )
+  const verifyColor = profileUser.role === 'faculty'
+    ? '#15803D'
+    : ['admin', 'college_admin'].includes(profileUser.role)
+    ? '#D97706'
+    : '#5B5FEF'
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* ── Profile Header ─────────────────────────────────────────────── */}
@@ -245,7 +256,7 @@ export default function ProfilePage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 sm:p-6 mb-5"
+        className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-5 sm:p-6 mb-5 shadow-xs"
       >
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
           {/* Avatar */}
@@ -254,12 +265,12 @@ export default function ProfilePage() {
               <img
                 src={avatarSrc}
                 alt={profileUser.name}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-white dark:ring-gray-900 shadow-lg"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-white dark:ring-base-900 shadow-sm"
               />
             ) : (
               <div
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold ring-4 ring-white dark:ring-gray-900 shadow-lg"
-                style={{ backgroundColor: profileUser.avatarColor }}
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold ring-4 ring-white dark:ring-base-900 shadow-sm"
+                style={{ backgroundColor: profileUser.avatarColor || '#5B5FEF' }}
               >
                 {profileUser.initials}
               </div>
@@ -271,12 +282,31 @@ export default function ProfilePage() {
             {/* Top row: name + action */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 mb-2">
               <div>
-                <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-xl leading-tight">
-                  {profileUser.name}
-                </h1>
-                <p className="text-slate-400 dark:text-gray-500 text-sm mt-0.5">@{profileUser.username}</p>
+                <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
+                  <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-xl leading-tight">
+                    {profileUser.name}
+                  </h1>
+                  {isVerified && (
+                    <span
+                      className="sw-verified-dot"
+                      style={{ backgroundColor: verifyColor }}
+                      title={profileUser.role === 'faculty' ? 'Verified Faculty' : ['admin', 'college_admin'].includes(profileUser.role) ? 'Campus Administration' : 'Verified Campus Student'}
+                      aria-label="Verified member"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                  )}
+                  {profileUser.college && (
+                    <span className="sw-campus-pill">
+                      {profileUser.college}
+                    </span>
+                  )}
+                </div>
+                <p className="text-base-400 dark:text-base-500 text-sm mt-0.5">@{profileUser.username}</p>
                 {profileUser.email && (
-                  <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{profileUser.email}</p>
+                  <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">{profileUser.email}</p>
                 )}
               </div>
 
@@ -284,7 +314,7 @@ export default function ProfilePage() {
                 {isOwnProfile ? (
                   <button
                     onClick={() => setShowEditModal(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 text-sm font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-gray-700 transition-all"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-300 text-sm font-semibold rounded-xl hover:bg-base-200 dark:hover:bg-base-750 transition-all"
                   >
                     <Settings size={15} />
                     Edit Profile
@@ -294,12 +324,12 @@ export default function ProfilePage() {
                     onClick={handleFollow}
                     disabled={followLoading}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-6 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
+                    className={`px-5 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${
                       followed
-                        ? 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400'
+                        ? 'sw-btn-following !text-sm !py-2 !px-5 !rounded-xl'
                         : requested
-                        ? 'bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-700 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 dark:hover:bg-rose-950/30'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                        ? 'bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-300 border border-base-200 dark:border-base-700 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 !text-sm !py-2 !px-5 !rounded-xl'
+                        : 'sw-btn-follow !text-sm !py-2 !px-5 !rounded-xl'
                     }`}
                   >
                     {followLoading && <Loader2 size={14} className="animate-spin" />}
@@ -320,19 +350,19 @@ export default function ProfilePage() {
 
             {/* Dept / Year */}
             {(profileUser.dept || profileUser.year) && (
-              <p className="text-indigo-600 dark:text-indigo-400 text-sm font-medium mb-1">
+              <p className="text-accent-600 dark:text-accent-400 text-sm font-medium mb-1">
                 {[profileUser.dept, profileUser.year].filter(Boolean).join(' · ')}
               </p>
             )}
 
             {/* Bio */}
             {profileUser.bio && (
-              <p className="text-slate-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line">{profileUser.bio}</p>
+              <p className="text-base-700 dark:text-base-300 text-sm leading-relaxed whitespace-pre-line">{profileUser.bio}</p>
             )}
 
             {/* Join date */}
             {profileUser.createdAt && (
-              <p className="text-slate-300 dark:text-gray-600 text-xs mt-1.5">
+              <p className="text-base-400 dark:text-base-500 text-xs mt-1.5">
                 Joined {new Date(profileUser.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </p>
             )}
@@ -340,7 +370,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Stats row ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 mt-5 border-t border-slate-100 dark:border-gray-800 pt-4">
+        <div className="grid grid-cols-3 mt-5 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] pt-4">
           {[
             { label: 'Posts', value: profileUser.canViewPosts === false ? 0 : gridItems.length, action: null },
             { label: 'Followers', value: followerCount, action: () => setFollowListMode('followers') },
@@ -352,17 +382,17 @@ export default function ProfilePage() {
               disabled={!stat.action}
               className="text-center py-1 group disabled:cursor-default"
             >
-              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors">
                 {formatCount(stat.value)}
               </p>
-              <p className="text-slate-400 dark:text-gray-500 text-xs font-medium">{stat.label}</p>
+              <p className="text-base-400 dark:text-base-500 text-xs font-medium">{stat.label}</p>
             </button>
           ))}
         </div>
       </motion.div>
 
       {/* ── Tabs ───────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-slate-100 dark:bg-gray-800/60 p-1 rounded-xl mb-5">
+      <div className="flex gap-1 bg-base-100 dark:bg-base-850 p-1 rounded-xl mb-5">
         {[
           { id: 'posts', icon: Grid3X3, label: 'Posts' },
           { id: 'saved', icon: Bookmark, label: 'Saved' },
@@ -374,8 +404,8 @@ export default function ProfilePage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white dark:bg-gray-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300'
+                  ? 'bg-white dark:bg-base-900 text-base-900 dark:text-white shadow-xs'
+                  : 'text-base-500 dark:text-base-400 hover:text-base-800 dark:hover:text-base-200'
               }`}
             >
               <Icon size={15} />
@@ -395,17 +425,17 @@ export default function ProfilePage() {
             aria-label="Updating posts"
           >
             {[1, 2, 3].map(item => (
-              <div key={item} className="aspect-square rounded-lg sm:rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse" />
+              <div key={item} className="aspect-square rounded-xl bg-base-100 dark:bg-base-850 animate-pulse" />
             ))}
           </motion.div>
         ) : profileUser.canViewPosts === false ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl"
+            className="text-center py-16 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xs"
           >
-            <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">This account is private</h3>
-            <p className="text-slate-400 dark:text-gray-500 text-sm">
+            <h3 className="text-base-900 dark:text-white font-bold text-lg mb-1">This account is private</h3>
+            <p className="text-base-400 dark:text-base-500 text-sm">
               {requested
                 ? 'Follow request pending. Wait for the user to approve your request.'
                 : 'Follow this user to view their posts.'}
@@ -415,15 +445,15 @@ export default function ProfilePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-16 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl"
+            className="text-center py-16 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xs"
           >
-            <div className="w-16 h-16 border-2 border-slate-200 dark:border-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Camera size={28} className="text-slate-300 dark:text-gray-600" />
+            <div className="w-16 h-16 border-2 border-base-200 dark:border-base-750 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Camera size={28} className="text-base-300 dark:text-base-600" />
             </div>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg mb-1">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg mb-1">
               {isOwnProfile ? 'Share your first post' : 'No posts yet'}
             </h3>
-            <p className="text-slate-400 dark:text-gray-500 text-sm max-w-xs mx-auto">
+            <p className="text-base-400 dark:text-base-500 text-sm max-w-xs mx-auto">
               {isOwnProfile
                 ? "When you share photos, they'll appear on your profile."
                 : "This user hasn't posted anything yet."}
@@ -437,13 +467,13 @@ export default function ProfilePage() {
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.15 }}
                 onClick={() => setViewingPost(post)}
-                className="relative aspect-square rounded-lg sm:rounded-xl overflow-hidden cursor-pointer group bg-slate-100 dark:bg-gray-800"
+                className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-base-100 dark:bg-base-850 border border-base-100/60 dark:border-base-800/80"
               >
                 {post.imageUrl ? (
                   <img src={post.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center p-2 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
-                    <p className="text-xs text-indigo-800 dark:text-indigo-200 line-clamp-3 font-medium text-center">
+                  <div className="w-full h-full flex items-center justify-center p-3 bg-gradient-to-br from-accent-50/50 to-base-50 dark:from-accent-950/20 dark:to-base-900/40">
+                    <p className="text-xs text-accent-800 dark:text-accent-200 line-clamp-3 font-medium text-center">
                       {post.caption || post.emoji}
                     </p>
                   </div>
@@ -465,30 +495,30 @@ export default function ProfilePage() {
 
       {activeTab === 'saved' && (
         savedItems.length === 0 ? (
-          <div className="text-center py-12">
-          <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg mb-1">
-            Saved posts
-          </h3>
-          <p className="text-slate-400 dark:text-gray-500 text-sm">
-            {isOwnProfile ? 'Posts you save will appear here.' : 'Saved posts are private.'}
-          </p>
+          <div className="text-center py-12 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-8">
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg mb-1">
+              Saved posts
+            </h3>
+            <p className="text-base-400 dark:text-base-500 text-sm">
+              {isOwnProfile ? 'Posts you save will appear here.' : 'Saved posts are private.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-1.5">
-          {savedItems.map(post => (
-            <button
-              key={post.id}
-              type="button"
-              onClick={() => setViewingPost(post)}
-              className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-gray-800"
-            >
-              {post.imageUrl ? (
-                <img src={post.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
-              ) : (
-                <span className="p-2 text-xs text-indigo-800 dark:text-indigo-200 line-clamp-3">{post.caption || post.emoji}</span>
-              )}
-            </button>
-          ))}
+            {savedItems.map(post => (
+              <button
+                key={post.id}
+                type="button"
+                onClick={() => setViewingPost(post)}
+                className="relative aspect-square rounded-xl overflow-hidden bg-base-100 dark:bg-base-850 border border-base-100/60 dark:border-base-800/80"
+              >
+                {post.imageUrl ? (
+                  <img src={post.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="p-2 text-xs text-accent-800 dark:text-accent-200 line-clamp-3 font-medium">{post.caption || post.emoji}</span>
+                )}
+              </button>
+            ))}
           </div>
         )
       )}

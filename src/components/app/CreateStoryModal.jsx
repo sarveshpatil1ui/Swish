@@ -94,21 +94,21 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
         aria-modal="true"
         role="dialog"
       >
-        <div className="pointer-events-auto relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] border border-slate-200 dark:border-gray-800">
+        <div className="pointer-events-auto relative w-full max-w-sm bg-white dark:bg-base-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] border border-base-100 dark:border-[rgba(255,255,255,0.07)]">
           
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-gray-800 shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] shrink-0">
             <div>
-              <h2 className="text-slate-900 dark:text-white font-bold text-base leading-tight">
+              <h2 className="text-base-900 dark:text-white font-bold text-base leading-tight">
                 {initialStory ? 'Edit Story' : 'New Story'}
               </h2>
-              <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-0.5 flex items-center gap-1">
+              <p className="text-base-400 dark:text-base-500 text-[11px] mt-0.5 flex items-center gap-1">
                 <Clock size={11} /> Disappears in 24 hours
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full bg-slate-100 dark:bg-gray-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-gray-700 transition-all cursor-pointer"
+              className="p-1.5 rounded-full bg-base-100 dark:bg-base-800 text-base-500 hover:bg-base-200 dark:hover:bg-base-700 transition-all cursor-pointer"
               aria-label="Close"
             >
               <X size={16} />
@@ -125,16 +125,16 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 onClick={() => fileRef.current?.click()}
                 className={`relative aspect-[9/13] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3.5 cursor-pointer transition-all ${
                   dragging
-                    ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40'
-                    : 'border-slate-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-slate-50 dark:hover:bg-gray-800/50'
+                    ? 'border-accent-400 bg-accent-50 dark:bg-accent-950/40'
+                    : 'border-base-200 dark:border-base-750 hover:border-accent-300 dark:hover:border-accent-700 hover:bg-base-50 dark:hover:bg-base-850/50'
                 }`}
               >
-                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-950/60 rounded-full flex items-center justify-center shadow-sm">
-                  <ImagePlus size={24} className="text-indigo-500 dark:text-indigo-400" />
+                <div className="w-14 h-14 bg-accent-50 dark:bg-accent-950/60 rounded-full flex items-center justify-center shadow-xs">
+                  <ImagePlus size={24} className="text-accent-500 dark:text-accent-400" />
                 </div>
                 <div className="text-center px-4">
-                  <p className="text-slate-700 dark:text-gray-300 font-bold text-sm mb-1">Select a photo</p>
-                  <p className="text-slate-400 dark:text-gray-500 text-xs">Tap to browse or drop an image here</p>
+                  <p className="text-base-700 dark:text-base-300 font-bold text-sm mb-1">Select a photo</p>
+                  <p className="text-base-400 dark:text-base-500 text-xs">Tap to browse or drop an image here</p>
                 </div>
                 <input
                   ref={fileRef}
@@ -151,7 +151,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                   src={image}
                   alt="Story preview"
                   style={{ filter: currentFilterCss }}
-                  className="w-full h-full object-cover bg-slate-950 transition-all duration-200"
+                  className="w-full h-full object-cover bg-base-950 transition-all duration-200"
                 />
 
                 {/* Overlays */}
@@ -162,7 +162,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[10px] overflow-hidden border border-white/30"
-                    style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}
+                    style={{ backgroundColor: currentUser?.avatarColor || '#5B5FEF' }}
                   >
                     {resolveImageUrl(currentUser?.profilePhoto) ? (
                       <img src={resolveImageUrl(currentUser.profilePhoto)} alt="" className="w-full h-full object-cover" />
@@ -196,7 +196,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 {/* Attached Sticker Badge */}
                 {selectedSticker && (
                   <div className="absolute top-22 left-3.5 z-10 animate-fade-in">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-slate-800 dark:text-white text-xs font-bold shadow-lg border border-white/30">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-base-900/90 backdrop-blur-md text-base-800 dark:text-white text-xs font-bold shadow-lg border border-white/30">
                       <span>{selectedSticker.label}</span>
                       <button
                         type="button"
@@ -204,7 +204,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                           e.stopPropagation()
                           setSelectedSticker(null)
                         }}
-                        className="ml-1 text-slate-400 hover:text-rose-500 transition-colors"
+                        className="ml-1 text-base-400 hover:text-rose-500 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -226,7 +226,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="opacity-0 group-hover:opacity-100 bg-white/90 text-indigo-600 rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xl hover:scale-105 cursor-pointer"
+                    className="opacity-0 group-hover:opacity-100 bg-white/90 text-accent-600 rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xl hover:scale-105 cursor-pointer"
                   >
                     <ImagePlus size={13} /> Change
                   </button>
@@ -261,10 +261,10 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                   className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                     selectedMusic
                       ? 'bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-900/50'
-                      : 'bg-slate-50 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:border-pink-300'
+                      : 'bg-base-50 dark:bg-base-800 text-base-700 dark:text-base-300 border-base-200 dark:border-base-750 hover:border-pink-300'
                   }`}
                 >
-                  <Music2 size={14} className={selectedMusic ? 'text-pink-500 shrink-0' : 'text-slate-400 shrink-0'} />
+                  <Music2 size={14} className={selectedMusic ? 'text-pink-500 shrink-0' : 'text-base-400 shrink-0'} />
                   <span className="truncate">{selectedMusic ? selectedMusic.title : 'Add Music (50 tracks)'}</span>
                 </button>
                 {selectedMusic && (
@@ -285,17 +285,17 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                   selectedSticker
                     ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50'
-                    : 'bg-slate-50 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border-slate-200 dark:border-gray-700 hover:border-amber-300'
+                    : 'bg-base-50 dark:bg-base-800 text-base-700 dark:text-base-300 border-base-200 dark:border-base-750 hover:border-amber-300'
                 }`}
               >
-                <Sparkles size={14} className={selectedSticker ? 'text-amber-500' : 'text-slate-400'} />
+                <Sparkles size={14} className={selectedSticker ? 'text-amber-500' : 'text-base-400'} />
                 <span className="truncate">{selectedSticker ? selectedSticker.label : 'Stickers'}</span>
               </button>
             </div>
 
             {/* Filter Pills Selector */}
             <div className="mt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-gray-500 mb-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-base-400 dark:text-base-500 mb-1.5">
                 Filters
               </p>
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -306,8 +306,8 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                     onClick={() => setSelectedFilter(f.id)}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       selectedFilter === f.id
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700'
+                        ? 'bg-accent-500 text-white shadow-xs'
+                        : 'bg-base-100 dark:bg-base-800 text-base-600 dark:text-base-400 hover:bg-base-200 dark:hover:bg-base-700'
                     }`}
                   >
                     {f.label}
@@ -324,7 +324,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 onChange={e => setCaption(e.target.value)}
                 placeholder="Write a caption..."
                 maxLength={120}
-                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800 text-slate-800 dark:text-gray-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-base-200 dark:border-base-750 bg-base-50 dark:bg-base-800 text-base-800 dark:text-base-100 placeholder-base-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20 transition-all"
               />
             </div>
 
@@ -338,7 +338,7 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                 type="button"
                 onClick={handlePublish}
                 disabled={!image || publishing || published}
-                className="w-full py-2.5 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 text-xs font-bold text-white bg-accent-500 rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 {publishing ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -376,18 +376,18 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="relative w-full max-w-xs bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden z-10 border border-slate-200 dark:border-gray-800 max-h-[70vh] flex flex-col"
+              className="relative w-full max-w-xs bg-white dark:bg-base-900 rounded-2xl shadow-2xl overflow-hidden z-10 border border-base-100 dark:border-[rgba(255,255,255,0.07)] max-h-[70vh] flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-gray-800">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
                 <div className="flex items-center gap-2">
                   <Sparkles size={15} className="text-amber-500" />
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">Campus Stickers</h3>
+                  <h3 className="font-bold text-sm text-base-900 dark:text-white">Campus Stickers</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowStickerPicker(false)}
-                  className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+                  className="p-1 rounded-full text-base-400 hover:text-base-600 dark:hover:text-base-300"
                 >
                   <X size={16} />
                 </button>
@@ -402,12 +402,12 @@ export default function CreateStoryModal({ onClose, onPublish, initialStory }) {
                       setSelectedSticker(st)
                       setShowStickerPicker(false)
                     }}
-                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-700 bg-slate-50 dark:bg-gray-800/50 text-left transition-all hover:scale-[1.01] cursor-pointer"
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] hover:border-amber-300 dark:hover:border-amber-700 bg-base-50 dark:bg-base-850/50 text-left transition-all hover:scale-[1.01] cursor-pointer"
                   >
-                    <span className="text-xs font-semibold text-slate-800 dark:text-gray-200">
+                    <span className="text-xs font-semibold text-base-800 dark:text-base-200">
                       {st.label}
                     </span>
-                    <span className="text-[10px] text-slate-400 capitalize">{st.type}</span>
+                    <span className="text-[10px] text-base-400 capitalize">{st.type}</span>
                   </button>
                 ))}
               </div>

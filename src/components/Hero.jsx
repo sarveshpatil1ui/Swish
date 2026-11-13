@@ -1,223 +1,240 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Lock, Heart, MessageCircle, Trophy } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Building2, BookOpen, MessageSquare, Heart, MessageCircle } from 'lucide-react'
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 18 },
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] },
   }),
 }
 
-function MockFeedCard() {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-gray-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">RV</div>
-          <div>
-            <p className="text-slate-900 dark:text-white text-xs font-semibold leading-tight">Rohan Verma</p>
-            <p className="text-slate-400 dark:text-gray-500 text-[11px]">Engineering · Active Student</p>
-          </div>
-        </div>
-        <button className="px-2.5 py-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
-          Follow
-        </button>
-      </div>
-
-      <div className="relative h-36 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/40 flex flex-col items-center justify-center gap-2 border-b border-slate-100 dark:border-gray-800">
-        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center shadow-md">
-          <Trophy size={18} className="text-white" />
-        </div>
-        <span className="text-slate-600 dark:text-gray-300 text-xs font-semibold">Campus Hackathon 2026</span>
-        <div className="absolute top-2.5 right-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-          🏆 1st Place
-        </div>
-        <div className="absolute bottom-2.5 left-2.5 flex gap-1.5">
-          <span className="bg-white dark:bg-gray-800 text-slate-500 dark:text-gray-400 text-[10px] px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-700">#Hackathon</span>
-          <span className="bg-white dark:bg-gray-800 text-slate-500 dark:text-gray-400 text-[10px] px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-700">#Build</span>
-        </div>
-      </div>
-
-      <div className="px-4 py-2.5">
-        <p className="text-slate-700 dark:text-gray-300 text-xs leading-relaxed">From idea to first place 🏆 What a day! Grateful for the team 🔥</p>
-      </div>
-
-      <div className="flex items-center gap-4 px-4 pb-3">
-        <button className="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 transition-colors group">
-          <Heart size={14} className="group-hover:fill-rose-500 transition-all" />
-          <span className="text-[11px] font-medium">128</span>
-        </button>
-        <button className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-500 transition-colors">
-          <MessageCircle size={14} />
-          <span className="text-[11px] font-medium">24</span>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function MockProfileCard() {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 shadow-sm p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold">RS</div>
-        <div>
-          <p className="text-slate-900 dark:text-white text-sm font-semibold">Rahul Sharma</p>
-          <p className="text-slate-400 dark:text-gray-500 text-[11px]">Computer Science · Community</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-gray-800 bg-slate-50 dark:bg-gray-800/60 rounded-xl p-3 mb-3">
-        {[['42', 'Posts'], ['1.2k', 'Followers'], ['342', 'Following']].map(([val, label]) => (
-          <div key={label} className="text-center px-1">
-            <p className="text-slate-900 dark:text-white font-bold text-sm">{val}</p>
-            <p className="text-slate-400 dark:text-gray-500 text-[10px]">{label}</p>
-          </div>
-        ))}
-      </div>
-      <button className="w-full py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
-        Connect
-      </button>
-    </div>
-  )
-}
-
 export default function Hero() {
+  const scrollTo = (id) => {
+    const el = document.querySelector(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
-    <section id="home" className="relative pt-28 pb-20 overflow-hidden bg-white dark:bg-gray-950 transition-colors duration-300">
-      <div
-        className="absolute top-0 inset-x-0 h-72 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.08) 0%, transparent 100%)' }}
-      />
-
+    <section id="home" className="relative pt-28 pb-16 sm:pb-24 overflow-hidden bg-base-25 dark:bg-base-950 transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        
+        {/* ── Top Copy & CTA Block ── */}
+        <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-16">
+          
+          {/* Institutional Badge */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={0}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-base-900 border border-base-200 dark:border-base-800 text-base-700 dark:text-base-300 text-xs font-mono uppercase tracking-wider mb-6 shadow-2xs"
+          >
+            <ShieldCheck size={14} className="text-accent-500" />
+            <span>Closed-Loop Campus Network</span>
+          </motion.div>
 
-          {/* Left: Copy */}
-          <div className="order-2 lg:order-1">
-            <motion.div
-              variants={fadeUp} initial="hidden" animate="visible" custom={0}
-              className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 rounded-full px-3.5 py-1.5 mb-5"
+          {/* Heading */}
+          <motion.h1
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={1}
+            className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight text-base-900 dark:text-white leading-[1.12] mb-6"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            The private social network <br className="hidden sm:inline" />
+            <span className="text-accent-500">for your university.</span>
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={2}
+            className="text-base sm:text-lg text-base-600 dark:text-base-400 leading-relaxed max-w-2xl mx-auto mb-8"
+          >
+            Swish connects verified students, faculty, and college administration inside an authenticated campus commons—free from external ads, public search indexing, and anonymous outsiders.
+          </motion.p>
+
+          {/* CTA Actions */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={3}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Link
+              to="/login"
+              id="hero-login-cta"
+              className="w-full sm:w-auto px-6 py-3 bg-accent-500 hover:bg-accent-600 active:bg-accent-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-xs inline-flex items-center justify-center gap-2"
             >
-              <Lock size={11} className="text-indigo-500 dark:text-indigo-400" />
-              <span className="text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold tracking-wide uppercase">
-                Verified campus users only
+              <span>Sign In to Campus</span>
+              <ArrowRight size={15} />
+            </Link>
+            
+            <Link
+              to="/college-onboarding"
+              id="hero-join-cta"
+              className="w-full sm:w-auto px-6 py-3 bg-white dark:bg-base-900 hover:bg-base-50 dark:hover:bg-base-800 text-base-800 dark:text-base-200 border border-base-200 dark:border-base-800 font-semibold rounded-xl text-sm transition-colors inline-flex items-center justify-center gap-2"
+            >
+              <span>Register Your College</span>
+            </Link>
+
+            <button
+              onClick={() => scrollTo('#how-it-works')}
+              id="hero-explore-cta"
+              className="w-full sm:w-auto px-5 py-3 text-base-600 dark:text-base-400 hover:text-base-900 dark:hover:text-white text-sm font-medium transition-colors cursor-pointer"
+            >
+              How It Works
+            </button>
+          </motion.div>
+
+          {/* Verification requirement microcopy */}
+          <motion.p
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            custom={4}
+            className="text-[12px] text-base-400 dark:text-base-500 font-mono mt-4"
+          >
+            Access requires an approved institutional email address (@college.edu, .ac, etc.)
+          </motion.p>
+        </div>
+
+        {/* ── Realistic Product Interface Wireframe ── */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={5}
+          className="relative max-w-4xl mx-auto rounded-2xl border border-base-200 dark:border-base-800 bg-white dark:bg-base-900 shadow-sm overflow-hidden"
+        >
+          {/* Top Window Bar */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-base-50 dark:bg-base-850 border-b border-base-200 dark:border-base-800 text-xs text-base-500 dark:text-base-400">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-base-300 dark:bg-base-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-base-300 dark:bg-base-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-base-300 dark:bg-base-700" />
+              <span className="font-mono text-[11px] text-base-600 dark:text-base-300 font-medium ml-2">
+                swish.campus · verified instance
               </span>
-            </motion.div>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Campus Domain Active</span>
+            </div>
+          </div>
 
-            <motion.h1
-              variants={fadeUp} initial="hidden" animate="visible" custom={1}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              className="font-extrabold text-4xl sm:text-5xl lg:text-[52px] leading-[1.1] tracking-tight text-slate-900 dark:text-white mb-5"
-            >
-              Your Campus.{' '}
-              <br className="hidden sm:block" />
-              Your Community.{' '}
-              <br className="hidden sm:block" />
-              <span className="text-indigo-600">Your Swish.</span>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeUp} initial="hidden" animate="visible" custom={2}
-              className="text-slate-500 dark:text-gray-400 text-base sm:text-lg leading-relaxed max-w-lg mb-8"
-            >
-              A private social space built exclusively for your campus. Share moments, celebrate achievements, connect with classmates, and discover what's happening around you.
-            </motion.p>
-
-            <motion.div
-              variants={fadeUp} initial="hidden" animate="visible" custom={3}
-              className="flex flex-wrap gap-3"
-            >
-              <Link
-                to="/college-onboarding"
-                id="hero-join-cta"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm"
-              >
-                Register Your College
-                <ArrowRight size={16} />
-              </Link>
-              <button
-                id="hero-explore-cta"
-                onClick={() => document.querySelector('#features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-2 px-6 py-3 text-slate-700 dark:text-gray-300 font-semibold border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all text-sm"
-              >
-                Explore Swish
-              </button>
-            </motion.div>
-
-            <motion.p
-              variants={fadeUp} initial="hidden" animate="visible" custom={4}
-              className="text-slate-500 dark:text-gray-400 text-xs sm:text-sm mt-3"
-            >
-              Is your college not on Swish yet?{' '}
-              <Link
-                to="/college-onboarding"
-                className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline inline-flex items-center gap-0.5"
-              >
-                Register your college &rarr;
-              </Link>
-            </motion.p>
-
-            <motion.div
-              variants={fadeUp} initial="hidden" animate="visible" custom={5}
-              className="flex items-center gap-3 mt-7"
-            >
-              <div className="flex -space-x-2">
-                {[['AS','#6366f1'],['KM','#8b5cf6'],['RJ','#0ea5e9'],['PP','#f59e0b']].map(([init, color], i) => (
-                  <div key={i} className="w-7 h-7 rounded-full border-2 border-white dark:border-gray-950 flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: color }}>
-                    {init}
+          {/* Application Layout Mockup */}
+          <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-base-100 dark:divide-base-800">
+            
+            {/* Left Column: Campus Channels & Filters */}
+            <div className="hidden md:block md:col-span-4 p-4 bg-base-25/50 dark:bg-base-950/40 text-xs">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-base-400 dark:text-base-500 mb-3 px-2">
+                Campus Navigation
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-accent-50 dark:bg-accent-950/60 text-accent-700 dark:text-accent-300 font-semibold">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={14} className="text-accent-500" />
+                    <span>Campus-Wide Feed</span>
                   </div>
+                  <span className="text-[10px] font-mono bg-accent-100 dark:bg-accent-900 px-1.5 py-0.2 rounded">Live</span>
+                </div>
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 transition-colors">
+                  <Building2 size={14} />
+                  <span>Official College Notices</span>
+                </div>
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 transition-colors">
+                  <MessageSquare size={14} />
+                  <span>Peer Messaging</span>
+                </div>
+              </div>
+
+              <div className="font-mono text-[10px] uppercase tracking-wider text-base-400 dark:text-base-500 mt-6 mb-2 px-2">
+                Department Filters
+              </div>
+              <div className="flex flex-wrap gap-1.5 px-2">
+                {['Computer Science', 'Mechanical', 'Electrical', 'Management', 'Design'].map(dept => (
+                  <span key={dept} className="px-2 py-0.5 rounded text-[11px] bg-white dark:bg-base-850 border border-base-200 dark:border-base-800 text-base-600 dark:text-base-400">
+                    {dept}
+                  </span>
                 ))}
               </div>
-              <p className="text-slate-400 dark:text-gray-500 text-sm">
-                <span className="text-slate-800 dark:text-gray-200 font-semibold">2,400+</span> campus members already joined
-              </p>
-            </motion.div>
-          </div>
+            </div>
 
-          {/* Right: Mockup */}
-          <div className="order-1 lg:order-2 relative flex justify-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-sm"
-            >
-              <div
-                className="absolute -inset-6 rounded-3xl"
-                style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.07) 0%, transparent 70%)' }}
-              />
-              <div className="relative space-y-3">
-                <MockProfileCard />
-                <MockFeedCard />
+            {/* Right Column: Live Feed Items */}
+            <div className="md:col-span-8 p-4 sm:p-5 space-y-4 bg-white dark:bg-base-900">
+              
+              {/* Card 1: Official College Notice (NoticeManagement.jsx format) */}
+              <div className="rounded-xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 p-3.5 text-xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded">
+                    <Building2 size={11} />
+                    Official Notice · Academic Office
+                  </span>
+                  <span className="text-base-400 text-[11px] font-mono">Posted 2h ago</span>
+                </div>
+                <p className="font-semibold text-base-900 dark:text-white text-sm">
+                  Schedule for Spring End-Semester Laboratory Evaluations
+                </p>
+                <p className="text-base-600 dark:text-base-300 mt-1 leading-relaxed text-xs">
+                  All departments have finalized practical assessment slots. Schedules and lab allocation guidelines are published on departmental notice boards.
+                </p>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 1.0 }}
-                className="absolute -right-4 lg:-right-10 top-[18%] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2"
-              >
-                <span className="text-sm">❤️</span>
-                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">Peer reacted to your post</p>
-              </motion.div>
+              {/* Card 2: Student Post (PostCard.jsx format) */}
+              <div className="rounded-xl border border-base-200 dark:border-base-800 p-3.5 text-xs bg-white dark:bg-base-850">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-accent-500 text-white font-bold flex items-center justify-center text-[10px]">
+                      DS
+                    </div>
+                    <div>
+                      <p className="font-bold text-base-900 dark:text-white text-xs leading-none">
+                        Devika Sen
+                      </p>
+                      <p className="text-[10px] text-base-400 dark:text-base-500 mt-0.5 font-mono">
+                        3rd Year · B.Tech Mechanical · Robotics Club
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900">
+                    <ShieldCheck size={11} />
+                    Verified Student
+                  </span>
+                </div>
+                
+                <p className="text-base-700 dark:text-base-300 text-xs leading-relaxed mb-3">
+                  Telemetry testing complete on the autonomous campus delivery prototype! Huge thanks to the Electronics batch for debugging the motor controller board this morning. 🛠️
+                </p>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 1.2 }}
-                className="absolute -left-4 lg:-left-10 bottom-[22%] bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2"
-              >
-                <span className="text-sm">👤</span>
-                <p className="text-slate-700 dark:text-gray-300 text-xs font-medium whitespace-nowrap">New connection in your branch</p>
-              </motion.div>
-            </motion.div>
+                <div className="flex items-center gap-4 text-base-500 dark:text-base-400 pt-2 border-t border-base-100 dark:border-base-800 text-[11px]">
+                  <span className="inline-flex items-center gap-1 font-medium text-accent-500">
+                    <Heart size={13} className="fill-accent-500 text-accent-500" />
+                    42 campus upvotes
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <MessageCircle size={13} />
+                    8 peer comments
+                  </span>
+                  <span className="ml-auto font-mono text-[10px] text-base-400">
+                    #Engineering #CampusProjects
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
           </div>
+        </motion.div>
 
-        </div>
       </div>
-
-      <div className="absolute bottom-0 inset-x-0 h-px bg-slate-100 dark:bg-gray-800" />
     </section>
   )
 }

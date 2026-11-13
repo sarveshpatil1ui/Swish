@@ -1,26 +1,22 @@
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
-import TrustSection from '../components/TrustSection'
+import HowItWorks from '../components/HowItWorks'
 import Features from '../components/Features'
 import ProductPreview from '../components/ProductPreview'
-import HowItWorks from '../components/HowItWorks'
 import CommunitySection from '../components/CommunitySection'
-import SecuritySection from '../components/SecuritySection'
 import FinalCTA from '../components/FinalCTA'
 import Footer from '../components/Footer'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-base-25 dark:bg-base-950 text-base-900 dark:text-white overflow-x-hidden transition-colors duration-200">
       <Navbar />
       <main>
         <Hero />
-        <TrustSection />
+        <HowItWorks />
         <Features />
         <ProductPreview />
-        <HowItWorks />
         <CommunitySection />
-        <SecuritySection />
         <FinalCTA />
       </main>
       <Footer />

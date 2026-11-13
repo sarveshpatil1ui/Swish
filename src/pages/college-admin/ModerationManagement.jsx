@@ -435,7 +435,7 @@ export default function ModerationManagement() {
           <span className="text-sm font-medium">{notification.message}</span>
           <button
             onClick={() => setNotification(null)}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-2"
+            className="text-base-400 hover:text-base-600 dark:hover:text-base-200 ml-2"
           >
             <X size={14} />
           </button>
@@ -446,12 +446,12 @@ export default function ModerationManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Content Moderation</h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+            <h1 className="text-2xl font-bold font-heading text-base-900 dark:text-white">Content Moderation</h1>
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400 border border-accent-200 dark:border-accent-800">
               College Admin
             </span>
           </div>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <p className="text-base-500 dark:text-base-400 text-sm mt-1">
             Review and moderate all posts and comments created across your college, both reported and clean content.
           </p>
         </div>
@@ -459,7 +459,7 @@ export default function ModerationManagement() {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors self-start md:self-auto"
+          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-base-700 dark:text-base-200 bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-xl hover:bg-base-50 dark:hover:bg-base-800 transition-colors self-start md:self-auto shadow-xs"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
@@ -468,66 +468,66 @@ export default function ModerationManagement() {
 
       {/* Stats Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 shadow-sm">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total {activeTab === 'posts' ? 'Posts' : 'Comments'}</span>
-            <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
+            <span className="text-xs font-medium text-base-500 dark:text-base-400">Total {activeTab === 'posts' ? 'Posts' : 'Comments'}</span>
+            <span className="p-2 rounded-xl bg-accent-50 dark:bg-accent-950/50 text-accent-600 dark:text-accent-400">
               <MessageSquare size={16} />
             </span>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{stats.total.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">In your college directory</p>
+          <p className="text-2xl font-bold font-heading text-base-900 dark:text-white mt-2">{stats.total.toLocaleString()}</p>
+          <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">In your college directory</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 shadow-sm">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Reported Items</span>
             <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
               <AlertTriangle size={16} />
             </span>
           </div>
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-2">{stats.reportedCount.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Active reports filed</p>
+          <p className="text-2xl font-bold font-heading text-amber-600 dark:text-amber-400 mt-2">{stats.reportedCount.toLocaleString()}</p>
+          <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">Active reports filed</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 shadow-sm">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-rose-700 dark:text-rose-400">Hidden / Filtered</span>
             <span className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
               <EyeOff size={16} />
             </span>
           </div>
-          <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-2">{stats.hiddenCount.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Hidden from feed</p>
+          <p className="text-2xl font-bold font-heading text-rose-600 dark:text-rose-400 mt-2">{stats.hiddenCount.toLocaleString()}</p>
+          <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">Hidden from feed</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4.5 shadow-sm">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Clean Content</span>
             <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
               <Shield size={16} />
             </span>
           </div>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{cleanCount.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Unreported & active</p>
+          <p className="text-2xl font-bold font-heading text-emerald-600 dark:text-emerald-400 mt-2">{cleanCount.toLocaleString()}</p>
+          <p className="text-xs text-base-400 dark:text-base-500 mt-0.5">Unreported & active</p>
         </div>
       </div>
 
       {/* Tabs (Posts vs Comments) */}
-      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center justify-between border-b border-base-150 dark:border-base-800">
         <div className="flex gap-2">
           <button
             onClick={() => handleTabChange('posts')}
             className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'posts'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'border-accent-600 text-accent-600 dark:text-accent-400'
+                : 'border-transparent text-base-500 dark:text-base-400 hover:text-base-900 dark:hover:text-white'
             }`}
           >
             <MessageSquare size={16} />
             Posts
             {activeTab === 'posts' && (
-              <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+              <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-accent-100 dark:bg-accent-950 text-accent-700 dark:text-accent-300">
                 {totalCount}
               </span>
             )}
@@ -536,14 +536,14 @@ export default function ModerationManagement() {
             onClick={() => handleTabChange('comments')}
             className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'comments'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'border-accent-600 text-accent-600 dark:text-accent-400'
+                : 'border-transparent text-base-500 dark:text-base-400 hover:text-base-900 dark:hover:text-white'
             }`}
           >
             <MessageSquare size={16} />
             Comments
             {activeTab === 'comments' && (
-              <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+              <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-accent-100 dark:bg-accent-950 text-accent-700 dark:text-accent-300">
                 {totalCount}
               </span>
             )}
@@ -553,7 +553,7 @@ export default function ModerationManagement() {
         {hasActiveFilters && (
           <button
             onClick={resetFilters}
-            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            className="text-xs text-accent-600 dark:text-accent-400 hover:underline flex items-center gap-1"
           >
             <X size={12} />
             Reset filters
@@ -565,18 +565,18 @@ export default function ModerationManagement() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {/* Search */}
         <div className="relative lg:col-span-2">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400" />
           <input
             type="text"
             placeholder={`Search ${activeTab} by text, author or username...`}
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm rounded-xl pl-9 pr-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+            className="w-full bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white placeholder-base-400 text-sm rounded-xl pl-9 pr-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all shadow-xs"
           />
           {searchQuery && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-600 dark:hover:text-base-200"
             >
               <X size={14} />
             </button>
@@ -591,7 +591,7 @@ export default function ModerationManagement() {
               setFilterStatus(e.target.value)
               setPage(1)
             }}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+            className="w-full bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all appearance-none cursor-pointer shadow-xs"
           >
             <option value="all">All Content</option>
             <option value="reported">Reported Only ⚠️</option>
@@ -599,7 +599,7 @@ export default function ModerationManagement() {
             <option value="hidden">Hidden Only</option>
             <option value="visible">Visible Only</option>
           </select>
-          <Filter size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Filter size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
         </div>
 
         {/* Role Filter */}
@@ -610,13 +610,13 @@ export default function ModerationManagement() {
               setFilterRole(e.target.value)
               setPage(1)
             }}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+            className="w-full bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all appearance-none cursor-pointer shadow-xs"
           >
             <option value="all">All Roles</option>
             <option value="student">Students</option>
             <option value="faculty">Faculty</option>
           </select>
-          <User size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <User size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
         </div>
 
         {/* Department & Sort Filter */}
@@ -627,7 +627,7 @@ export default function ModerationManagement() {
               setFilterDept(e.target.value)
               setPage(1)
             }}
-            className="w-1/2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer truncate"
+            className="w-1/2 bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all cursor-pointer truncate shadow-xs"
           >
             <option value="all">All Depts</option>
             {departments.map((d) => (
@@ -643,7 +643,7 @@ export default function ModerationManagement() {
               setSortBy(e.target.value)
               setPage(1)
             }}
-            className="w-1/2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
+            className="w-1/2 bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all cursor-pointer shadow-xs"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -653,19 +653,19 @@ export default function ModerationManagement() {
       </div>
 
       {/* Content List */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl overflow-hidden shadow-xs">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 size={36} className="animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Loading {activeTab}...</p>
+            <Loader2 size={36} className="animate-spin text-accent-600 dark:text-accent-400 mb-3" />
+            <p className="text-sm text-base-500 dark:text-base-400">Loading {activeTab}...</p>
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <div className="w-12 h-12 rounded-2xl bg-base-100 dark:bg-base-800 flex items-center justify-center mx-auto mb-3 text-base-400">
               <MessageSquare size={24} />
             </div>
-            <h3 className="text-base font-semibold text-slate-800 dark:text-white">No {activeTab} found</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+            <h3 className="text-base font-semibold text-base-800 dark:text-white">No {activeTab} found</h3>
+            <p className="text-sm text-base-500 dark:text-base-400 mt-1 max-w-sm mx-auto">
               {hasActiveFilters
                 ? 'No content matches your current search or filter criteria. Try resetting filters.'
                 : `There are currently no ${activeTab} in your college directory.`}
@@ -673,14 +673,14 @@ export default function ModerationManagement() {
             {hasActiveFilters && (
               <button
                 onClick={resetFilters}
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+                className="mt-4 px-4 py-2 bg-accent-600 text-white text-xs font-semibold rounded-xl hover:bg-accent-700 transition-colors shadow-xs"
               >
                 Clear all filters
               </button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-base-100 dark:divide-base-800">
             {activeTab === 'posts'
               ? items.map((post) => (
                   <PostCardItem
@@ -709,12 +709,12 @@ export default function ModerationManagement() {
       {/* Pagination Controls */}
       {!loading && totalCount > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{(page - 1) * limit + 1}</span> to{' '}
-            <span className="font-semibold text-slate-700 dark:text-slate-200">
+          <p className="text-xs text-base-500 dark:text-base-400">
+            Showing <span className="font-semibold text-base-700 dark:text-base-200">{(page - 1) * limit + 1}</span> to{' '}
+            <span className="font-semibold text-base-700 dark:text-base-200">
               {Math.min(page * limit, totalCount)}
             </span>{' '}
-            of <span className="font-semibold text-slate-700 dark:text-slate-200">{totalCount}</span> items
+            of <span className="font-semibold text-base-700 dark:text-base-200">{totalCount}</span> items
           </p>
 
           <div className="flex items-center gap-2">
@@ -724,7 +724,7 @@ export default function ModerationManagement() {
                 setLimit(Number(e.target.value))
                 setPage(1)
               }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs rounded-xl px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none"
+              className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-xs rounded-xl px-2.5 py-1.5 text-base-700 dark:text-base-300 focus:outline-none shadow-xs"
             >
               <option value={10}>10 per page</option>
               <option value={20}>20 per page</option>
@@ -735,18 +735,18 @@ export default function ModerationManagement() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-base-150 dark:border-base-800 text-base-600 dark:text-base-300 hover:bg-base-100 dark:hover:bg-base-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 title="Previous page"
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-300">
+              <span className="px-3 py-1 text-xs font-medium text-base-700 dark:text-base-300">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-base-150 dark:border-base-800 text-base-600 dark:text-base-300 hover:bg-base-100 dark:hover:bg-base-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 title="Next page"
               >
                 <ChevronRight size={16} />
@@ -762,20 +762,20 @@ export default function ModerationManagement() {
       {showHideModal && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowHideModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl w-full max-w-md shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold font-heading text-base-900 dark:text-white flex items-center gap-2">
                 <EyeOff size={18} className="text-rose-600" />
                 Hide {selectedItem.type === 'post' ? 'Post' : 'Comment'}
               </h2>
               <button
                 onClick={() => setShowHideModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-base-400 hover:text-base-600 dark:hover:text-base-200"
               >
                 <X size={18} />
               </button>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+            <p className="text-sm text-base-600 dark:text-base-300 mb-4">
               Hiding this content will immediately remove it from feeds and searches for students and faculty.
               Please provide an administrative reason:
             </p>
@@ -784,19 +784,19 @@ export default function ModerationManagement() {
               onChange={(e) => setHideReason(e.target.value)}
               rows={3}
               placeholder="e.g., Inappropriate language, policy violation, offensive content..."
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mb-4"
+              className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mb-4"
             />
             <div className="flex gap-2.5 justify-end">
               <button
                 onClick={() => setShowHideModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-base-600 dark:text-base-400 text-sm font-medium hover:text-base-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmHide}
                 disabled={actionLoading || !hideReason.trim()}
-                className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 shadow-xs"
               >
                 {actionLoading && <Loader2 size={16} className="animate-spin" />}
                 Hide Content
@@ -810,34 +810,34 @@ export default function ModerationManagement() {
       {showDeleteModal && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl w-full max-w-md shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <h2 className="text-lg font-bold font-heading text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <Trash2 size={20} />
                 Confirm Deletion
               </h2>
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-base-400 hover:text-base-600 dark:hover:text-base-200"
               >
                 <X size={18} />
               </button>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-5">
+            <p className="text-sm text-base-600 dark:text-base-300 mb-5">
               Are you sure you want to permanently delete this {selectedItem.type}? This action cannot be undone and will
               remove the content for all users.
             </p>
             <div className="flex gap-2.5 justify-end">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-base-600 dark:text-base-400 text-sm font-medium hover:text-base-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2 shadow-xs"
               >
                 {actionLoading && <Loader2 size={16} className="animate-spin" />}
                 Delete Permanently
@@ -866,15 +866,15 @@ export default function ModerationManagement() {
       {showWarningModal && selectedItem?.data?.user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowWarningModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl w-full max-w-lg shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold font-heading text-base-900 dark:text-white flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-500" />
                 Issue Warning to {selectedItem.data.user?.name}
               </h2>
               <button
                 onClick={() => setShowWarningModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-base-400 hover:text-base-600 dark:hover:text-base-200"
               >
                 <X size={18} />
               </button>
@@ -883,13 +883,13 @@ export default function ModerationManagement() {
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-medium text-base-700 dark:text-base-300 mb-1">
                     Warning Type
                   </label>
                   <select
                     value={warningForm.warningType}
                     onChange={(e) => setWarningForm({ ...warningForm, warningType: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white"
+                    className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl px-3 py-2 text-sm text-base-900 dark:text-white focus:outline-none focus:border-accent-500"
                   >
                     <option value="verbal">Verbal</option>
                     <option value="written">Written</option>
@@ -899,11 +899,11 @@ export default function ModerationManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Severity</label>
+                  <label className="block text-xs font-medium text-base-700 dark:text-base-300 mb-1">Severity</label>
                   <select
                     value={warningForm.severity}
                     onChange={(e) => setWarningForm({ ...warningForm, severity: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white"
+                    className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl px-3 py-2 text-sm text-base-900 dark:text-white focus:outline-none focus:border-accent-500"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -914,11 +914,11 @@ export default function ModerationManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                <label className="block text-xs font-medium text-base-700 dark:text-base-300 mb-1">Category</label>
                 <select
                   value={warningForm.category}
                   onChange={(e) => setWarningForm({ ...warningForm, category: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl px-3 py-2 text-sm text-base-900 dark:text-white focus:outline-none focus:border-accent-500"
                 >
                   <option value="policy_violation">Policy Violation</option>
                   <option value="harassment">Harassment</option>
@@ -930,19 +930,19 @@ export default function ModerationManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-base-700 dark:text-base-300 mb-1">
                   Incident Date
                 </label>
                 <input
                   type="date"
                   value={warningForm.incidentDate}
                   onChange={(e) => setWarningForm({ ...warningForm, incidentDate: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl px-3 py-2 text-sm text-base-900 dark:text-white focus:outline-none focus:border-accent-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-base-700 dark:text-base-300 mb-1">
                   Description / Incident Details *
                 </label>
                 <textarea
@@ -950,7 +950,7 @@ export default function ModerationManagement() {
                   onChange={(e) => setWarningForm({ ...warningForm, description: e.target.value })}
                   rows={3}
                   placeholder="Detail the infraction and disciplinary expectations..."
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl px-3 py-2 text-sm text-base-900 dark:text-white focus:outline-none focus:border-accent-500"
                 />
               </div>
             </div>
@@ -958,14 +958,14 @@ export default function ModerationManagement() {
             <div className="flex gap-2.5 justify-end mt-6">
               <button
                 onClick={() => setShowWarningModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-base-600 dark:text-base-400 text-sm font-medium hover:text-base-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={submitWarning}
                 disabled={actionLoading || !warningForm.description.trim()}
-                className="px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2 shadow-xs"
               >
                 {actionLoading && <Loader2 size={16} className="animate-spin" />}
                 Issue Warning
@@ -991,7 +991,7 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
           ? 'bg-rose-50/40 dark:bg-rose-950/20'
           : post.isReported
           ? 'bg-amber-50/20 dark:bg-amber-950/10'
-          : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/40'
+          : 'hover:bg-base-50/60 dark:hover:bg-base-800/40'
       }`}
     >
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
@@ -1003,12 +1003,12 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
                 <img
                   src={profilePhotoUrl}
                   alt={author.name || 'User'}
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                  className="w-10 h-10 rounded-full object-cover border border-base-150 dark:border-base-700"
                 />
               ) : (
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: author.avatarColor || '#6366f1' }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-accent-600"
+                  style={author.avatarColor ? { backgroundColor: author.avatarColor } : undefined}
                 >
                   {author.initials || author.name?.slice(0, 2).toUpperCase() || '?'}
                 </div>
@@ -1017,15 +1017,15 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-900 dark:text-white text-sm truncate">
+                <span className="font-semibold text-base-900 dark:text-white text-sm truncate">
                   {author.name || 'Anonymous User'}
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                <span className="text-xs text-base-500 dark:text-base-400 truncate">
                   @{author.username || 'unknown'}
                 </span>
 
                 {author.verifiedBadge && (
-                  <span className="text-indigo-600 dark:text-indigo-400" title="Verified Member">
+                  <span className="text-accent-600 dark:text-accent-400" title="Verified Member">
                     <CheckCircle2 size={14} />
                   </span>
                 )}
@@ -1036,7 +1036,7 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
                       author.role === 'faculty'
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                        : 'bg-accent-100 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300'
                     }`}
                   >
                     {author.role}
@@ -1045,20 +1045,20 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
 
                 {/* Dept Badge */}
                 {author.dept && (
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-base-100 dark:bg-base-800 text-base-600 dark:text-base-300">
                     {author.dept}
                   </span>
                 )}
 
                 {/* Suspended Indicator */}
                 {author.suspended && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300">
                     Suspended
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              <div className="flex items-center gap-2 text-xs text-base-400 dark:text-base-500 mt-0.5">
                 <Calendar size={12} />
                 <span>{formatRelativeTime(post.createdAt)}</span>
                 {post.createdAt && (
@@ -1093,8 +1093,8 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
           </div>
 
           {/* Post Caption */}
-          <p className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed mb-3 whitespace-pre-wrap">
-            {post.caption || <span className="italic text-slate-400">No caption provided.</span>}
+          <p className="text-base-800 dark:text-base-200 text-sm leading-relaxed mb-3 whitespace-pre-wrap">
+            {post.caption || <span className="italic text-base-400">No caption provided.</span>}
           </p>
 
           {/* Post Image Preview */}
@@ -1103,20 +1103,20 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
               <img
                 src={postImageUrl}
                 alt="Post attachment"
-                className="max-h-60 rounded-xl object-cover border border-slate-200 dark:border-slate-800 cursor-pointer hover:opacity-95 transition-opacity"
+                className="max-h-60 rounded-xl object-cover border border-base-150 dark:border-base-800 cursor-pointer hover:opacity-95 transition-opacity"
                 onClick={onInspect}
               />
             </div>
           )}
 
           {/* Engagement metrics & hide reason */}
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-base-500 dark:text-base-400">
             <span className="flex items-center gap-1">
               <Heart size={14} className="text-rose-500" />
               {post.likeCount ?? post.likes?.length ?? 0} likes
             </span>
             <span className="flex items-center gap-1">
-              <MessageSquare size={14} className="text-indigo-500" />
+              <MessageSquare size={14} className="text-accent-500" />
               {post.commentCount ?? 0} comments
             </span>
 
@@ -1132,7 +1132,7 @@ function PostCardItem({ post, onInspect, onHide, onRestore, onDelete }) {
         <div className="flex sm:flex-col items-center gap-1.5 self-end sm:self-start flex-shrink-0">
           <button
             onClick={onInspect}
-            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition-colors"
+            className="p-2 text-accent-600 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/60 rounded-xl transition-colors"
             title="Inspect & View Reports"
           >
             <Eye size={17} />
@@ -1183,7 +1183,7 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
           ? 'bg-rose-50/40 dark:bg-rose-950/20'
           : comment.isReported
           ? 'bg-amber-50/20 dark:bg-amber-950/10'
-          : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/40'
+          : 'hover:bg-base-50/60 dark:hover:bg-base-800/40'
       }`}
     >
       <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
@@ -1194,12 +1194,12 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
               <img
                 src={profilePhotoUrl}
                 alt={author.name || 'User'}
-                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                className="w-9 h-9 rounded-full object-cover border border-base-150 dark:border-base-700"
               />
             ) : (
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs"
-                style={{ backgroundColor: author.avatarColor || '#6366f1' }}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs bg-accent-600"
+                style={author.avatarColor ? { backgroundColor: author.avatarColor } : undefined}
               >
                 {author.initials || author.name?.slice(0, 2).toUpperCase() || '?'}
               </div>
@@ -1207,10 +1207,10 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-900 dark:text-white text-sm truncate">
+                <span className="font-semibold text-base-900 dark:text-white text-sm truncate">
                   {author.name || 'Anonymous User'}
                 </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                <span className="text-xs text-base-500 dark:text-base-400 truncate">
                   @{author.username || 'unknown'}
                 </span>
 
@@ -1219,7 +1219,7 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${
                       author.role === 'faculty'
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                        : 'bg-accent-100 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300'
                     }`}
                   >
                     {author.role}
@@ -1227,19 +1227,19 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
                 )}
 
                 {author.dept && (
-                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-base-100 dark:bg-base-800 text-base-600 dark:text-base-300">
                     {author.dept}
                   </span>
                 )}
 
                 {author.suspended && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300">
                     Suspended
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              <div className="flex items-center gap-2 text-xs text-base-400 dark:text-base-500 mt-0.5">
                 <Calendar size={12} />
                 <span>{formatRelativeTime(comment.createdAt)}</span>
               </div>
@@ -1271,16 +1271,16 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
           </div>
 
           {/* Comment text */}
-          <p className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed mb-3 whitespace-pre-wrap">
+          <p className="text-base-800 dark:text-base-200 text-sm leading-relaxed mb-3 whitespace-pre-wrap">
             {comment.text}
           </p>
 
           {/* Original Post Context box */}
           {originalPost && (
-            <div className="mb-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex items-start gap-2.5">
-              <CornerDownRight size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-slate-600 dark:text-slate-300 flex-1 min-w-0">
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
+            <div className="mb-2 p-2.5 rounded-xl bg-base-50 dark:bg-base-800/60 border border-base-150 dark:border-base-800 flex items-start gap-2.5">
+              <CornerDownRight size={14} className="text-base-400 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-base-600 dark:text-base-300 flex-1 min-w-0">
+                <span className="font-semibold text-base-800 dark:text-base-200">
                   Replying to @{originalPostAuthor.username || 'user'}:
                 </span>{' '}
                 <span className="italic line-clamp-1">{originalPost.caption || 'Photo Post'}</span>
@@ -1306,7 +1306,7 @@ function CommentCardItem({ comment, onInspect, onHide, onRestore, onDelete }) {
         <div className="flex sm:flex-col items-center gap-1.5 self-end sm:self-start flex-shrink-0">
           <button
             onClick={onInspect}
-            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition-colors"
+            className="p-2 text-accent-600 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/60 rounded-xl transition-colors"
             title="Inspect & View Reports"
           >
             <Eye size={17} />
@@ -1363,11 +1363,11 @@ function InspectModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6">
+      <div className="relative bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+        <div className="flex items-center justify-between pb-4 border-b border-base-150 dark:border-base-800 mb-5">
           <div className="flex items-center gap-2.5">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+            <h2 className="text-lg font-bold font-heading text-base-900 dark:text-white capitalize">
               {type} Inspection & Reports
             </h2>
             {item.hidden ? (
@@ -1384,37 +1384,37 @@ function InspectModal({
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <button onClick={onClose} className="text-base-400 hover:text-base-600 dark:hover:text-base-200">
             <X size={20} />
           </button>
         </div>
 
         {/* Content Author Profile Banner */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 mb-5">
+        <div className="p-4 rounded-xl bg-base-50 dark:bg-base-800/60 border border-base-150 dark:border-base-800 mb-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {profilePhotoUrl ? (
                 <img
                   src={profilePhotoUrl}
                   alt={author.name}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                  className="w-12 h-12 rounded-full object-cover border border-base-150 dark:border-base-700"
                 />
               ) : (
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base"
-                  style={{ backgroundColor: author.avatarColor || '#6366f1' }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base bg-accent-600"
+                  style={author.avatarColor ? { backgroundColor: author.avatarColor } : undefined}
                 >
                   {author.initials || author.name?.slice(0, 2).toUpperCase() || '?'}
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="font-bold text-slate-900 dark:text-white text-sm">{author.name || 'Unknown'}</p>
-                  <p className="text-xs text-slate-500">@{author.username}</p>
-                  {author.verifiedBadge && <CheckCircle2 size={14} className="text-indigo-600" />}
+                  <p className="font-bold text-base-900 dark:text-white text-sm">{author.name || 'Unknown'}</p>
+                  <p className="text-xs text-base-500">@{author.username}</p>
+                  {author.verifiedBadge && <CheckCircle2 size={14} className="text-accent-600" />}
                 </div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 flex-wrap">
-                  <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
+                <div className="flex items-center gap-2 mt-1 text-xs text-base-500 flex-wrap">
+                  <span className="capitalize font-semibold text-base-700 dark:text-base-300">
                     Role: {author.role || 'Student'}
                   </span>
                   {author.dept && <span>• Dept: {author.dept}</span>}
@@ -1430,7 +1430,7 @@ function InspectModal({
               <button
                 onClick={onToggleSuspension}
                 disabled={actionLoading}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs ${
                   author.suspended
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                     : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 hover:bg-rose-100'
@@ -1444,7 +1444,7 @@ function InspectModal({
               <button
                 onClick={onOpenWarning}
                 disabled={actionLoading}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100 transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-xs"
                 title="Issue formal warning"
               >
                 <AlertTriangle size={14} />
@@ -1457,24 +1457,24 @@ function InspectModal({
         {/* Content Body */}
         <div className="space-y-4 mb-6">
           <div>
-            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+            <h4 className="text-xs font-bold text-base-400 dark:text-base-500 uppercase tracking-wider mb-1">
               Content Text
             </h4>
-            <div className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-              {type === 'post' ? item.caption || <span className="italic text-slate-400">No caption.</span> : item.text}
+            <div className="p-3.5 rounded-xl bg-base-50/70 dark:bg-base-800/40 border border-base-150 dark:border-base-800 text-sm text-base-800 dark:text-base-200 whitespace-pre-wrap leading-relaxed">
+              {type === 'post' ? item.caption || <span className="italic text-base-400">No caption.</span> : item.text}
             </div>
           </div>
 
           {/* Image preview */}
           {itemImageUrl && (
             <div>
-              <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+              <h4 className="text-xs font-bold text-base-400 dark:text-base-500 uppercase tracking-wider mb-1">
                 Attached Media
               </h4>
               <img
                 src={itemImageUrl}
                 alt="Post Media"
-                className="max-h-72 w-full object-contain rounded-xl border border-slate-200 dark:border-slate-800 bg-black/5"
+                className="max-h-72 w-full object-contain rounded-xl border border-base-150 dark:border-base-800 bg-black/5"
               />
             </div>
           )}
@@ -1497,7 +1497,7 @@ function InspectModal({
         {/* Reports Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-xs font-bold text-base-400 dark:text-base-500 uppercase tracking-wider flex items-center gap-1.5">
               <Flag size={14} className="text-amber-500" />
               Filed Reports ({reports.length})
             </h4>
@@ -1514,12 +1514,12 @@ function InspectModal({
               {reports.map((report, idx) => (
                 <div
                   key={report._id || report.id || `rep-${idx}`}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs space-y-1.5"
+                  className="p-3.5 rounded-xl bg-base-50 dark:bg-base-800/80 border border-base-150 dark:border-base-700 text-xs space-y-1.5"
                 >
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 dark:text-white">{report.reporterName}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 capitalize">
+                      <span className="font-semibold text-base-900 dark:text-white">{report.reporterName}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-base-200 dark:bg-base-700 text-base-700 dark:text-base-300 capitalize">
                         {report.reporterRole || 'Student'}
                       </span>
                     </div>
@@ -1528,16 +1528,16 @@ function InspectModal({
                       <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 capitalize">
                         {report.category?.replace('_', ' ')}
                       </span>
-                      <span className="text-slate-400 text-[11px]">
+                      <span className="text-base-400 text-[11px]">
                         {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : ''}
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-slate-700 dark:text-slate-300 text-sm">{report.description}</p>
+                  <p className="text-base-700 dark:text-base-300 text-sm">{report.description}</p>
 
                   {report.resolutionNotes && (
-                    <p className="text-slate-500 italic text-[11px] pt-1">
+                    <p className="text-base-500 italic text-[11px] pt-1">
                       Resolution Notes: {report.resolutionNotes}
                     </p>
                   )}
@@ -1548,7 +1548,7 @@ function InspectModal({
         </div>
 
         {/* Moderation Action Buttons at bottom of modal */}
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-4 border-t border-base-150 dark:border-base-800 flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={onDelete}
             disabled={actionLoading}
@@ -1563,7 +1563,7 @@ function InspectModal({
               <button
                 onClick={onRestore}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-xs"
               >
                 <Shield size={15} />
                 Restore Content
@@ -1572,7 +1572,7 @@ function InspectModal({
               <button
                 onClick={onHide}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors flex items-center gap-1.5 shadow-xs"
               >
                 <EyeOff size={15} />
                 Hide Content
@@ -1581,7 +1581,7 @@ function InspectModal({
 
             <button
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs font-medium hover:text-slate-900 dark:hover:text-white"
+              className="px-4 py-2 text-base-600 dark:text-base-400 text-xs font-medium hover:text-base-900 dark:hover:text-white"
             >
               Close
             </button>

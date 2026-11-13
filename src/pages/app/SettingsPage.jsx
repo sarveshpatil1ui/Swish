@@ -26,7 +26,7 @@ const MENU = [
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 const INPUT_BASE =
-  'w-full bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all'
+  'w-full bg-base-50 dark:bg-base-900 border border-base-200 dark:border-base-750 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:bg-white dark:focus:bg-base-900 focus:border-accent-400 dark:focus:border-accent-600 focus:ring-2 focus:ring-accent-500/20 transition-all'
 
 function Toggle({ checked, onChange, id }) {
   return (
@@ -37,31 +37,31 @@ function Toggle({ checked, onChange, id }) {
       id={id}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-[28px] w-[50px] items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
-        checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-gray-700'
+        checked ? 'bg-accent-500' : 'bg-base-200 dark:bg-base-700'
       }`}
     >
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? 'translate-x-[22px]' : 'translate-x-[3px]'}`} />
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform duration-200 ${checked ? 'translate-x-[22px]' : 'translate-x-[3px]'}`} />
     </button>
   )
 }
 
 function ToggleRow({ label, sub, checked, onChange, id }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-slate-100 dark:border-gray-800/80 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] last:border-0">
       <div className="min-w-0">
-        <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{label}</p>
-        {sub && <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{sub}</p>}
+        <p className="text-base-800 dark:text-base-200 text-sm font-medium">{label}</p>
+        {sub && <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">{sub}</p>}
       </div>
       <Toggle checked={checked} onChange={onChange} id={id} />
     </div>
   )
 }
 
-function MenuRow({ label, sub, icon: Icon, iconBg = 'bg-slate-100 dark:bg-gray-800', iconColor = 'text-slate-500 dark:text-gray-400', onClick, danger }) {
+function MenuRow({ label, sub, icon: Icon, iconBg = 'bg-base-100 dark:bg-base-800', iconColor = 'text-base-500 dark:text-base-400', onClick, danger }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-slate-50 dark:active:bg-gray-800/60 transition-colors text-left ${
+      className={`w-full flex items-center gap-3.5 px-4 py-3.5 active:bg-base-50 dark:active:bg-base-850/60 transition-colors text-left ${
         danger ? 'text-rose-500 dark:text-rose-400' : ''
       }`}
     >
@@ -71,24 +71,24 @@ function MenuRow({ label, sub, icon: Icon, iconBg = 'bg-slate-100 dark:bg-gray-8
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${danger ? 'text-rose-500 dark:text-rose-400' : 'text-slate-800 dark:text-gray-200'}`}>{label}</p>
-        {sub && <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{sub}</p>}
+        <p className={`text-sm font-medium ${danger ? 'text-rose-500 dark:text-rose-400' : 'text-base-800 dark:text-base-200'}`}>{label}</p>
+        {sub && <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">{sub}</p>}
       </div>
-      <ChevronRight size={16} className="text-slate-300 dark:text-gray-600 flex-shrink-0" />
+      <ChevronRight size={16} className="text-base-300 dark:text-base-600 flex-shrink-0" />
     </button>
   )
 }
 
 function GroupCard({ children }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-100 dark:border-gray-800 overflow-hidden divide-y divide-slate-100 dark:divide-gray-800 mb-4">
+    <div className="bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] overflow-hidden divide-y divide-base-100 dark:divide-[rgba(255,255,255,0.07)] mb-4 shadow-xs">
       {children}
     </div>
   )
 }
 
 function SectionLabel({ label }) {
-  return <p className="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-widest px-1 mb-2 mt-5 first:mt-0">{label}</p>
+  return <p className="text-xs font-semibold text-base-400 dark:text-base-500 uppercase tracking-widest px-1 mb-2 mt-5 first:mt-0">{label}</p>
 }
 
 function Toast({ message, type = 'success', onClose }) {
@@ -114,19 +114,19 @@ function Toast({ message, type = 'success', onClose }) {
 function ConfirmModal({ title, body, confirmLabel, onConfirm, onCancel, danger = false }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onCancel} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.18 }}
-        className="relative bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-xl"
+        className="relative bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-6 max-w-sm w-full shadow-xl"
       >
-        <h3 className="text-slate-900 dark:text-white font-bold text-base mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
-        <p className="text-slate-500 dark:text-gray-400 text-sm leading-relaxed mb-5">{body}</p>
+        <h3 className="text-base-900 dark:text-white font-bold text-base mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{title}</h3>
+        <p className="text-base-500 dark:text-base-400 text-sm leading-relaxed mb-5">{body}</p>
         <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-800 transition-colors">Cancel</button>
-          <button onClick={onConfirm} className={`px-5 py-2 text-sm font-semibold rounded-xl transition-colors ${danger ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+          <button onClick={onCancel} className="px-4 py-2 text-base-600 dark:text-base-400 text-sm font-medium hover:text-base-800 dark:hover:text-base-200 transition-colors">Cancel</button>
+          <button onClick={onConfirm} className={`px-5 py-2 text-sm font-semibold rounded-xl transition-colors shadow-xs ${danger ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-accent-500 text-white hover:bg-accent-600'}`}>
             {confirmLabel}
           </button>
         </div>
@@ -169,8 +169,8 @@ function AccountSection({ currentUser, updateUser, showToast }) {
   return (
     <div className="space-y-4">
       {/* Avatar preview */}
-      <div className="flex items-center gap-4 py-2 px-4 bg-white dark:bg-gray-900 rounded-2xl border border-slate-100 dark:border-gray-800">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden text-white text-lg font-bold flex-shrink-0" style={{ backgroundColor: currentUser?.avatarColor || '#6366f1' }}>
+      <div className="flex items-center gap-4 py-2 px-4 bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] shadow-xs">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden text-white text-lg font-bold flex-shrink-0" style={{ backgroundColor: currentUser?.avatarColor || '#5B5FEF' }}>
           {resolveImageUrl(currentUser?.profilePhoto) ? (
             <img
               src={resolveImageUrl(currentUser.profilePhoto)}
@@ -182,31 +182,31 @@ function AccountSection({ currentUser, updateUser, showToast }) {
           )}
         </div>
         <div>
-          <p className="text-slate-900 dark:text-white font-semibold text-sm">{currentUser?.name}</p>
-          <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{currentUser?.dept} · {currentUser?.college}</p>
+          <p className="text-base-900 dark:text-white font-semibold text-sm">{currentUser?.name}</p>
+          <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">{currentUser?.dept} · {currentUser?.college}</p>
         </div>
       </div>
 
       <GroupCard>
         <div className="px-4 py-3 space-y-3">
           <div>
-            <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Display Name</label>
+            <label className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Display Name</label>
             <input id="settings-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" className={INPUT_BASE} />
           </div>
           <div>
-            <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Username</label>
+            <label className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Username</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 text-sm">@</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base-400 dark:text-base-500 text-sm">@</span>
               <input id="settings-username" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="username" className={`${INPUT_BASE} pl-8`} />
             </div>
           </div>
           <div>
-            <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Email <span className="font-normal normal-case tracking-normal">(read only)</span></label>
+            <label className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Email <span className="font-normal normal-case tracking-normal">(read only)</span></label>
             <input type="email" value={currentUser?.email ?? ''} readOnly className={`${INPUT_BASE} opacity-60 cursor-not-allowed`} />
           </div>
           {currentUser?.role === 'student' && (
             <div>
-              <label htmlFor="settings-year" className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+              <label htmlFor="settings-year" className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
                 Academic Year
               </label>
               <select
@@ -224,7 +224,7 @@ function AccountSection({ currentUser, updateUser, showToast }) {
           )}
           {currentUser?.role === 'faculty' && (
             <div>
-              <label htmlFor="settings-designation" className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+              <label htmlFor="settings-designation" className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">
                 Designation
               </label>
               <select
@@ -241,15 +241,15 @@ function AccountSection({ currentUser, updateUser, showToast }) {
             </div>
           )}
           <div>
-            <label className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Bio</label>
+            <label className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">Bio</label>
             <textarea id="settings-bio" rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell your campus about yourself…" className={`${INPUT_BASE} resize-none`} />
-            <p className="text-slate-400 dark:text-gray-600 text-xs mt-1 text-right">{bio.length}/160</p>
+            <p className="text-base-400 dark:text-base-600 text-xs mt-1 text-right">{bio.length}/160</p>
           </div>
         </div>
       </GroupCard>
 
       <button id="settings-save" onClick={handleSave} disabled={saving}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-2xl hover:bg-indigo-700 disabled:opacity-60 transition-colors">
+        className="w-full flex items-center justify-center gap-2 py-3 bg-accent-500 text-white text-sm font-semibold rounded-xl hover:bg-accent-600 disabled:opacity-60 transition-colors shadow-xs">
         {saving
           ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
           : <><Save size={15} /> Save Changes</>
@@ -268,12 +268,12 @@ function AccountSection({ currentUser, updateUser, showToast }) {
             ? [{ label: 'Employee ID', value: currentUser?.employeeId || '—', sub: '' }]
             : []),
         ].map(({ label, value, sub }) => (
-          <div key={label} className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0">
+          <div key={label} className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] last:border-0">
             <div>
-              <p className="text-slate-500 dark:text-gray-400 text-sm">{label}</p>
-              {sub && <p className="text-[10px] text-slate-400 dark:text-gray-500">{sub}</p>}
+              <p className="text-base-500 dark:text-base-400 text-sm">{label}</p>
+              {sub && <p className="text-[10px] text-base-400 dark:text-base-500">{sub}</p>}
             </div>
-            <p className="text-slate-900 dark:text-white text-sm font-medium capitalize">{value}</p>
+            <p className="text-base-900 dark:text-white text-sm font-medium capitalize">{value}</p>
           </div>
         ))}
       </GroupCard>
@@ -289,12 +289,12 @@ function AppearanceSection({ dark, toggle }) {
         { label: 'Dark Mode',  icon: Moon, value: true  },
       ].map(({ label, icon: Icon, value }) => (
         <button key={label} onClick={() => { if (dark !== value) toggle() }}
-          className={`w-full flex items-center justify-between gap-3 px-4 py-4 active:bg-slate-50 dark:active:bg-gray-800/50 transition-colors ${dark === value ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-gray-300'}`}>
+          className={`w-full flex items-center justify-between gap-3 px-4 py-4 active:bg-base-50 dark:active:bg-base-850/50 transition-colors ${dark === value ? 'text-accent-500 dark:text-accent-400' : 'text-base-700 dark:text-base-300'}`}>
           <div className="flex items-center gap-3">
             <Icon size={18} />
             <span className="text-sm font-medium">{label}</span>
           </div>
-          {dark === value && <Check size={16} className="text-indigo-600 dark:text-indigo-400" />}
+          {dark === value && <Check size={16} className="text-accent-500 dark:text-accent-400" />}
         </button>
       ))}
     </GroupCard>
@@ -314,14 +314,14 @@ function NotificationsSection({ prefs, updatePreferences }) {
         { key: 'mentions', icon: AtSign,        label: 'Mentions',       sub: 'When you are mentioned' },
         { key: 'events',   icon: Calendar,      label: 'Campus Events',  sub: 'Announcements & events' },
       ].map(({ key, icon: Icon, label, sub }) => (
-        <div key={key} className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0">
+        <div key={key} className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] last:border-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-              <Icon size={15} className="text-slate-500 dark:text-gray-400" />
+            <div className="w-8 h-8 rounded-lg bg-base-100 dark:bg-base-800 flex items-center justify-center flex-shrink-0">
+              <Icon size={15} className="text-base-500 dark:text-base-400" />
             </div>
             <div>
-              <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{label}</p>
-              <p className="text-slate-400 dark:text-gray-500 text-xs">{sub}</p>
+              <p className="text-base-800 dark:text-base-200 text-sm font-medium">{label}</p>
+              <p className="text-base-400 dark:text-base-500 text-xs">{sub}</p>
             </div>
           </div>
           <Toggle id={`notif-${key}`} checked={!!notifs[key]} onChange={v => set(key, v)} />
@@ -386,10 +386,10 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
 
   const PwdField = ({ id, label, value, onChange, show, setShow }) => (
     <div>
-      <label htmlFor={id} className="block text-slate-500 dark:text-gray-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">{label}</label>
+      <label htmlFor={id} className="block text-base-500 dark:text-base-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">{label}</label>
       <div className="relative">
         <input id={id} type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} className={`${INPUT_BASE} pr-11`} placeholder="••••••••" />
-        <button type="button" onClick={() => setShow(s => !s)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+        <button type="button" onClick={() => setShow(s => !s)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-600 dark:hover:text-base-300 transition-colors">
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       </div>
@@ -406,9 +406,9 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
         <div className="px-4 py-3.5">
           {!showPwdForm ? (
             <button id="sec-change-pwd" onClick={() => setShowPwdForm(true)}
-              className="w-full flex items-center justify-between text-sm text-slate-800 dark:text-gray-200 font-medium">
+              className="w-full flex items-center justify-between text-sm text-base-800 dark:text-base-200 font-medium">
               <span>Change Password</span>
-              <ChevronRight size={16} className="text-slate-300 dark:text-gray-600" />
+              <ChevronRight size={16} className="text-base-300 dark:text-base-600" />
             </button>
           ) : (
             <form onSubmit={handleChangePwd} className="space-y-3">
@@ -417,12 +417,12 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
               <PwdField id="conf-pwd" label="Confirm Password" value={confirmPwd} onChange={setConfirmPwd} show={showConf} setShow={setShowConf} />
               <div className="flex gap-3 pt-1">
                 <button type="submit" disabled={pwdLoading}
-                  className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-60 transition-colors flex items-center gap-2">
+                  className="px-5 py-2 bg-accent-500 text-white text-sm font-semibold rounded-xl hover:bg-accent-600 disabled:opacity-60 transition-colors shadow-xs flex items-center gap-2">
                   {pwdLoading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                   {pwdLoading ? 'Updating…' : 'Update Password'}
                 </button>
                 <button type="button" onClick={() => { setShowPwdForm(false); setCurPwd(''); setNewPwd(''); setConfirmPwd('') }}
-                  className="px-4 py-2 text-slate-500 text-sm font-medium hover:text-slate-700 transition-colors">Cancel</button>
+                  className="px-4 py-2 text-base-500 text-sm font-medium hover:text-base-700 dark:hover:text-base-300 transition-colors">Cancel</button>
               </div>
             </form>
           )}
@@ -430,25 +430,25 @@ function SecuritySection({ currentUser, changePassword, showToast, deactivateAcc
       </GroupCard>
 
       {/* Danger zone */}
-      <div className="bg-white dark:bg-gray-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl overflow-hidden divide-y divide-rose-100 dark:divide-rose-900/40">
+      <div className="bg-white dark:bg-base-900 border border-rose-200 dark:border-rose-900/60 rounded-xl overflow-hidden divide-y divide-rose-100 dark:divide-rose-900/40 shadow-xs">
         <div className="px-4 py-3 bg-rose-50/50 dark:bg-rose-950/20">
           <p className="text-rose-600 dark:text-rose-400 text-xs font-bold uppercase tracking-widest">Danger Zone</p>
         </div>
         <button id="settings-deactivate" onClick={() => setConfirmDeactivate(true)}
           className="w-full flex items-center justify-between px-4 py-3.5 active:bg-rose-50 dark:active:bg-rose-950/20 transition-colors text-left">
           <div>
-            <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">Deactivate Account</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">Temporarily disable your account</p>
+            <p className="text-base-800 dark:text-base-200 text-sm font-medium">Deactivate Account</p>
+            <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">Temporarily disable your account</p>
           </div>
-          <ChevronRight size={16} className="text-slate-300 dark:text-gray-600" />
+          <ChevronRight size={16} className="text-base-300 dark:text-base-600" />
         </button>
         <button id="settings-delete" onClick={() => setConfirmDelete(true)}
           className="w-full flex items-center justify-between px-4 py-3.5 active:bg-rose-50 dark:active:bg-rose-950/20 transition-colors text-left">
           <div>
             <p className="text-rose-600 dark:text-rose-400 text-sm font-medium flex items-center gap-2"><Trash2 size={14} /> Delete Account Permanently</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">This cannot be undone</p>
+            <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">This cannot be undone</p>
           </div>
-          <ChevronRight size={16} className="text-slate-300 dark:text-gray-600" />
+          <ChevronRight size={16} className="text-base-300 dark:text-base-600" />
         </button>
       </div>
 
@@ -489,13 +489,13 @@ function HelpSection({ showToast }) {
                 showToast(`${label} coming soon.`)
               }
             }}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0 active:bg-slate-50 dark:active:bg-gray-800/50 transition-colors"
+            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] last:border-0 active:bg-base-50 dark:active:bg-base-850/50 transition-colors"
           >
             <div className="text-left">
-              <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{label}</p>
-              <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5">{sub}</p>
+              <p className="text-base-800 dark:text-base-200 text-sm font-medium">{label}</p>
+              <p className="text-base-400 dark:text-base-500 text-xs mt-0.5">{sub}</p>
             </div>
-            <ChevronRight size={15} className="text-slate-300 dark:text-gray-600 flex-shrink-0" />
+            <ChevronRight size={15} className="text-base-300 dark:text-base-600 flex-shrink-0" />
           </button>
         ))}
       </GroupCard>
@@ -509,16 +509,16 @@ function HelpSection({ showToast }) {
 function AboutSection() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 px-4 py-4 bg-white dark:bg-gray-900 rounded-2xl border border-slate-100 dark:border-gray-800">
-        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-4 bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] shadow-xs">
+        <div className="w-12 h-12 rounded-xl bg-accent-500 flex items-center justify-center flex-shrink-0 shadow-xs">
           <span className="text-white font-extrabold text-xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>S</span>
         </div>
         <div>
-          <p className="text-slate-900 dark:text-white font-bold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Swish</p>
-          <p className="text-slate-400 dark:text-gray-500 text-xs">Version 1.0.0 · Beta</p>
+          <p className="text-base-900 dark:text-white font-bold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Swish</p>
+          <p className="text-base-400 dark:text-base-500 text-xs">Version 1.0.0 · Beta</p>
         </div>
       </div>
-      <p className="text-slate-500 dark:text-gray-400 text-sm leading-relaxed px-1">
+      <p className="text-base-500 dark:text-base-400 text-sm leading-relaxed px-1">
         Swish is a private, verified campus social network — built exclusively for students and faculty of registered institutions.
       </p>
       <GroupCard>
@@ -528,9 +528,9 @@ function AboutSection() {
           { label: 'Built with', value: 'React + Vite' },
           { label: 'License',    value: 'Private — Campus Use Only' },
         ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-gray-800 last:border-0">
-            <p className="text-slate-500 dark:text-gray-400 text-sm">{label}</p>
-            <p className="text-slate-800 dark:text-gray-200 text-sm font-medium">{value}</p>
+          <div key={label} className="flex items-center justify-between px-4 py-3.5 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] last:border-0">
+            <p className="text-base-500 dark:text-base-400 text-sm">{label}</p>
+            <p className="text-base-800 dark:text-base-200 text-sm font-medium">{value}</p>
           </div>
         ))}
       </GroupCard>
@@ -593,7 +593,7 @@ export default function SettingsPage() {
             >
               {/* Header */}
               <div className="mb-5 px-1">
-                <h1 className="text-slate-900 dark:text-white font-bold text-xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Settings</h1>
+                <h1 className="text-base-900 dark:text-white font-bold text-xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Settings</h1>
               </div>
 
               {/* Menu groups */}
@@ -619,7 +619,7 @@ export default function SettingsPage() {
               {/* Logout */}
               <div className="mt-2">
                 <button id="settings-logout" onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800 rounded-2xl text-rose-500 dark:text-rose-400 text-sm font-semibold active:bg-rose-50 dark:active:bg-rose-950/30 transition-colors">
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl text-rose-500 dark:text-rose-400 text-sm font-semibold active:bg-rose-50 dark:active:bg-rose-950/30 transition-colors shadow-xs">
                   <LogOut size={16} />
                   Log Out
                 </button>
@@ -639,7 +639,7 @@ export default function SettingsPage() {
               {/* Back header */}
               <button
                 onClick={() => setActiveSection(null)}
-                className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 text-sm font-semibold mb-4 -ml-1 active:opacity-70 transition-opacity"
+                className="flex items-center gap-1 text-accent-500 dark:text-accent-400 text-sm font-semibold mb-4 -ml-1 active:opacity-70 transition-opacity"
               >
                 <ChevronLeft size={20} />
                 {sectionLabel}

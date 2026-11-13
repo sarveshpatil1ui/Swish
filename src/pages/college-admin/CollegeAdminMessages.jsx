@@ -68,15 +68,15 @@ function Avatar({ name, initials, avatarColor, profilePhoto, online, size = 'md'
           onError={() => setImgError(true)}
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
-          className={`${sizes[size]} rounded-full object-cover`}
+          className={`${sizes[size]} rounded-full object-cover border border-base-150 dark:border-base-700`}
         />
       ) : (
-        <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold`} style={{ backgroundColor: avatarColor || '#6366f1' }}>
+        <div className={`${sizes[size]} rounded-full flex items-center justify-center text-white font-bold bg-accent-600`} style={avatarColor ? { backgroundColor: avatarColor } : undefined}>
           {initials || '?'}
         </div>
       )}
       {online !== undefined && (
-        <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-gray-950 ${online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-gray-600'}`} />
+        <span className={`absolute bottom-0 right-0 ${dots[size]} rounded-full border-white dark:border-base-950 ${online ? 'bg-emerald-500' : 'bg-base-300 dark:bg-base-600'}`} />
       )}
     </div>
   )
@@ -91,13 +91,13 @@ function SharedPostCard({ postShare, isMe }) {
     <div
       className={`rounded-xl overflow-hidden border transition-all ${
         isMe
-          ? 'bg-indigo-700/60 border-indigo-500/60 text-white'
-          : 'bg-slate-50 dark:bg-gray-900/60 border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white'
+          ? 'bg-accent-700/60 border-accent-500/60 text-white'
+          : 'bg-base-50 dark:bg-base-900/60 border-base-150 dark:border-base-700 text-base-900 dark:text-white'
       }`}
     >
       {/* Header */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 dark:border-gray-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-white/10 dark:border-base-800">
+        <span className="w-1.5 h-1.5 rounded-full bg-accent-400" />
         <span className="text-[11px] font-semibold truncate">
           {postShare.authorName || 'Swish user'}
         </span>
@@ -105,7 +105,7 @@ function SharedPostCard({ postShare, isMe }) {
 
       {/* Media thumbnail */}
       {resolvedImg && !imgError && (
-        <div className="relative w-full h-44 sm:h-52 bg-slate-950 overflow-hidden">
+        <div className="relative w-full h-44 sm:h-52 bg-base-950 overflow-hidden">
           <img
             src={resolvedImg}
             alt=""
@@ -130,8 +130,8 @@ function SharedPostCard({ postShare, isMe }) {
           to={`/post/${postShare.postId}`}
           className={`flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg transition-all ${
             isMe
-              ? 'bg-white text-indigo-700 hover:bg-white/90 shadow-xs'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+              ? 'bg-white text-accent-700 hover:bg-white/90 shadow-xs'
+              : 'bg-accent-600 hover:bg-accent-700 text-white shadow-xs'
           }`}
         >
           <span>View Post</span>

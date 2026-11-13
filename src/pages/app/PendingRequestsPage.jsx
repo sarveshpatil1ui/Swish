@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 const adminCardClass =
-  'bg-white/95 dark:bg-gray-900/95 border border-slate-200/80 dark:border-gray-800 rounded-2xl shadow-sm shadow-slate-200/40 dark:shadow-black/20'
+  'bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xs'
 
 const adminButtonClass =
   'transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] disabled:hover:translate-y-0 disabled:active:scale-100'
@@ -91,13 +91,13 @@ export default function PendingRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-900 dark:text-white">
+    <div className="min-h-screen bg-base-25 dark:bg-base-950 text-base-900 dark:text-white">
       {/* Header */}
-      <header className="border-b border-slate-200/80 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur sticky top-0 z-20">
+      <header className="border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-white/90 dark:bg-base-900/90 backdrop-blur-md sticky top-0 z-20">
         <div className="px-6 py-5">
           <button
             onClick={() => navigate('/admin')}
-            className={`inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white mb-4 ${adminButtonClass}`}
+            className={`inline-flex items-center gap-2 text-sm font-medium text-base-500 hover:text-base-900 dark:text-base-400 dark:hover:text-white mb-4 ${adminButtonClass}`}
           >
             <ArrowLeft size={16} />
             Back to Dashboard
@@ -105,11 +105,11 @@ export default function PendingRequestsPage() {
 
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold">
+              <h1 className="text-2xl font-bold tracking-tight text-base-900 dark:text-white" style={{ fontFamily: 'var(--font-heading)' }}>
                 Pending College Requests
               </h1>
 
-              <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-base-500 dark:text-base-400 mt-1">
                 Review college registration requests awaiting approval.
               </p>
             </div>
@@ -117,7 +117,7 @@ export default function PendingRequestsPage() {
             <button
               onClick={loadPendingRequests}
               disabled={loading}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-gray-800 disabled:opacity-50 ${adminButtonClass}`}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-base-200 dark:border-base-700 bg-white dark:bg-base-900 text-sm font-semibold hover:bg-base-50 dark:hover:bg-base-800 disabled:opacity-50 ${adminButtonClass}`}
             >
               <RefreshCw
                 size={16}
@@ -129,13 +129,13 @@ export default function PendingRequestsPage() {
         </div>
       </header>
 
-      <main className="p-6">
+      <main className="p-6 max-w-7xl mx-auto">
         {/* Search */}
         <div className="mb-5">
           <div className="relative max-w-md">
             <Search
               size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-base-400"
             />
 
             <input
@@ -143,14 +143,14 @@ export default function PendingRequestsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search college, requester or email..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950/80 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-base-200 dark:border-base-700 bg-white dark:bg-base-900 text-sm outline-hidden focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all text-base-900 dark:text-white"
             />
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="mb-5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
+          <div className="mb-5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
             {error}
           </div>
         )}
@@ -162,24 +162,24 @@ export default function PendingRequestsPage() {
               {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-16 rounded-xl bg-slate-100 dark:bg-gray-800 animate-pulse"
+                  className="h-16 rounded-xl bg-base-100 dark:bg-base-800 animate-pulse"
                 />
               ))}
             </div>
           ) : filteredRequests.length === 0 ? (
             <div className="py-16 px-6 text-center">
-              <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-base-100 dark:bg-base-800 flex items-center justify-center mb-4">
                 <CheckCircle2
                   size={24}
                   className="text-emerald-500"
                 />
               </div>
 
-              <h3 className="font-semibold text-lg">
+              <h3 className="font-semibold text-lg text-base-900 dark:text-white">
                 No pending requests
               </h3>
 
-              <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-base-500 dark:text-base-400 mt-1">
                 {search
                   ? 'No requests match your search.'
                   : 'There are currently no college registrations awaiting review.'}
@@ -189,36 +189,36 @@ export default function PendingRequestsPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px]">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-gray-800 bg-slate-50/70 dark:bg-gray-800/40 text-left">
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr className="border-b border-base-100 dark:border-base-800 bg-base-50/70 dark:bg-base-800/40 text-left">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       College
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Requester
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Official Email
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Submitted
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Email
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Status
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Documents
                     </th>
 
-                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                       Action
                     </th>
                   </tr>
@@ -228,24 +228,24 @@ export default function PendingRequestsPage() {
                   {filteredRequests.map((request) => (
                     <tr
                       key={request.id}
-                      className="border-b border-slate-100 dark:border-gray-800 last:border-0 hover:bg-slate-50/80 dark:hover:bg-gray-800/50 transition-colors"
+                      className="border-b border-base-100 dark:border-base-800/80 last:border-0 hover:bg-base-50/80 dark:hover:bg-base-800/50 transition-colors"
                     >
                       {/* College */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-accent-50 dark:bg-accent-950/40 flex items-center justify-center">
                             <Building2
                               size={18}
-                              className="text-indigo-500"
+                              className="text-accent-500"
                             />
                           </div>
 
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-base-900 dark:text-white">
                               {request.collegeName || '—'}
                             </div>
 
-                            <div className="text-xs text-slate-500 dark:text-gray-400">
+                            <div className="text-xs text-base-500 dark:text-base-400">
                               {request.collegeCode || 'No code'}
                             </div>
                           </div>
@@ -257,10 +257,10 @@ export default function PendingRequestsPage() {
                         <div className="flex items-center gap-2">
                           <User
                             size={15}
-                            className="text-slate-400"
+                            className="text-base-400"
                           />
 
-                          <span className="text-sm">
+                          <span className="text-sm text-base-800 dark:text-base-200">
                             {request.requesterName || '—'}
                           </span>
                         </div>
@@ -271,10 +271,10 @@ export default function PendingRequestsPage() {
                         <div className="flex items-center gap-2">
                           <Mail
                             size={15}
-                            className="text-slate-400"
+                            className="text-base-400"
                           />
 
-                          <span className="text-sm">
+                          <span className="text-sm text-base-800 dark:text-base-200">
                             {request.officialEmail || '—'}
                           </span>
                         </div>
@@ -282,10 +282,10 @@ export default function PendingRequestsPage() {
 
                       {/* Date */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-sm text-base-600 dark:text-base-300">
                           <CalendarDays
                             size={15}
-                            className="text-slate-400"
+                            className="text-base-400"
                           />
 
                           {formatDate(request.createdAt)}
@@ -295,12 +295,12 @@ export default function PendingRequestsPage() {
                       {/* Email verification */}
                       <td className="px-5 py-4">
                         {request.emailVerified ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                             <CheckCircle2 size={15} />
                             Verified
                           </span>
                         ) : (
-                          <span className="text-sm text-slate-500">
+                          <span className="text-sm text-base-400">
                             Not verified
                           </span>
                         )}
@@ -308,7 +308,7 @@ export default function PendingRequestsPage() {
 
                       {/* Status */}
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40">
                           Pending Review
                         </span>
                       </td>
@@ -316,12 +316,12 @@ export default function PendingRequestsPage() {
                       {/* Documents */}
                       <td className="px-5 py-4">
                         {request.proofPublicId ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-gray-300">
+                          <span className="inline-flex items-center gap-1.5 text-sm text-base-600 dark:text-base-300">
                             <FileText size={15} />
                             Available
                           </span>
                         ) : (
-                          <span className="text-sm text-slate-400">
+                          <span className="text-sm text-base-400">
                             Not available
                           </span>
                         )}
@@ -335,7 +335,7 @@ export default function PendingRequestsPage() {
                               `/admin/pending-requests/${request.id}`
                             )
                           }
-                          className={`px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 dark:shadow-none ${adminButtonClass}`}
+                          className={`px-3.5 py-2 rounded-lg bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold shadow-xs ${adminButtonClass}`}
                         >
                           Review
                         </button>
@@ -348,10 +348,9 @@ export default function PendingRequestsPage() {
           )}
         </div>
 
-        {/* Location info is intentionally not shown as a separate column
-            to keep the table compact. */}
+        {/* Location info */}
         {filteredRequests.length > 0 && (
-          <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+          <div className="mt-4 flex items-center gap-2 text-xs text-base-400">
             <MapPin size={13} />
             {filteredRequests.length} pending request
             {filteredRequests.length !== 1 ? 's' : ''}

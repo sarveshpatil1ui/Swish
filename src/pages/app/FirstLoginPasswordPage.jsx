@@ -23,13 +23,13 @@ function PasswordInput({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-950 outline-none focus:ring-2 focus:ring-indigo-500"
+        className="w-full px-4 py-3 pr-12 rounded-xl border border-base-200 dark:border-base-750 bg-white dark:bg-base-900 text-base-900 dark:text-white placeholder-base-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-400 transition-all text-sm"
       />
 
       <button
         type="button"
         onClick={() => setShow((prev) => !prev)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-700 dark:hover:text-white transition-colors"
       >
         {show ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
@@ -112,32 +112,32 @@ export default function FirstLoginPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-base-50 dark:bg-base-950 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-sm p-7">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center mb-5">
+        <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-xs p-7">
+          <div className="w-14 h-14 rounded-xl bg-accent-50 dark:bg-accent-950/40 border border-accent-100 dark:border-accent-900/40 flex items-center justify-center mb-5">
             <LockKeyhole
               size={26}
-              className="text-indigo-600 dark:text-indigo-400"
+              className="text-accent-600 dark:text-accent-400"
             />
           </div>
 
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-2xl font-bold text-base-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Change Your Password
           </h1>
 
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-2">
+          <p className="text-sm text-base-500 dark:text-base-400 mt-2">
             This is your first login. For security, please
             create a new password before continuing.
           </p>
 
-          <div className="mt-5 flex items-start gap-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 p-4">
+          <div className="mt-5 flex items-start gap-3 rounded-xl bg-accent-50 dark:bg-accent-950/30 border border-accent-100 dark:border-accent-900/50 p-4">
             <ShieldCheck
               size={18}
-              className="text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0"
+              className="text-accent-600 dark:text-accent-400 mt-0.5 shrink-0"
             />
 
-            <p className="text-xs text-indigo-700 dark:text-indigo-300">
+            <p className="text-xs text-accent-700 dark:text-accent-300">
               Your temporary password should not be reused.
               Choose a strong password that only you know.
             </p>
@@ -165,7 +165,7 @@ export default function FirstLoginPasswordPage() {
             className="mt-6 space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-base-700 dark:text-base-300">
                 Temporary Password
               </label>
 
@@ -181,7 +181,7 @@ export default function FirstLoginPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-base-700 dark:text-base-300">
                 New Password
               </label>
 
@@ -195,13 +195,13 @@ export default function FirstLoginPasswordPage() {
                 setShow={setShowNew}
               />
 
-              <p className="text-xs text-slate-400 mt-1.5">
+              <p className="text-xs text-base-400 mt-1.5">
                 Minimum 8 characters.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 text-base-700 dark:text-base-300">
                 Confirm New Password
               </label>
 
@@ -219,7 +219,7 @@ export default function FirstLoginPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
+              className="w-full mt-2 py-3 rounded-xl bg-accent-500 text-white font-medium hover:bg-accent-600 disabled:opacity-50 transition-colors shadow-xs"
             >
               {loading
                 ? 'Updating Password...'

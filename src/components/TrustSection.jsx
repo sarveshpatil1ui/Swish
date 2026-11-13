@@ -7,9 +7,9 @@ const pillars = [
     icon: ShieldCheck,
     title: 'Verified Community',
     description: 'Only verified campus email holders can join — no outsiders, no anonymous accounts.',
-    iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-    iconColor: 'text-indigo-600 dark:text-indigo-400',
-    hover: 'hover:border-indigo-200 dark:hover:border-indigo-800',
+    iconBg: 'bg-accent-50 dark:bg-accent-950/60',
+    iconColor: 'text-accent-600 dark:text-accent-400',
+    hover: 'hover:border-accent-200 dark:hover:border-accent-800',
   },
   {
     icon: GraduationCap,
@@ -34,7 +34,7 @@ export default function TrustSection() {
   const inView = useInView(ref, { once: true, margin: '-60px' })
 
   return (
-    <section id="trust" className="py-20 bg-white dark:bg-gray-950 transition-colors duration-300" ref={ref}>
+    <section id="trust" className="py-20 bg-white dark:bg-base-950 transition-colors duration-300" ref={ref}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -42,10 +42,10 @@ export default function TrustSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold uppercase tracking-widest mb-3">Why Swish?</p>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
+          <p className="text-accent-600 dark:text-accent-400 text-xs font-semibold uppercase tracking-widest mb-3">Why Swish?</p>
+          <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-base-900 dark:text-white">
             Built for your campus,{' '}
-            <span className="text-indigo-600">not the entire internet.</span>
+            <span className="text-accent-600 dark:text-accent-400">not the entire internet.</span>
           </h2>
         </motion.div>
 
@@ -59,13 +59,13 @@ export default function TrustSection() {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                className={`bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 ${p.hover} rounded-2xl p-7 transition-all duration-200 cursor-default`}
+                className={`bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.08)] ${p.hover} rounded-2xl p-7 transition-all duration-200 cursor-default`}
               >
                 <div className={`w-11 h-11 ${p.iconBg} rounded-xl flex items-center justify-center mb-5`}>
                   <Icon size={21} className={p.iconColor} />
                 </div>
-                <h3 className="text-slate-900 dark:text-white font-semibold text-base mb-2">{p.title}</h3>
-                <p className="text-slate-500 dark:text-gray-400 text-sm leading-relaxed">{p.description}</p>
+                <h3 className="text-base-900 dark:text-white font-semibold text-base mb-2">{p.title}</h3>
+                <p className="text-base-500 dark:text-base-400 text-sm leading-relaxed">{p.description}</p>
               </motion.div>
             )
           })}

@@ -1,0 +1,57 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "Return to Swish" [ref=e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e10]:
+        - generic [ref=e14]: Swish
+        - generic [ref=e15]: Campus Gateway
+      - link "Register College" [ref=e16] [cursor=pointer]:
+        - /url: /college-onboarding
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: Verified Campus Access
+        - heading "Sign in to Swish" [level=1] [ref=e26]
+        - paragraph [ref=e27]: Enter your campus credentials to access your college community.
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: Campus Email Address
+          - textbox "Campus Email Address" [ref=e32]:
+            - /placeholder: student@college.edu
+          - paragraph [ref=e33]: Use your official college or university-issued email.
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: Password
+            - link "Forgot password?" [ref=e37] [cursor=pointer]:
+              - /url: /forgot-password
+          - generic [ref=e38]:
+            - textbox "Password" [ref=e39]:
+              - /placeholder: ••••••••••••
+            - button "Show password" [ref=e40] [cursor=pointer]
+        - generic [ref=e44]:
+          - checkbox "Remember this device for 30 days" [ref=e45] [cursor=pointer]
+          - generic [ref=e46] [cursor=pointer]: Remember this device for 30 days
+        - button "Sign In to Campus" [ref=e47] [cursor=pointer]
+      - generic [ref=e50]:
+        - generic [ref=e51]: Campus-only isolation
+        - generic [ref=e56]: Official college notices
+      - generic [ref=e62]:
+        - paragraph [ref=e63]:
+          - text: New to Swish?
+          - link "Create campus account →" [ref=e64] [cursor=pointer]:
+            - /url: /join
+        - paragraph [ref=e65]:
+          - text: College administrator or student council?
+          - link "Register your institution" [ref=e66] [cursor=pointer]:
+            - /url: /college-onboarding
+  - contentinfo [ref=e67]:
+    - generic [ref=e68]:
+      - generic [ref=e69]: Swish Campus Systems · Institutional Domain Security
+      - generic [ref=e70]:
+        - link "Home" [ref=e71] [cursor=pointer]:
+          - /url: /
+        - link "College Registration" [ref=e72] [cursor=pointer]:
+          - /url: /college-onboarding
+        - link "Join Campus" [ref=e73] [cursor=pointer]:
+          - /url: /join

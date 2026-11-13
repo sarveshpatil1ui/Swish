@@ -121,7 +121,7 @@ export default function FacultyManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-600"></div>
       </div>
     )
   }
@@ -130,37 +130,37 @@ export default function FacultyManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Faculty Management</h1>
-        <p className="text-slate-500 dark:text-gray-500 mt-1">View and manage faculty in your college</p>
+        <h1 className="text-2xl font-bold text-base-900 dark:text-white font-heading">Faculty Management</h1>
+        <p className="text-base-500 dark:text-base-400 mt-1 text-sm">View and manage faculty in your college</p>
       </div>
 
       {/* Search Bar */}
       <div className="relative">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-base-400 dark:text-base-500" />
         <input
           type="text"
           placeholder="Search faculty by name, email, department, or designation..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
+          className="w-full bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-accent-400 dark:focus:border-accent-600 transition-all text-sm"
         />
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-base-100 dark:bg-base-800 rounded-lg hover:bg-base-200 dark:hover:bg-base-700 transition-colors"
         >
-          <Filter size={16} className="text-slate-600 dark:text-gray-400" />
+          <Filter size={16} className="text-base-600 dark:text-base-400" />
         </button>
       </div>
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-4">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-4 shadow-xs">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department</label>
+            <label className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1">Department</label>
             <select
               value={deptFilter}
               onChange={(e) => setDeptFilter(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+              className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-accent-400 text-sm"
             >
               <option value="">All Departments</option>
               {departments.map(dept => (
@@ -171,7 +171,7 @@ export default function FacultyManagement() {
           {deptFilter && (
             <button
               onClick={() => setDeptFilter('')}
-              className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline mt-2"
+              className="text-xs text-accent-600 dark:text-accent-400 font-medium hover:underline mt-2"
             >
               Clear filter
             </button>
@@ -181,46 +181,46 @@ export default function FacultyManagement() {
 
       {/* Stats */}
       <div className="flex items-center gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{faculty.length}</p>
-          <p className="text-xs text-slate-500 dark:text-gray-500">Total Faculty</p>
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-xl px-4 py-3 shadow-xs">
+          <p className="text-2xl font-bold text-base-900 dark:text-white font-heading">{faculty.length}</p>
+          <p className="text-xs text-base-500 dark:text-base-400">Total Faculty</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{faculty.filter(f => !f.suspended).length}</p>
-          <p className="text-xs text-slate-500 dark:text-gray-500">Active</p>
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-xl px-4 py-3 shadow-xs">
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-heading">{faculty.filter(f => !f.suspended).length}</p>
+          <p className="text-xs text-base-500 dark:text-base-400">Active</p>
         </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-xl px-4 py-3">
-          <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{faculty.filter(f => f.suspended).length}</p>
-          <p className="text-xs text-slate-500 dark:text-gray-500">Suspended</p>
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-xl px-4 py-3 shadow-xs">
+          <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 font-heading">{faculty.filter(f => f.suspended).length}</p>
+          <p className="text-xs text-base-500 dark:text-base-400">Suspended</p>
         </div>
       </div>
 
       {/* Faculty Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl overflow-hidden shadow-xs">
         {filteredFaculty.length === 0 ? (
           <div className="text-center py-12">
-            <User size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">No faculty found</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">No faculty members are currently registered for this college.</p>
+            <User size={32} className="text-base-300 dark:text-base-600 mx-auto mb-3" />
+            <p className="text-base-500 dark:text-base-400 text-sm">No faculty found</p>
+            <p className="text-base-400 dark:text-base-500 text-xs mt-1">No faculty members are currently registered for this college.</p>
           </div>
         ) : (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-base-50 dark:bg-base-800/60 border-b border-base-200 dark:border-base-800">
                   <tr>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Faculty</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Designation</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Badges</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Faculty</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Department</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Designation</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Badges</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-base-100 dark:divide-base-800">
                   {filteredFaculty.map((fac) => (
-                    <tr key={fac.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={fac.id} className="hover:bg-base-50 dark:hover:bg-base-800/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div
@@ -230,18 +230,18 @@ export default function FacultyManagement() {
                             {fac.initials}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-slate-900 dark:text-white font-medium text-sm truncate">{fac.name}</p>
-                            <p className="text-slate-500 dark:text-gray-500 text-xs truncate flex items-center gap-1">
+                            <p className="text-base-900 dark:text-white font-medium text-sm truncate">{fac.name}</p>
+                            <p className="text-base-500 dark:text-base-400 text-xs truncate flex items-center gap-1">
                               <Mail size={12} /> {fac.email}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-slate-900 dark:text-white text-sm">{fac.dept || '-'}</p>
+                        <p className="text-base-900 dark:text-white text-sm">{fac.dept || '-'}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-slate-900 dark:text-white text-sm flex items-center gap-1">
+                        <p className="text-base-900 dark:text-white text-sm flex items-center gap-1">
                           <Briefcase size={14} /> {fac.designation || '-'}
                         </p>
                       </td>
@@ -249,14 +249,14 @@ export default function FacultyManagement() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleToggleVerifiedBadge(fac.id, fac.verifiedBadge)}
-                            className={`p-1.5 rounded-lg transition-all ${fac.verifiedBadge ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                            className={`p-1.5 rounded-lg transition-all ${fac.verifiedBadge ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' : 'bg-base-100 dark:bg-base-800 text-base-400 dark:text-base-500 hover:bg-base-200 dark:hover:bg-base-700'}`}
                             title={fac.verifiedBadge ? 'Revoke verified badge' : 'Grant verified badge'}
                           >
                             <Award size={16} />
                           </button>
                           <button
                             onClick={() => handleToggleHOD(fac.id, fac.isHOD, fac.dept)}
-                            className={`p-1.5 rounded-lg transition-all ${fac.isHOD ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                            className={`p-1.5 rounded-lg transition-all ${fac.isHOD ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400' : 'bg-base-100 dark:bg-base-800 text-base-400 dark:text-base-500 hover:bg-base-200 dark:hover:bg-base-700'}`}
                             title={fac.isHOD ? 'Remove HOD status' : 'Assign as HOD'}
                           >
                             <Crown size={16} />
@@ -299,7 +299,7 @@ export default function FacultyManagement() {
             </div>
 
             {/* Mobile Stacked Cards */}
-            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="md:hidden divide-y divide-base-100 dark:divide-base-800">
               {filteredFaculty.map((fac) => (
                 <div key={fac.id} className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -310,20 +310,20 @@ export default function FacultyManagement() {
                       {fac.initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-slate-900 dark:text-white font-semibold text-sm">{fac.name}</p>
-                      <p className="text-slate-500 dark:text-gray-500 text-xs flex items-center gap-1 mt-1">
+                      <p className="text-base-900 dark:text-white font-semibold text-sm">{fac.name}</p>
+                      <p className="text-base-500 dark:text-base-400 text-xs flex items-center gap-1 mt-1">
                         <Mail size={12} /> {fac.email}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <div>
-                      <p className="text-xs text-slate-400 dark:text-gray-500">Department</p>
-                      <p className="text-slate-900 dark:text-white font-medium">{fac.dept || '-'}</p>
+                      <p className="text-xs text-base-400 dark:text-base-500">Department</p>
+                      <p className="text-base-900 dark:text-white font-medium">{fac.dept || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400 dark:text-gray-500">Designation</p>
-                      <p className="text-slate-900 dark:text-white font-medium flex items-center gap-1">
+                      <p className="text-xs text-base-400 dark:text-base-500">Designation</p>
+                      <p className="text-base-900 dark:text-white font-medium flex items-center gap-1">
                         <Briefcase size={12} /> {fac.designation || '-'}
                       </p>
                     </div>
@@ -332,14 +332,14 @@ export default function FacultyManagement() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleVerifiedBadge(fac.id, fac.verifiedBadge)}
-                        className={`p-1.5 rounded-lg transition-all ${fac.verifiedBadge ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                        className={`p-1.5 rounded-lg transition-all ${fac.verifiedBadge ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400' : 'bg-base-100 dark:bg-base-800 text-base-400 dark:text-base-500 hover:bg-base-200 dark:hover:bg-base-700'}`}
                         title={fac.verifiedBadge ? 'Revoke verified badge' : 'Grant verified badge'}
                       >
                         <Award size={16} />
                       </button>
                       <button
                         onClick={() => handleToggleHOD(fac.id, fac.isHOD, fac.dept)}
-                        className={`p-1.5 rounded-lg transition-all ${fac.isHOD ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                        className={`p-1.5 rounded-lg transition-all ${fac.isHOD ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400' : 'bg-base-100 dark:bg-base-800 text-base-400 dark:text-base-500 hover:bg-base-200 dark:hover:bg-base-700'}`}
                         title={fac.isHOD ? 'Remove HOD status' : 'Assign as HOD'}
                       >
                         <Crown size={16} />

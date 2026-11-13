@@ -95,15 +95,15 @@ export default function EditProfileModal({ onClose, onSaved }) {
         role="dialog"
         aria-label="Edit profile"
       >
-        <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-md bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-gray-800">
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-slate-900 dark:text-white font-bold text-lg">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)]">
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base-900 dark:text-white font-bold text-lg">
               Edit Profile
             </h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300 transition-all"
+              className="p-2 rounded-lg text-base-400 dark:text-base-500 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-700 dark:hover:text-base-300 transition-all"
               aria-label="Close"
             >
               <X size={18} />
@@ -128,7 +128,7 @@ export default function EditProfileModal({ onClose, onSaved }) {
                 ) : (
                   <div
                     className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                    style={{ backgroundColor: currentUser?.avatarColor }}
+                    style={{ backgroundColor: currentUser?.avatarColor || '#5B5FEF' }}
                   >
                     {currentUser?.initials}
                   </div>
@@ -153,13 +153,13 @@ export default function EditProfileModal({ onClose, onSaved }) {
 
             {/* Name */}
             <div className="mb-4">
-              <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Name</label>
+              <label className="block text-base-600 dark:text-base-400 text-xs font-semibold mb-1.5">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 maxLength={100}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-400 dark:focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all"
                 aria-label="Name"
               />
             </div>
@@ -167,11 +167,11 @@ export default function EditProfileModal({ onClose, onSaved }) {
             {/* Academic Year (Student) */}
             {currentUser?.role === 'student' && (
               <div className="mb-4">
-                <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Academic Year</label>
+                <label className="block text-base-600 dark:text-base-400 text-xs font-semibold mb-1.5">Academic Year</label>
                 <select
                   value={year}
                   onChange={e => setYear(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 cursor-pointer"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-400 dark:focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 cursor-pointer"
                   aria-label="Academic Year"
                 >
                   <option value="">Select Year</option>
@@ -185,11 +185,11 @@ export default function EditProfileModal({ onClose, onSaved }) {
             {/* Designation (Faculty) */}
             {currentUser?.role === 'faculty' && (
               <div className="mb-4">
-                <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Designation</label>
+                <label className="block text-base-600 dark:text-base-400 text-xs font-semibold mb-1.5">Designation</label>
                 <select
                   value={designation}
                   onChange={e => setDesignation(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 cursor-pointer"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-400 dark:focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 cursor-pointer"
                   aria-label="Designation"
                 >
                   <option value="">Select Designation</option>
@@ -202,18 +202,18 @@ export default function EditProfileModal({ onClose, onSaved }) {
 
             {/* Bio */}
             <div className="mb-2">
-              <label className="block text-slate-600 dark:text-gray-400 text-xs font-semibold mb-1.5">Bio</label>
+              <label className="block text-base-600 dark:text-base-400 text-xs font-semibold mb-1.5">Bio</label>
               <textarea
                 value={bio}
                 onChange={e => setBio(e.target.value)}
                 placeholder="Tell people a bit about yourself…"
                 rows={3}
                 maxLength={MAX_BIO_LENGTH}
-                className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 resize-none transition-all"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-400 dark:focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 resize-none transition-all"
                 aria-label="Bio"
               />
               <p className={`text-xs text-right mt-1 transition-colors ${
-                bio.length > MAX_BIO_LENGTH ? 'text-rose-500 font-semibold' : 'text-slate-400 dark:text-gray-500'
+                bio.length > MAX_BIO_LENGTH ? 'text-rose-500 font-semibold' : 'text-base-400 dark:text-base-500'
               }`}>
                 {bio.length}/{MAX_BIO_LENGTH}
               </p>
@@ -229,14 +229,14 @@ export default function EditProfileModal({ onClose, onSaved }) {
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="flex-1 py-2.5 text-sm font-semibold text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                className="flex-1 py-2.5 text-sm font-semibold text-base-600 dark:text-base-400 border border-base-200 dark:border-base-700 rounded-xl hover:bg-base-50 dark:hover:bg-base-800 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving || !name.trim()}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-accent-500 rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xs flex items-center justify-center gap-2"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save'}
               </button>

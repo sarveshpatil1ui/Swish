@@ -8,12 +8,12 @@ import { useSwish } from '../../context/SwishContext'
 
 const iconMap = {
   like:           { icon: Heart,         bg: 'bg-rose-50 dark:bg-rose-950/40',       color: 'text-rose-500'    },
-  comment:        { icon: MessageCircle, bg: 'bg-indigo-50 dark:bg-indigo-950/50',   color: 'text-indigo-500'  },
+  comment:        { icon: MessageCircle, bg: 'bg-accent-50 dark:bg-accent-950/50',   color: 'text-accent-500'  },
   follow:         { icon: UserPlus,      bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
-  follow_request: { icon: UserPlus,      bg: 'bg-violet-50 dark:bg-violet-950/40',   color: 'text-violet-500'  },
+  follow_request: { icon: UserPlus,      bg: 'bg-accent-50 dark:bg-accent-950/40',   color: 'text-accent-500'  },
   follow_accept:  { icon: UserCheck,     bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
-  mention:        { icon: AtSign,        bg: 'bg-violet-50 dark:bg-violet-950/40',   color: 'text-violet-500'  },
-  event:          { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',     color: 'text-amber-500'   },
+  mention:        { icon: AtSign,        bg: 'bg-accent-50 dark:bg-accent-950/40',   color: 'text-accent-500'  },
+  event:          { icon: Calendar,      bg: 'bg-amber-50 dark:bg-amber-950/40',     color: 'text-campus-amber'},
   report_update:  { icon: ShieldCheck,   bg: 'bg-emerald-50 dark:bg-emerald-950/40', color: 'text-emerald-500'},
 }
 
@@ -25,7 +25,7 @@ function ReportResolutionModal({ notification: n, onClose }) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4"
+        className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl w-full max-w-md p-6 shadow-2xl space-y-4"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -33,39 +33,39 @@ function ReportResolutionModal({ notification: n, onClose }) {
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <h3 className="text-sm font-bold text-base-900 dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 Platform Report Update
               </h3>
-              <p className="text-[11px] text-slate-400">Official Swish Support Team</p>
+              <p className="text-[11px] text-base-400">Official Swish Support Team</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 rounded-lg transition-colors"
+            className="p-1.5 text-base-400 hover:text-base-600 dark:hover:text-base-200 rounded-lg transition-colors"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="bg-slate-50 dark:bg-gray-800/50 p-3.5 rounded-xl text-xs space-y-2">
+        <div className="bg-base-50 dark:bg-base-800/50 p-3.5 rounded-xl text-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-gray-400">Status:</span>
+            <span className="text-base-500 dark:text-base-400">Status:</span>
             <span className="px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 capitalize">
               {n.text?.includes('resolved') ? 'Resolved' : n.text?.includes('reviewing') ? 'Under Review' : 'Closed'}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 dark:text-gray-400">Update Time:</span>
-            <span className="text-slate-700 dark:text-gray-300 font-medium">{n.time}</span>
+            <span className="text-base-500 dark:text-base-400">Update Time:</span>
+            <span className="text-base-700 dark:text-base-300 font-medium">{n.time}</span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 dark:text-gray-400 mb-1.5">
+          <label className="block text-xs font-semibold text-base-500 dark:text-base-400 mb-1.5">
             Admin Feedback / Resolution Note:
           </label>
-          <div className="p-3.5 bg-slate-50 dark:bg-gray-800/40 border border-slate-200/80 dark:border-gray-700/80 rounded-xl text-xs text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+          <div className="p-3.5 bg-base-50 dark:bg-base-800/40 border border-base-200/80 dark:border-base-700/80 rounded-xl text-xs text-base-800 dark:text-base-200 leading-relaxed whitespace-pre-wrap">
             {n.subtext?.replace(/^Admin Note:\s*"?/, '').replace(/"?$/, '') || 'Your report has been received and processed by the platform administration team.'}
           </div>
         </div>
@@ -74,7 +74,7 @@ function ReportResolutionModal({ notification: n, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
+            className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
           >
             Got It
           </button>
@@ -161,10 +161,10 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
       exit={{ opacity: 0, x: 12, height: 0, marginBottom: 0, padding: 0 }}
       transition={{ duration: 0.3, delay: index * 0.04 }}
       onClick={handleClick}
-      className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+      className={`flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer select-none ${
         !n.read
-          ? 'bg-indigo-50/60 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 active:bg-indigo-100 dark:active:bg-indigo-950/50'
-          : 'bg-white dark:bg-gray-900 border-slate-200 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-gray-800/60 active:bg-slate-100 dark:active:bg-gray-800'
+          ? 'bg-accent-50/50 dark:bg-accent-950/20 border-accent-100/80 dark:border-accent-900/40 hover:bg-accent-50/80 dark:hover:bg-accent-950/30'
+          : 'bg-white dark:bg-base-900 border-base-100 dark:border-[rgba(255,255,255,0.07)] hover:bg-base-50 dark:hover:bg-base-850'
       }`}
     >
       {/* Type icon chip */}
@@ -174,7 +174,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
 
       {/* User / System avatar */}
       {isSystemNotification ? (
-        <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white flex-shrink-0 mt-0.5 shadow-xs">
+        <div className="w-9 h-9 rounded-full bg-accent-500 flex items-center justify-center text-white flex-shrink-0 mt-0.5 shadow-xs">
           <ShieldCheck size={16} />
         </div>
       ) : (
@@ -188,7 +188,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
           ) : (
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
-              style={{ backgroundColor: n.user?.avatarColor || '#6366f1' }}
+              style={{ backgroundColor: n.user?.avatarColor || '#5B5FEF' }}
             >
               {n.user?.initials || '??'}
             </div>
@@ -198,9 +198,9 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-slate-800 dark:text-gray-200 text-sm leading-snug">
+        <p className="text-base-800 dark:text-base-200 text-sm leading-snug">
           {isSystemNotification ? (
-            <span className="font-bold text-indigo-600 dark:text-indigo-400">
+            <span className="font-bold text-accent-600 dark:text-accent-400">
               {n.user?.name || 'Swish Support Team'}
             </span>
           ) : (
@@ -208,14 +208,14 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
               {n.user?.name}
             </span>
           )}{' '}
-          <span className="text-slate-600 dark:text-gray-400">{n.text}</span>
+          <span className="text-base-600 dark:text-base-400">{n.text}</span>
         </p>
         {n.subtext && (
-          <p className="text-slate-400 dark:text-gray-500 text-xs mt-0.5 truncate italic">
+          <p className="text-base-400 dark:text-base-500 text-xs mt-0.5 truncate italic">
             "{n.subtext}"
           </p>
         )}
-        <p className="text-slate-300 dark:text-gray-600 text-xs mt-1.5">{n.time}</p>
+        <p className="text-base-400 dark:text-base-500 text-xs mt-1.5">{n.time}</p>
 
         {/* Follow request interactive actions */}
         {n.type === 'follow_request' && (
@@ -225,7 +225,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
                 <Check size={14} /> Request accepted
               </span>
             ) : actionStatus === 'rejected' ? (
-              <span className="inline-flex items-center text-xs text-slate-400 dark:text-gray-500 italic">
+              <span className="inline-flex items-center text-xs text-base-400 dark:text-base-500 italic">
                 Request declined
               </span>
             ) : (
@@ -234,7 +234,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
                   type="button"
                   disabled={Boolean(actionStatus)}
                   onClick={handleAccept}
-                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all disabled:opacity-60 flex items-center gap-1"
+                  className="px-3.5 py-1.5 bg-accent-500 hover:bg-accent-600 active:bg-accent-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all disabled:opacity-60 flex items-center gap-1"
                 >
                   {actionStatus === 'loading_accept' && <Loader2 size={12} className="animate-spin" />}
                   Confirm
@@ -243,7 +243,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
                   type="button"
                   disabled={Boolean(actionStatus)}
                   onClick={handleReject}
-                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 active:bg-slate-300 dark:active:bg-gray-600 text-slate-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all disabled:opacity-60 flex items-center gap-1"
+                  className="px-3.5 py-1.5 bg-base-100 dark:bg-base-800 hover:bg-base-200 dark:hover:bg-base-750 active:bg-base-300 dark:active:bg-base-700 text-base-700 dark:text-base-200 text-xs font-semibold rounded-lg transition-all disabled:opacity-60 flex items-center gap-1"
                 >
                   {actionStatus === 'loading_reject' && <Loader2 size={12} className="animate-spin" />}
                   Delete
@@ -256,7 +256,7 @@ function NotificationItem({ notification: n, index, onRead, onSelectNotice, onSe
 
       {/* Unread dot */}
       {!n.read && (
-        <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-2" />
+        <div className="w-2 h-2 rounded-full bg-accent-500 flex-shrink-0 mt-2" />
       )}
     </motion.div>
   )
@@ -334,12 +334,12 @@ export default function NotificationsPage() {
         <div>
           <h1
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            className="text-slate-900 dark:text-white font-bold text-xl"
+            className="text-base-900 dark:text-white font-bold text-xl"
           >
             Notifications
           </h1>
           {unreadCount > 0 && (
-            <p className="text-slate-400 dark:text-gray-500 text-sm mt-0.5">
+            <p className="text-base-400 dark:text-base-500 text-sm mt-0.5">
               {unreadCount} unread
             </p>
           )}
@@ -347,7 +347,7 @@ export default function NotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
+            className="flex items-center gap-1.5 text-accent-600 dark:text-accent-400 text-sm font-medium hover:text-accent-700 dark:hover:text-accent-300 px-3 py-1.5 rounded-lg hover:bg-accent-50 dark:hover:bg-accent-950/30 transition-all"
           >
             <Check size={15} />
             Mark all read
@@ -366,16 +366,16 @@ export default function NotificationsPage() {
             transition={{ duration: 0.4 }}
             className="text-center py-20"
           >
-            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 rounded-xl flex items-center justify-center mx-auto mb-5 shadow-xs">
               <CheckCircle size={28} className="text-emerald-500" />
             </div>
             <h3
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-              className="text-slate-900 dark:text-white font-bold text-base mb-1"
+              className="text-base-900 dark:text-white font-bold text-base mb-1"
             >
               All caught up!
             </h3>
-            <p className="text-slate-400 dark:text-gray-500 text-sm">
+            <p className="text-base-400 dark:text-base-500 text-sm">
               No new notifications right now. Check back later.
             </p>
           </motion.div>

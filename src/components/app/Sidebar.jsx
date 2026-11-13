@@ -30,16 +30,31 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex flex-col sticky top-0 h-screen w-16 lg:w-60 border-r border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950 transition-colors duration-300 flex-shrink-0 py-5 px-2 lg:px-4">
+      <aside className="hidden md:flex flex-col sticky top-0 h-screen w-16 lg:w-60 border-r border-base-100 dark:border-[rgba(255,255,255,0.07)] bg-white dark:bg-base-950 transition-colors duration-300 flex-shrink-0 py-5 px-2 lg:px-4">
         {/* Logo */}
-        <NavLink to="/home" className="flex items-center gap-2.5 px-2 mb-8 group">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-700 transition-colors">
+        <NavLink to="/home" className="flex items-center gap-2.5 px-2 mb-6 group">
+          <div className="w-8 h-8 rounded-xl bg-accent-500 flex items-center justify-center flex-shrink-0 group-hover:bg-accent-600 transition-colors">
             <Zap size={16} className="text-white fill-white" />
           </div>
-          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="hidden lg:block font-extrabold text-lg text-slate-900 dark:text-white">
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="hidden lg:block font-extrabold text-lg text-base-900 dark:text-white tracking-tight">
             Swish
           </span>
         </NavLink>
+
+        {/* Campus context — reads from live user data, never hardcoded */}
+        {user && (user.college || user.dept) && (
+          <div className="hidden lg:block sw-campus-block mx-1 mb-5">
+            <p className="text-[10px] font-600 text-base-400 uppercase tracking-wider mb-0.5">Your Campus</p>
+            {user.college && (
+              <p className="text-sm font-bold text-base-900 dark:text-white leading-tight truncate">{user.college}</p>
+            )}
+            {(user.dept || user.year) && (
+              <p className="text-xs text-base-500 dark:text-base-400 mt-0.5 truncate">
+                {[user.dept, user.year].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Main nav (Instagram Style Hierarchy) */}
         <nav className="flex-1 space-y-0.5" aria-label="App navigation">
@@ -50,8 +65,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -70,8 +85,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -90,8 +105,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -114,7 +129,7 @@ export default function Sidebar() {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group ${
               isPostCreationPaused
                 ? 'opacity-50 cursor-not-allowed text-slate-400'
-                : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white cursor-pointer'
+                : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white cursor-pointer'
             }`}
           >
             <div className="relative">
@@ -135,8 +150,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -163,8 +178,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -191,8 +206,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-600 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -213,7 +228,7 @@ export default function Sidebar() {
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
                     ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-semibold'
-                    : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'
+                    : 'text-base-600 dark:text-base-400 hover:bg-slate-100 dark:hover:bg-gray-800'
                 }`
               }
             >
@@ -231,7 +246,7 @@ export default function Sidebar() {
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                   isActive
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-semibold'
-                    : 'text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-800'
+                    : 'text-base-600 dark:text-base-400 hover:bg-slate-100 dark:hover:bg-gray-800'
                 }`
               }
             >
@@ -242,9 +257,9 @@ export default function Sidebar() {
         </nav>
 
         {/* Bottom actions (Utility Area) */}
-        <div className="space-y-0.5 border-t border-slate-100 dark:border-gray-800 pt-4">
+        <div className="space-y-0.5 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] pt-4">
           {user && (
-            <NavLink to={`/profile/${user?.id || 'user-1'}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-all mb-1">
+            <NavLink to={`/profile/${user?.id || 'user-1'}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-base-50 dark:hover:bg-base-800 transition-all mb-1">
               {resolveImageUrl(user.profilePhoto) ? (
                 <img
                   src={resolveImageUrl(user.profilePhoto)}
@@ -257,8 +272,8 @@ export default function Sidebar() {
                 </div>
               )}
               <div className="hidden lg:block min-w-0">
-                <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">{user.name}</p>
-                <p className="text-slate-400 dark:text-gray-500 text-xs truncate">{user.dept}</p>
+                <p className="text-base-900 dark:text-white text-sm font-semibold truncate">{user.name}</p>
+                <p className="text-base-400 dark:text-base-500 text-xs truncate">{user.dept}</p>
               </div>
             </NavLink>
           )}
@@ -270,8 +285,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
                 isActive
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-accent-50 dark:bg-accent-900/40 text-accent-600 dark:text-accent-400 font-semibold'
+                  : 'text-base-500 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white'
               }`
             }
           >
@@ -287,7 +302,7 @@ export default function Sidebar() {
           <button
             onClick={toggle}
             aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-slate-900 dark:hover:text-white transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-base-500 dark:text-base-400 hover:bg-base-100 dark:hover:bg-base-800 hover:text-base-900 dark:hover:text-white transition-all"
           >
             <AnimatePresence mode="wait" initial={false}>
               {dark ? (
@@ -306,7 +321,7 @@ export default function Sidebar() {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-base-500 dark:text-base-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-all"
           >
             <LogOut size={18} />
             <span className="hidden lg:block text-sm">Logout</span>

@@ -6,10 +6,11 @@ import { useTheme } from '../context/ThemeContext'
 import { useSwish } from '../context/SwishContext'
 
 const navLinks = [
-  { label: 'Home', href: '#home' },
-  { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'About', href: '#community' },
+  { label: 'Overview', href: '#home' },
+  { label: 'Verification', href: '#how-it-works' },
+  { label: 'Capabilities', href: '#features' },
+  { label: 'Interface', href: '#preview' },
+  { label: 'Why Swish', href: '#community' },
 ]
 
 export default function Navbar() {
@@ -47,8 +48,8 @@ export default function Navbar() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-gray-800/80 shadow-sm'
-            : 'bg-white/70 dark:bg-gray-950/70 backdrop-blur-sm sm:bg-transparent border-b border-slate-200/40 dark:border-gray-800/40 sm:border-transparent'
+            ? 'bg-white/95 dark:bg-base-950/95 backdrop-blur-md border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] shadow-xs'
+            : 'bg-white/70 dark:bg-base-950/70 backdrop-blur-sm sm:bg-transparent border-b border-base-100/40 dark:border-base-800/40 sm:border-transparent'
         }`}
         role="banner"
       >
@@ -57,10 +58,10 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group flex-shrink-0" aria-label="Swish Home">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center group-hover:bg-indigo-700 transition-colors shadow-sm">
+              <div className="w-7 h-7 rounded-lg bg-accent-500 flex items-center justify-center group-hover:bg-accent-600 transition-colors shadow-xs">
                 <Zap size={14} className="text-white fill-white" />
               </div>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight">
+              <span style={{ fontFamily: 'var(--font-heading)' }} className="font-extrabold text-lg text-base-900 dark:text-white tracking-tight">
                 Swish
               </span>
             </Link>
@@ -71,7 +72,7 @@ export default function Navbar() {
                 <button
                   key={link.label}
                   onClick={() => scrollToSection(link.href)}
-                  className="px-3.5 py-2 text-sm font-medium text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition-all duration-150 cursor-pointer"
+                  className="px-3.5 py-2 text-sm font-medium text-base-600 dark:text-base-400 hover:text-base-900 dark:hover:text-white rounded-lg hover:bg-base-100 dark:hover:bg-base-800 transition-all duration-150 cursor-pointer"
                 >
                   {link.label}
                 </button>
@@ -85,7 +86,7 @@ export default function Navbar() {
                 id="theme-toggle"
                 onClick={toggle}
                 aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="p-2 rounded-lg text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-all duration-150"
+                className="p-2 rounded-lg text-base-500 dark:text-base-400 hover:text-base-900 dark:hover:text-white hover:bg-base-100 dark:hover:bg-base-800 transition-all duration-150"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {dark ? (
@@ -94,7 +95,7 @@ export default function Navbar() {
                     </motion.span>
                   ) : (
                     <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
-                      <Moon size={18} className="text-slate-600" />
+                      <Moon size={18} className="text-base-600" />
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -105,11 +106,11 @@ export default function Navbar() {
                 <Link
                   to="/home"
                   id="navbar-app"
-                  className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition-all"
+                  className="flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-base-700 dark:text-base-200 hover:text-accent-500 dark:hover:text-accent-400 rounded-lg hover:bg-base-100 dark:hover:bg-base-800 transition-all"
                 >
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold"
-                    style={{ backgroundColor: currentUser.avatarColor || '#6366f1' }}
+                    style={{ backgroundColor: currentUser.avatarColor || '#5B5FEF' }}
                   >
                     {currentUser.initials || 'U'}
                   </div>
@@ -119,7 +120,7 @@ export default function Navbar() {
                 <Link
                   to="/login"
                   id="navbar-login"
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 transition-all duration-150"
+                  className="px-4 py-2 text-sm font-medium text-base-600 dark:text-base-300 hover:text-base-900 dark:hover:text-white rounded-lg hover:bg-base-100 dark:hover:bg-base-800 transition-all duration-150"
                 >
                   Login
                 </Link>
@@ -128,7 +129,7 @@ export default function Navbar() {
               <Link
                 to="/college-onboarding"
                 id="navbar-join"
-                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                className="px-4 py-2 text-sm font-semibold text-white bg-accent-500 rounded-lg hover:bg-accent-600 active:bg-accent-700 transition-colors shadow-xs"
               >
                 Register Your College
               </Link>
@@ -174,11 +175,11 @@ export default function Navbar() {
                   to="/home"
                   id="mobile-account-badge"
                   aria-label="Account app"
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-semibold active:scale-95 transition-transform"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-50 dark:bg-accent-950/60 border border-accent-200 dark:border-accent-800 text-accent-700 dark:text-accent-300 text-xs font-semibold active:scale-95 transition-transform"
                 >
                   <span
                     className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                    style={{ backgroundColor: currentUser.avatarColor || '#6366f1' }}
+                    style={{ backgroundColor: currentUser.avatarColor || '#5B5FEF' }}
                   >
                     {currentUser.initials || 'U'}
                   </span>
@@ -189,9 +190,9 @@ export default function Navbar() {
                   to="/login"
                   id="mobile-account-link"
                   aria-label="Account login"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-gray-900 text-slate-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-xs font-semibold active:scale-95 transition-all shadow-sm"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800 text-base-700 dark:text-base-300 hover:text-accent-500 dark:hover:text-accent-400 text-xs font-semibold active:scale-95 transition-all shadow-xs"
                 >
-                  <User size={14} className="text-indigo-600 dark:text-indigo-400" />
+                  <User size={14} className="text-accent-500 dark:text-accent-400" />
                   <span>Account</span>
                 </Link>
               )}
@@ -200,7 +201,7 @@ export default function Navbar() {
               <button
                 id="mobile-menu-toggle"
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-gray-800 transition-all"
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-base-600 dark:text-base-300 hover:text-base-900 dark:hover:text-white hover:bg-base-100 dark:hover:bg-base-800 transition-all"
                 aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
@@ -232,24 +233,24 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-x-3 top-18 z-50 bg-white dark:bg-gray-950 border border-slate-200 dark:border-gray-800 rounded-2xl shadow-2xl p-4 lg:hidden max-h-[85vh] overflow-y-auto"
+              className="fixed inset-x-3 top-18 z-50 bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-2xl shadow-2xl p-4 lg:hidden max-h-[85vh] overflow-y-auto"
               aria-label="Mobile navigation"
             >
               {/* Account section inside menu */}
               {isAuthenticated && currentUser ? (
-                <div className="pb-3.5 mb-2 border-b border-slate-100 dark:border-gray-800">
+                <div className="pb-3.5 mb-2 border-b border-base-100 dark:border-base-800">
                   <div className="flex items-center gap-3 mb-3">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm"
-                      style={{ backgroundColor: currentUser.avatarColor || '#6366f1' }}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-xs"
+                      style={{ backgroundColor: currentUser.avatarColor || '#5B5FEF' }}
                     >
                       {currentUser.initials || 'U'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-slate-900 dark:text-white font-semibold text-sm truncate">
+                      <p className="text-base-900 dark:text-white font-semibold text-sm truncate">
                         {currentUser.name}
                       </p>
-                      <p className="text-slate-400 dark:text-gray-500 text-xs truncate">
+                      <p className="text-base-400 dark:text-base-500 text-xs truncate">
                         {currentUser.email}
                       </p>
                     </div>
@@ -258,14 +259,14 @@ export default function Navbar() {
                     <Link
                       to="/home"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-accent-500 text-white rounded-xl text-xs font-semibold hover:bg-accent-600 transition-colors shadow-xs"
                     >
                       <Compass size={14} />
                       <span>Open App</span>
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-slate-200 dark:border-gray-800 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-base-200 dark:border-base-700 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                     >
                       <LogOut size={14} />
                       <span>Log Out</span>
@@ -273,19 +274,19 @@ export default function Navbar() {
                   </div>
                 </div>
               ) : (
-                <div className="pb-3 mb-2 border-b border-slate-100 dark:border-gray-800 space-y-2">
+                <div className="pb-3 mb-2 border-b border-base-100 dark:border-base-800 space-y-2">
                   <Link
                     to="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 text-slate-800 dark:text-gray-200 border border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-gray-900 rounded-xl font-semibold text-sm hover:border-indigo-500 transition-all shadow-sm"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 text-base-800 dark:text-base-200 border border-base-200 dark:border-base-700 bg-base-50 dark:bg-base-800 rounded-xl font-semibold text-sm hover:border-accent-500 transition-all shadow-xs"
                   >
-                    <User size={16} className="text-indigo-600 dark:text-indigo-400" />
+                    <User size={16} className="text-accent-500 dark:text-accent-400" />
                     <span>Login to Account</span>
                   </Link>
                   <Link
                     to="/college-onboarding"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-center gap-1.5 w-full py-2.5 text-white bg-indigo-600 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+                    className="flex items-center justify-center gap-1.5 w-full py-2.5 text-white bg-accent-500 rounded-xl font-semibold text-sm hover:bg-accent-600 transition-colors shadow-xs"
                   >
                     <span>Register Your College</span>
                     <ArrowRight size={15} />
@@ -294,16 +295,16 @@ export default function Navbar() {
               )}
 
               {/* Theme Toggle row in drawer */}
-              <div className="pb-2 mb-2 border-b border-slate-100 dark:border-gray-800">
+              <div className="pb-2 mb-2 border-b border-base-100 dark:border-base-800">
                 <button
                   onClick={toggle}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-base-700 dark:text-base-300 hover:bg-base-50 dark:hover:bg-base-800 transition-colors text-sm font-medium"
                 >
                   <div className="flex items-center gap-2.5">
-                    {dark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-slate-600" />}
+                    {dark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-base-600" />}
                     <span>Theme: {dark ? 'Dark Mode' : 'Light Mode'}</span>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400">
                     Switch
                   </span>
                 </button>
@@ -315,7 +316,7 @@ export default function Navbar() {
                   <button
                     key={link.label}
                     onClick={() => scrollToSection(link.href)}
-                    className="w-full text-left px-3.5 py-2.5 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-gray-800 rounded-xl transition-all duration-150 font-medium text-sm"
+                    className="w-full text-left px-3.5 py-2.5 text-base-700 dark:text-base-300 hover:text-base-900 dark:hover:text-white hover:bg-base-50 dark:hover:bg-base-800 rounded-xl transition-all duration-150 font-medium text-sm"
                   >
                     {link.label}
                   </button>

@@ -721,12 +721,12 @@ export default function StoryViewer({
                   <button
                     type="button"
                     onClick={handleOpenOwnerModal}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white text-xs font-semibold transition-all shadow-sm border border-white/20 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white text-xs font-semibold transition-all shadow-xs border border-white/20 cursor-pointer"
                   >
-                    <Eye size={13} className="text-indigo-400" />
+                    <Eye size={13} className="text-accent-400" />
                     <span>{currentStory.viewsCount || 0} views</span>
                     {(currentStory.repliesCount || storyReplies.length) > 0 && (
-                      <span className="ml-1 px-1.5 py-0.2 text-[10px] bg-indigo-500 rounded-full font-bold">
+                      <span className="ml-1 px-1.5 py-0.2 text-[10px] bg-accent-500 rounded-full font-bold">
                         {currentStory.repliesCount || storyReplies.length}
                       </span>
                     )}
@@ -792,12 +792,12 @@ export default function StoryViewer({
                           : `Send message to ${currentStory.user?.name?.split(' ')[0] || 'user'}...`
                       }
                       maxLength={180}
-                      className="w-full pl-4 pr-10 py-2.5 text-xs sm:text-sm rounded-full bg-black/55 backdrop-blur-md text-white placeholder-white/60 border border-white/20 focus:outline-none focus:border-indigo-400 focus:bg-black/75 transition-all shadow-md"
+                      className="w-full pl-4 pr-10 py-2.5 text-xs sm:text-sm rounded-full bg-black/55 backdrop-blur-md text-white placeholder-white/60 border border-white/20 focus:outline-none focus:border-accent-400 focus:bg-black/75 transition-all shadow-md"
                     />
                     {replyText.trim() && (
                       <button
                         type="submit"
-                        className="absolute right-2.5 top-2.5 text-indigo-400 hover:text-white transition-colors cursor-pointer"
+                        className="absolute right-2.5 top-2.5 text-accent-400 hover:text-white transition-colors cursor-pointer"
                         title="Send comment"
                       >
                         <Send size={16} />
@@ -813,9 +813,9 @@ export default function StoryViewer({
                     title="View all comments"
                     aria-label="View comments"
                   >
-                    <MessageCircle size={20} className="text-white group-hover:text-indigo-400 transition-colors" />
+                    <MessageCircle size={20} className="text-white group-hover:text-accent-400 transition-colors" />
                     {(currentStory.repliesCount || storyReplies.length) > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-sm">
+                      <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center border-2 border-base-900 shadow-xs">
                         {currentStory.repliesCount || storyReplies.length}
                       </span>
                     )}
@@ -850,11 +850,11 @@ export default function StoryViewer({
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: '100%', opacity: 0 }}
                 transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-                className="absolute inset-x-0 bottom-0 max-h-[85%] bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl z-40 flex flex-col overflow-hidden border-t border-slate-200 dark:border-gray-800"
+                className="absolute inset-x-0 bottom-0 max-h-[85%] bg-white dark:bg-base-900 rounded-t-3xl shadow-2xl z-40 flex flex-col overflow-hidden border-t border-base-100 dark:border-[rgba(255,255,255,0.07)]"
                 onClick={e => e.stopPropagation()}
               >
                 {/* Header with Tabs: Viewers vs Comments */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-gray-800 shrink-0">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] shrink-0">
                   {isOwnStory ? (
                     <div className="flex items-center gap-2">
                       <button
@@ -862,8 +862,8 @@ export default function StoryViewer({
                         onClick={() => setActiveOwnerTab('viewers')}
                         className={`text-xs font-bold py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
                           activeOwnerTab === 'viewers'
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-200'
+                            ? 'bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400'
+                            : 'text-base-400 hover:text-base-700 dark:hover:text-base-200'
                         }`}
                       >
                         👁 Viewers ({viewers.length})
@@ -874,8 +874,8 @@ export default function StoryViewer({
                         onClick={() => setActiveOwnerTab('replies')}
                         className={`text-xs font-bold py-1.5 px-3 rounded-lg transition-all cursor-pointer ${
                           activeOwnerTab === 'replies'
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
-                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-200'
+                            ? 'bg-accent-50 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400'
+                            : 'text-base-400 hover:text-base-700 dark:hover:text-base-200'
                         }`}
                       >
                         💬 Comments ({storyReplies.length})
@@ -883,26 +883,26 @@ export default function StoryViewer({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-gray-100 flex items-center gap-1.5">
-                        <MessageCircle size={15} className="text-indigo-500" /> Comments ({storyReplies.length})
+                      <h3 className="text-xs sm:text-sm font-bold text-base-800 dark:text-base-100 flex items-center gap-1.5">
+                        <MessageCircle size={15} className="text-accent-500" /> Comments ({storyReplies.length})
                       </h3>
                     </div>
                   )}
 
                   <button
                     onClick={() => setShowViewersModal(false)}
-                    className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-full hover:bg-base-100 dark:hover:bg-base-800 text-base-400 hover:text-base-600 dark:hover:text-base-300 transition-colors cursor-pointer"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 {/* Content Area */}
-                <div className="p-3 overflow-y-auto max-h-[350px] divide-y divide-slate-50 dark:divide-gray-800/60">
+                <div className="p-3 overflow-y-auto max-h-[350px] divide-y divide-base-50 dark:divide-base-800/60">
                   {loadingOwnerData ? (
                     <div className="flex flex-col items-center justify-center py-8 gap-2">
-                      <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
-                      <span className="text-xs text-slate-400">Loading data...</span>
+                      <Loader2 className="w-5 h-5 text-accent-600 animate-spin" />
+                      <span className="text-xs text-base-400">Loading data...</span>
                     </div>
                   ) : activeOwnerTab === 'viewers' && isOwnStory ? (
                     /* Viewers Tab */
@@ -1049,12 +1049,12 @@ export default function StoryViewer({
                         onChange={e => setDrawerCommentText(e.target.value)}
                         placeholder={`Comment as ${currentUser?.name?.split(' ')[0] || 'User'}...`}
                         maxLength={280}
-                        className="flex-1 px-3 py-1.5 text-xs rounded-full bg-white dark:bg-gray-800 text-slate-800 dark:text-gray-100 placeholder-slate-400 border border-slate-200 dark:border-gray-700 focus:outline-none focus:border-indigo-500"
+                        className="flex-1 px-3 py-1.5 text-xs rounded-full bg-white dark:bg-base-800 text-base-800 dark:text-base-100 placeholder-base-400 border border-base-200 dark:border-base-700 focus:outline-none focus:border-accent-500"
                       />
                       <button
                         type="submit"
                         disabled={!drawerCommentText.trim()}
-                        className="p-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 transition-all cursor-pointer shadow-sm"
+                        className="p-1.5 rounded-full bg-accent-500 hover:bg-accent-600 text-white disabled:opacity-40 transition-all cursor-pointer shadow-xs"
                         title="Send comment"
                       >
                         <Send size={14} />

@@ -24,11 +24,11 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-black border-t border-slate-100 dark:border-gray-900 transition-colors duration-300"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-black border-t border-base-100 dark:border-[rgba(255,255,255,0.06)] transition-colors duration-300"
         aria-label="Mobile navigation"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex items-center justify-around h-[54px] px-2 sm:px-4">
+        <div className="flex items-center justify-around h-[56px] px-2 sm:px-4">
           {tabs.map((tab) => {
 
             /* ── Create button ── */
@@ -45,7 +45,7 @@ export default function BottomNav() {
                   className={`flex items-center justify-center w-10 h-10 rounded-[12px] active:scale-90 transition-transform duration-150 flex-shrink-0 relative ${
                     isPostCreationPaused
                       ? 'bg-slate-400 dark:bg-gray-700 cursor-not-allowed opacity-60'
-                      : 'bg-indigo-600 shadow-lg shadow-indigo-500/25'
+                      : 'bg-accent-500 shadow-md shadow-accent-500/20'
                   }`}
                 >
                   <PlusSquare size={20} className="text-white" strokeWidth={2} />
@@ -73,7 +73,7 @@ export default function BottomNav() {
                         <motion.span
                           key="bg"
                           layoutId="tab-bg"
-                          className="absolute inset-0 rounded-xl bg-indigo-50 dark:bg-indigo-500/10"
+                          className="absolute inset-0 rounded-xl bg-accent-50 dark:bg-accent-500/10"
                           initial={{ opacity: 0, scale: 0.75 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.75 }}
@@ -87,13 +87,13 @@ export default function BottomNav() {
                       strokeWidth={isActive ? 2.5 : 1.75}
                       className={`relative z-10 transition-all duration-150 ${
                         isActive
-                          ? 'text-indigo-600 dark:text-indigo-400'
+                          ? 'text-accent-500 dark:text-accent-400'
                           : 'text-gray-400 dark:text-gray-500'
                       }`}
                     />
 
                     {tab.badge > 0 && (
-                      <span className="absolute top-1 right-1 z-20 min-w-[15px] h-3.5 px-1 bg-indigo-600 rounded-full text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-black leading-none shadow-sm shadow-indigo-500/30">
+                      <span className="absolute top-1 right-1 z-20 min-w-[15px] h-3.5 px-1 bg-accent-500 rounded-full text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-black leading-none shadow-sm shadow-accent-500/25">
                         {msgBadgeLabel}
                       </span>
                     )}

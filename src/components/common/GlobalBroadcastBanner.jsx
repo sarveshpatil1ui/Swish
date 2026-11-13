@@ -35,7 +35,7 @@ export default function GlobalBroadcastBanner({ broadcast }) {
 
   const typeStyles = {
     info: {
-      bg: 'bg-indigo-600 text-white',
+      bg: 'bg-accent-500 text-white',
       icon: Info,
     },
     warning: {

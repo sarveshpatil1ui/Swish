@@ -155,7 +155,7 @@ export default function DepartmentManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-600"></div>
       </div>
     )
   }
@@ -165,12 +165,12 @@ export default function DepartmentManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Department Management</h1>
-          <p className="text-slate-500 dark:text-gray-500 mt-1">Manage departments in your college</p>
+          <h1 className="text-2xl font-bold text-base-900 dark:text-white font-heading">Department Management</h1>
+          <p className="text-base-500 dark:text-base-400 mt-1 text-sm">Manage departments in your college</p>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white text-sm font-semibold rounded-xl hover:bg-accent-700 transition-colors shadow-xs"
         >
           <Plus size={18} /> Add Department
         </button>
@@ -178,49 +178,49 @@ export default function DepartmentManagement() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-base-400 dark:text-base-500" />
         <input
           type="text"
           placeholder="Search departments by name or code..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-600 transition-all"
+          className="w-full bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-accent-400 dark:focus:border-accent-600 transition-all text-sm"
         />
       </div>
 
       {/* Add/Edit Form */}
       {(showAddForm || editingDept) && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-6 shadow-xs">
+          <h2 className="text-lg font-semibold text-base-900 dark:text-white mb-4 font-heading">
             {editingDept ? 'Edit Department' : 'Add New Department'}
           </h2>
           <form onSubmit={editingDept ? handleUpdate : handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department Name</label>
+              <label className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1">Department Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-accent-400 text-sm"
               />
               {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Department Code</label>
+              <label className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1">Department Code</label>
               <input
                 type="text"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-accent-400 text-sm"
               />
               {errors.code && <p className="text-rose-500 text-xs mt-1">{errors.code}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Head of Department</label>
+              <label className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1">Head of Department</label>
               <select
                 value={formData.headOfDepartment}
                 onChange={(e) => setFormData({ ...formData, headOfDepartment: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-accent-400 text-sm"
               >
                 <option value="">Not assigned</option>
                 {faculty.map(fac => (
@@ -229,25 +229,25 @@ export default function DepartmentManagement() {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Description</label>
+              <label className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400"
+                className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-accent-400 text-sm"
               />
             </div>
             <div className="md:col-span-2 flex gap-3 justify-end">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 text-slate-600 dark:text-gray-400 text-sm font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-base-600 dark:text-base-400 text-sm font-medium hover:text-base-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-4 py-2 bg-accent-600 text-white text-sm font-semibold rounded-lg hover:bg-accent-700 transition-colors shadow-xs"
               >
                 {editingDept ? 'Update Department' : 'Add Department'}
               </button>
@@ -257,60 +257,60 @@ export default function DepartmentManagement() {
       )}
 
       {/* Departments List */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-base-900 border border-base-150 dark:border-[rgba(255,255,255,0.07)] rounded-2xl overflow-hidden shadow-xs">
         {filteredDepartments.length === 0 ? (
           <div className="text-center py-12">
-            <Building2 size={32} className="text-slate-300 dark:text-gray-600 mx-auto mb-3" />
-            <p className="text-slate-500 dark:text-gray-500 text-sm">No departments found</p>
-            <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">Create your first department to organize your college community.</p>
+            <Building2 size={32} className="text-base-300 dark:text-base-600 mx-auto mb-3" />
+            <p className="text-base-500 dark:text-base-400 text-sm">No departments found</p>
+            <p className="text-base-400 dark:text-base-500 text-xs mt-1">Create your first department to organize your college community.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-base-50 dark:bg-base-800/60 border-b border-base-200 dark:border-base-800">
                 <tr>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Code</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Students</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Head</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Department</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Code</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Students</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Head</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Status</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-base-500 dark:text-base-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-base-100 dark:divide-base-800">
                 {filteredDepartments.map((dept) => (
-                  <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                  <tr key={dept.id} className="hover:bg-base-50 dark:hover:bg-base-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-950/60 flex items-center justify-center">
                           <Building2 size={18} className="text-violet-600 dark:text-violet-400" />
                         </div>
                         <div>
-                          <p className="text-slate-900 dark:text-white font-medium text-sm">{dept.name}</p>
+                          <p className="text-base-900 dark:text-white font-medium text-sm">{dept.name}</p>
                           {dept.description && (
-                            <p className="text-slate-500 dark:text-gray-500 text-xs truncate max-w-xs">{dept.description}</p>
+                            <p className="text-base-500 dark:text-base-400 text-xs truncate max-w-xs">{dept.description}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-mono text-slate-600 dark:text-gray-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                      <span className="text-xs font-mono text-base-600 dark:text-base-400 bg-base-100 dark:bg-base-800 px-2 py-1 rounded">
                         {dept.code}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="text-sm font-medium text-base-900 dark:text-white">
                         {dept.studentCount || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-slate-900 dark:text-white text-sm flex items-center gap-1">
+                      <p className="text-base-900 dark:text-white text-sm flex items-center gap-1">
                         {dept.headOfDepartment ? (
                           <>
                             <User size={14} /> {dept.headOfDepartment}
                           </>
                         ) : (
-                          <span className="text-slate-400 dark:text-gray-500">Not assigned</span>
+                          <span className="text-base-400 dark:text-base-500">Not assigned</span>
                         )}
                       </p>
                     </td>
@@ -318,7 +318,7 @@ export default function DepartmentManagement() {
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                         dept.active
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                          : 'text-slate-600 dark:text-gray-400 bg-slate-50 dark:bg-slate-800'
+                          : 'text-base-600 dark:text-base-400 bg-base-50 dark:bg-base-800'
                       }`}>
                         {dept.active ? 'Active' : 'Inactive'}
                       </span>
@@ -327,14 +327,14 @@ export default function DepartmentManagement() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(dept)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-2 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg transition-colors"
                           title="Edit"
                         >
-                          <Edit size={16} className="text-slate-600 dark:text-gray-400" />
+                          <Edit size={16} className="text-base-600 dark:text-base-400" />
                         </button>
                         <button
                           onClick={() => handleToggle(dept.id || dept._id)}
-                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-2 hover:bg-base-100 dark:hover:bg-base-800 rounded-lg transition-colors"
                           title={dept.active ? 'Deactivate' : 'Activate'}
                         >
                           {dept.active ? (

@@ -1,0 +1,290 @@
+- generic [ref=e6]:
+  - banner [ref=e7]:
+    - generic [ref=e9]:
+      - link "Swish Home" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e14]: Swish
+      - navigation "Main navigation" [ref=e15]:
+        - button "Overview" [ref=e16] [cursor=pointer]
+        - button "Verification" [ref=e17] [cursor=pointer]
+        - button "Capabilities" [ref=e18] [cursor=pointer]
+        - button "Interface" [ref=e19] [cursor=pointer]
+        - button "Why Swish" [ref=e20] [cursor=pointer]
+      - generic [ref=e21]:
+        - button "Switch to dark mode" [ref=e22]
+        - link "Login" [ref=e26] [cursor=pointer]:
+          - /url: /login
+        - link "Register Your College" [ref=e27] [cursor=pointer]:
+          - /url: /college-onboarding
+  - main [ref=e28]:
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]: Closed-Loop Campus Network
+        - heading "The private social network for your university." [level=1] [ref=e37]
+        - paragraph [ref=e38]: Swish connects verified students, faculty, and college administration inside an authenticated campus commons—free from external ads, public search indexing, and anonymous outsiders.
+        - generic [ref=e39]:
+          - link "Sign In to Campus" [ref=e40] [cursor=pointer]:
+            - /url: /login
+          - link "Register Your College" [ref=e44] [cursor=pointer]:
+            - /url: /college-onboarding
+          - button "How It Works" [ref=e46] [cursor=pointer]
+        - paragraph [ref=e47]: Access requires an approved institutional email address (@college.edu, .ac, etc.)
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]: swish.campus · verified instance
+          - generic [ref=e55]: Campus Domain Active
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: Campus Navigation
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: Campus-Wide Feed
+                - generic [ref=e67]: Live
+              - generic [ref=e68]: Official College Notices
+              - generic [ref=e74]: Peer Messaging
+            - generic [ref=e78]: Department Filters
+            - generic [ref=e79]:
+              - generic [ref=e80]: Computer Science
+              - generic [ref=e81]: Mechanical
+              - generic [ref=e82]: Electrical
+              - generic [ref=e83]: Management
+              - generic [ref=e84]: Design
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - generic [ref=e88]: Official Notice · Academic Office
+                - generic [ref=e93]: Posted 2h ago
+              - paragraph [ref=e94]: Schedule for Spring End-Semester Laboratory Evaluations
+              - paragraph [ref=e95]: All departments have finalized practical assessment slots. Schedules and lab allocation guidelines are published on departmental notice boards.
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - generic [ref=e98]:
+                  - generic [ref=e99]: DS
+                  - generic [ref=e100]:
+                    - paragraph [ref=e101]: Devika Sen
+                    - paragraph [ref=e102]: 3rd Year · B.Tech Mechanical · Robotics Club
+                - generic [ref=e103]: Verified Student
+              - paragraph [ref=e107]: Telemetry testing complete on the autonomous campus delivery prototype! Huge thanks to the Electronics batch for debugging the motor controller board this morning. 🛠️
+              - generic [ref=e108]:
+                - generic [ref=e109]: 42 campus upvotes
+                - generic [ref=e112]: 8 peer comments
+                - generic [ref=e115]: "#Engineering #CampusProjects"
+    - generic [ref=e117]:
+      - generic [ref=e118]:
+        - paragraph [ref=e119]: Verification Protocol
+        - heading "How Campus Access Is Verified" [level=2] [ref=e120]
+        - paragraph [ref=e121]: Swish enforces strict institutional boundaries so your campus conversations stay on campus.
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - generic [ref=e126]: STEP 01
+              - generic [ref=e127]: Domain Validated
+            - heading "Domain Matching" [level=3] [ref=e135]
+            - paragraph [ref=e136]: Authorized Institutional Email
+            - paragraph [ref=e137]: Students and faculty sign up using their university-issued email. Public webmail providers (@gmail, @yahoo) cannot access the platform.
+          - generic [ref=e138]: Strict Institutional Boundary
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - generic [ref=e142]: STEP 02
+              - generic [ref=e143]: In-Box Verification
+            - heading "Identity Confirmation" [level=3] [ref=e151]
+            - paragraph [ref=e152]: Cryptographic 6-Digit OTP
+            - paragraph [ref=e153]: A time-sensitive verification code is dispatched directly to the student inbox, proving active enrollment before account activation.
+          - generic [ref=e154]: Strict Institutional Boundary
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - generic [ref=e158]: STEP 03
+              - generic [ref=e159]: Closed-Loop Perimeter
+            - heading "Campus Isolation" [level=3] [ref=e167]
+            - paragraph [ref=e168]: Restricted Community Commons
+            - paragraph [ref=e169]: Authenticated users enter their specific university network. Posts, notices, and directory profiles are never exposed to public internet search engines.
+          - generic [ref=e170]: Strict Institutional Boundary
+    - generic [ref=e172]:
+      - generic [ref=e173]:
+        - paragraph [ref=e174]: Campus Capabilities
+        - heading "Built for How Universities Actually Function" [level=2] [ref=e175]
+        - paragraph [ref=e176]: Real campus utility—from project collaboration with batchmates to official administrative circulars.
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - generic [ref=e179]:
+            - generic [ref=e180]: Department-Scoped
+            - heading "Department & Batch Feeds" [level=3] [ref=e185]
+            - paragraph [ref=e186]: Filter discussions by academic branch (Computer Science, Mechanical, Management, etc.) or browse campus-wide updates across all semesters.
+          - generic [ref=e187]: Verified Feature
+        - generic [ref=e188]:
+          - generic [ref=e189]:
+            - generic [ref=e190]: Administrative Broadcast
+            - heading "Official College Notices" [level=3] [ref=e197]
+            - paragraph [ref=e198]: Critical announcements, exam schedules, and departmental advisories published directly by authorized college administrators and academic deans.
+          - generic [ref=e199]: Verified Feature
+        - generic [ref=e200]:
+          - generic [ref=e201]:
+            - generic [ref=e202]: Real-Time Socket
+            - heading "Direct Peer Messaging" [level=3] [ref=e207]
+            - paragraph [ref=e208]: Real-time 1-on-1 messaging with verified classmates powered by instant socket communication. Collaborate on coursework without exchanging phone numbers.
+          - generic [ref=e209]: Verified Feature
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - generic [ref=e212]: Campus Organizations
+            - heading "Clubs & Student Societies" [level=3] [ref=e220]
+            - paragraph [ref=e221]: Technical chapters, student council bodies, and cultural clubs have dedicated spaces to announce events, hackathons, and member recruitments.
+          - generic [ref=e222]: Verified Feature
+        - generic [ref=e223]:
+          - generic [ref=e224]:
+            - generic [ref=e225]: Campus Stories
+            - heading "24-Hour Campus Stories" [level=3] [ref=e234]
+            - paragraph [ref=e235]: Share ephemeral moments, lab updates, cultural rehearsals, and sports events with students across your university campus.
+          - generic [ref=e236]: Verified Feature
+        - generic [ref=e237]:
+          - generic [ref=e238]:
+            - generic [ref=e239]: Role-Based Moderation
+            - heading "Institutional Moderation" [level=3] [ref=e245]
+            - paragraph [ref=e246]: Because every user is tied to verified campus credentials, accountability is high. In-app reporting and dedicated college admin portals keep interactions respectful.
+          - generic [ref=e247]: Verified Feature
+    - generic [ref=e249]:
+      - generic [ref=e250]:
+        - paragraph [ref=e251]: The Swish Interface
+        - heading "A Dedicated Workspace for Campus Life" [level=2] [ref=e252]
+        - paragraph [ref=e253]: Preview the verified tools students, faculty, and administrators use daily.
+      - generic [ref=e255]:
+        - button "Campus Feed & Projects" [ref=e256] [cursor=pointer]
+        - button "Official Noticeboard" [active] [ref=e260] [cursor=pointer]
+        - button "Peer Direct Messages" [ref=e266] [cursor=pointer]
+      - generic [ref=e270]:
+        - generic [ref=e271]:
+          - generic [ref=e272]: app.swish.campus/notices
+          - generic [ref=e277]: Verified Session
+        - generic [ref=e479]:
+          - generic [ref=e480]:
+            - generic [ref=e481]:
+              - generic [ref=e482]: High Priority · Academic Dean's Office
+              - generic [ref=e483]: "Notice #2026/08"
+            - heading "End-Semester Practical Examination Schedules & Lab Safety Protocol" [level=4] [ref=e484]
+            - paragraph [ref=e485]: Department heads have finalized laboratory slot distributions for 2nd and 3rd year engineering students. Download the official PDF circular below for laboratory safety protocols and viva timetables.
+            - generic [ref=e486]:
+              - generic [ref=e490]: Lab_Evaluation_Schedule_Spring2026.pdf
+              - generic [ref=e491]: 240 KB
+          - generic [ref=e492]:
+            - generic [ref=e493]:
+              - generic [ref=e494]: Administrative Circular · Registrar Office
+              - generic [ref=e495]: Yesterday
+            - heading "Library Operating Hours Extended for Assessment Week" [level=4] [ref=e496]
+            - paragraph [ref=e497]: The central library and digital reading rooms will remain open until 11:00 PM through the exam period.
+    - generic [ref=e316]:
+      - generic [ref=e317]:
+        - paragraph [ref=e318]: Campus Architecture
+        - heading "Why Universities Run on Swish" [level=2] [ref=e319]
+        - paragraph [ref=e320]: Public social networks are built for engagement and advertising. Swish is designed for authenticated campus life.
+      - generic [ref=e321]:
+        - generic [ref=e322]:
+          - generic [ref=e323]:
+            - generic [ref=e329]:
+              - text: For Students & Clubs
+              - heading "Authentic Campus Connection" [level=3] [ref=e330]
+            - list [ref=e331]:
+              - listitem [ref=e332]:
+                - generic [ref=e336]: "Campus-only audience: Posts and discussions remain strictly within your university perimeter."
+              - listitem [ref=e337]:
+                - generic [ref=e341]: "Peer collaboration without phone numbers: Connect with classmates across departments safely."
+              - listitem [ref=e342]:
+                - generic [ref=e346]: "No public web indexing: Your campus profile is never scraped or made searchable on external search engines."
+              - listitem [ref=e347]:
+                - generic [ref=e351]: "Direct club discovery: Find hackathons, tech chapters, and campus events in one centralized feed."
+          - generic [ref=e352]:
+            - generic [ref=e353]: Verified Student Credentials
+            - generic [ref=e354]: ● Zero Ad Tracking
+        - generic [ref=e355]:
+          - generic [ref=e356]:
+            - generic [ref=e363]:
+              - text: For Colleges & Faculty
+              - heading "Administrative Trust & Oversight" [level=3] [ref=e364]
+            - list [ref=e365]:
+              - listitem [ref=e366]:
+                - generic [ref=e370]: "Authoritative notice delivery: Official circulars and exam schedules pinned directly to the student feed."
+              - listitem [ref=e371]:
+                - generic [ref=e375]: "High behavioral accountability: Accounts are backed by verified institutional credentials, preventing burner accounts."
+              - listitem [ref=e376]:
+                - generic [ref=e380]: "Campus-level governance: Dedicated portal to manage student rosters, review flagged content, and oversee safety."
+              - listitem [ref=e381]:
+                - generic [ref=e385]: "Departmental organization: Structured categorisation for engineering, management, sciences, and arts."
+          - generic [ref=e386]:
+            - generic [ref=e387]: College Admin Portal
+            - generic [ref=e388]: Audited Moderation
+    - generic [ref=e394]:
+      - generic [ref=e395]:
+        - paragraph [ref=e396]: Campus Access
+        - heading "Deploy Swish for Your University" [level=2] [ref=e397]
+        - paragraph [ref=e398]: Students can authenticate immediately using their institutional email. College administrations can onboard their campus domain in minutes.
+      - generic [ref=e399]:
+        - generic [ref=e400]:
+          - generic [ref=e401]:
+            - heading "Students & Faculty" [level=3] [ref=e406]
+            - paragraph [ref=e407]: If your university is already registered on Swish, sign in directly with your official college email or create your campus profile.
+          - generic [ref=e408]:
+            - link "Sign In with Campus Account" [ref=e409] [cursor=pointer]:
+              - /url: /login
+            - link "New to your campus? Create account →" [ref=e414] [cursor=pointer]:
+              - /url: /join
+        - generic [ref=e415]:
+          - generic [ref=e416]:
+            - heading "College Administration" [level=3] [ref=e422]
+            - paragraph [ref=e423]: Student council leaders or university administrators can register their institutional email domain to establish a dedicated, private Swish instance.
+          - generic [ref=e424]:
+            - link "Register Your College Domain" [ref=e425] [cursor=pointer]:
+              - /url: /college-onboarding
+            - paragraph [ref=e429]: Institutional Domain Verification Required
+  - contentinfo "Footer" [ref=e430]:
+    - generic [ref=e431]:
+      - generic [ref=e432]:
+        - generic [ref=e433]:
+          - link "Swish home" [ref=e434] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e438]: Swish
+          - paragraph [ref=e439]: The closed-loop social and communication network for verified higher education campuses.
+          - paragraph [ref=e440]: Institutional Email Required
+        - generic [ref=e441]:
+          - paragraph [ref=e442]: Navigation
+          - list [ref=e443]:
+            - listitem [ref=e444]:
+              - button "Campus Overview" [ref=e445] [cursor=pointer]
+            - listitem [ref=e446]:
+              - button "Verification Protocol" [ref=e447] [cursor=pointer]
+            - listitem [ref=e448]:
+              - button "Capabilities" [ref=e449] [cursor=pointer]
+            - listitem [ref=e450]:
+              - button "Interface Preview" [ref=e451] [cursor=pointer]
+            - listitem [ref=e452]:
+              - button "Why Swish" [ref=e453] [cursor=pointer]
+        - generic [ref=e454]:
+          - paragraph [ref=e455]: Access
+          - list [ref=e456]:
+            - listitem [ref=e457]:
+              - link "Student Sign In" [ref=e458] [cursor=pointer]:
+                - /url: /login
+            - listitem [ref=e459]:
+              - link "Join Your Campus" [ref=e460] [cursor=pointer]:
+                - /url: /join
+            - listitem [ref=e461]:
+              - link "Register Your College" [ref=e462] [cursor=pointer]:
+                - /url: /college-onboarding
+            - listitem [ref=e463]:
+              - link "Reset Credentials" [ref=e464] [cursor=pointer]:
+                - /url: /forgot-password
+        - generic [ref=e465]:
+          - paragraph [ref=e466]: Governance
+          - list [ref=e467]:
+            - listitem [ref=e468]:
+              - button "Institutional Isolation" [ref=e469] [cursor=pointer]
+            - listitem [ref=e470]:
+              - button "Community Standards" [ref=e471] [cursor=pointer]
+            - listitem [ref=e472]:
+              - link "College Admin Portal" [ref=e473] [cursor=pointer]:
+                - /url: /college-onboarding
+      - generic [ref=e474]:
+        - paragraph [ref=e475]: © 2026 Swish Campus Systems. Built exclusively for verified academic institutions.
+        - generic [ref=e476]:
+          - generic [ref=e477]: Domain Secured
+          - generic [ref=e478]: Closed Perimeter

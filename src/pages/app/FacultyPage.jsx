@@ -33,7 +33,7 @@ function StatCard({
   trendVal,
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-3.5 sm:p-5 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+    <div className="bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] p-3.5 sm:p-5 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between mb-3 sm:mb-5">
         <div
           className={`w-9 h-9 sm:w-10 sm:h-10 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}
@@ -57,15 +57,15 @@ function StatCard({
         )}
       </div>
 
-      <p className="text-xl sm:text-[28px] font-black text-slate-900 dark:text-white leading-none mb-1">
+      <p className="text-xl sm:text-[28px] font-black text-base-900 dark:text-white leading-none mb-1">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
 
-      <p className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5 truncate">
+      <p className="text-xs sm:text-[13px] font-semibold text-base-600 dark:text-base-400 mb-0.5 truncate">
         {label}
       </p>
 
-      <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+      <p className="text-[10px] sm:text-[11px] text-base-400 truncate">
         {sub}
       </p>
     </div>
@@ -76,7 +76,7 @@ function StatCard({
 function TabLoader() {
   return (
     <div className="flex items-center justify-center py-24">
-      <div className="w-7 h-7 border-2 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin" />
+      <div className="w-7 h-7 border-2 border-accent-200 dark:border-accent-900 border-t-accent-600 dark:border-t-accent-400 rounded-full animate-spin" />
     </div>
   )
 }
@@ -315,24 +315,24 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
 
   const activityColors = {
     brand: {
-      bg: 'bg-indigo-100 dark:bg-indigo-500/10',
-      text: 'text-indigo-600 dark:text-indigo-400',
+      bg: 'bg-accent-50 dark:bg-accent-950/40',
+      text: 'text-accent-600 dark:text-accent-400',
     },
     red: {
-      bg: 'bg-red-100 dark:bg-red-500/10',
-      text: 'text-red-600 dark:text-red-400',
+      bg: 'bg-rose-50 dark:bg-rose-950/40',
+      text: 'text-rose-600 dark:text-rose-400',
     },
     emerald: {
-      bg: 'bg-emerald-100 dark:bg-emerald-500/10',
+      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
       text: 'text-emerald-600 dark:text-emerald-400',
     },
     amber: {
-      bg: 'bg-amber-100 dark:bg-amber-500/10',
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
       text: 'text-amber-600 dark:text-amber-400',
     },
     violet: {
-      bg: 'bg-violet-100 dark:bg-violet-500/10',
-      text: 'text-violet-600 dark:text-violet-400',
+      bg: 'bg-purple-50 dark:bg-purple-950/40',
+      text: 'text-purple-600 dark:text-purple-400',
     },
   }
 
@@ -350,17 +350,17 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
       <div className="mb-5 sm:mb-7">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/25">
+            <div className="w-11 h-11 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-xs">
               <GraduationCap
                 size={22}
                 className="text-white"
               />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white truncate">
+              <h1 className="text-xl sm:text-2xl font-black text-base-900 dark:text-white truncate">
                 {getGreeting()}, {user?.name || 'Faculty'} 👋
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 truncate">
+              <p className="text-base-500 dark:text-base-400 text-xs sm:text-sm mt-0.5 truncate">
                 Campus academics, official notices, and departmental overview
               </p>
             </div>
@@ -368,24 +368,24 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
 
           {/* Faculty Profile Metadata Badges */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
-              <Award size={13} className="text-indigo-600 dark:text-indigo-400" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-300 border border-accent-100 dark:border-accent-900/50 shadow-xs">
+              <Award size={13} className="text-accent-600 dark:text-accent-400" />
               {user?.designation || 'Faculty Member'}
             </span>
             {user?.dept && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60 shadow-sm">
-                <Building2 size={13} className="text-slate-500 dark:text-gray-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-base-100 text-base-700 dark:bg-base-800 dark:text-base-300 border border-base-200/80 dark:border-base-700/60 shadow-xs">
+                <Building2 size={13} className="text-base-500 dark:text-base-400" />
                 {user.dept}
               </span>
             )}
             {user?.employeeId && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/50 shadow-sm">
-                <BadgeCheck size={13} className="text-violet-600 dark:text-violet-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-100 dark:border-purple-900/50 shadow-xs">
+                <BadgeCheck size={13} className="text-purple-600 dark:text-purple-400" />
                 ID: {user.employeeId}
               </span>
             )}
             {(user?.college || user?.collegeName) && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/50 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/50 shadow-xs">
                 <GraduationCap size={13} className="text-emerald-600 dark:text-emerald-400" />
                 {user.college || user.collegeName}
               </span>
@@ -393,7 +393,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             <button
               type="button"
               onClick={() => setShowReportModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100/80 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/50 shadow-sm transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100/80 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/50 shadow-xs transition-all cursor-pointer"
               title="Report an issue or grievance directly to Main Admin"
             >
               <AlertTriangle size={13} className="text-rose-600 dark:text-rose-400" />
@@ -407,7 +407,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           TABS
       ======================================================== */}
 
-      <div className="grid grid-cols-3 sm:flex gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl mb-6 sm:mb-8 w-full sm:w-fit">
+      <div className="grid grid-cols-3 sm:flex gap-1 bg-base-100 dark:bg-base-850 p-1 rounded-xl mb-6 sm:mb-8 w-full sm:w-fit">
         {tabs.map(tab => (
           <button
             key={tab}
@@ -419,8 +419,8 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             onFocus={tab === 'Notices' ? handleNoticesHint : undefined}
             className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
               activeTab === tab
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-base-900 text-base-900 dark:text-white shadow-xs'
+                : 'text-base-500 dark:text-base-400 hover:text-base-700 dark:hover:text-base-300'
             }`}
           >
             {tab === 'Overview' && <BarChart3 size={15} />}
@@ -428,12 +428,12 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             {tab === 'Notices' && <Megaphone size={15} />}
             <span>{tab}</span>
             {tab === 'Students' && students.length > 0 && (
-              <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              <span className="hidden sm:inline-block text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-base-200 dark:bg-base-700 text-base-700 dark:text-base-300">
                 {students.length}
               </span>
             )}
             {tab === 'Notices' && noticeCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-accent-100 dark:bg-accent-950/60 text-accent-600 dark:text-accent-400">
                 {noticeCount}
               </span>
             )}
@@ -462,8 +462,8 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
               label="Total Students"
               value={totalStudents}
               sub={activeStudents ? `${activeStudents.toLocaleString()} active enrolled` : 'Registered campus students'}
-              iconBg="bg-indigo-100 dark:bg-indigo-500/10"
-              iconColor="text-indigo-600 dark:text-indigo-400"
+              iconBg="bg-accent-50 dark:bg-accent-950/40"
+              iconColor="text-accent-600 dark:text-accent-400"
               trend="up"
               trendVal={totalStudents > 0 ? `${totalStudents} Enrolled` : null}
             />
@@ -473,7 +473,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
               label="Active Students"
               value={activeStudents}
               sub="In good academic standing"
-              iconBg="bg-emerald-100 dark:bg-emerald-500/10"
+              iconBg="bg-emerald-50 dark:bg-emerald-950/40"
               iconColor="text-emerald-600 dark:text-emerald-400"
               trend="up"
               trendVal={totalStudents > 0 ? `${Math.round((activeStudents / Math.max(totalStudents, 1)) * 100)}% active` : null}
@@ -484,8 +484,8 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
               label="Campus Notices"
               value={publishedNoticesCount}
               sub="Official announcements"
-              iconBg="bg-indigo-100 dark:bg-indigo-500/10"
-              iconColor="text-indigo-600 dark:text-indigo-400"
+              iconBg="bg-accent-50 dark:bg-accent-950/40"
+              iconColor="text-accent-600 dark:text-accent-400"
               trend="up"
               trendVal="Published"
             />
@@ -495,7 +495,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
               label="Departments"
               value={totalDepartments || departmentData.length}
               sub="Academic branches"
-              iconBg="bg-amber-100 dark:bg-amber-500/10"
+              iconBg="bg-amber-50 dark:bg-amber-950/40"
               iconColor="text-amber-600 dark:text-amber-400"
               trend="up"
               trendVal={`${totalDepartments || departmentData.length} Branches`}
@@ -506,17 +506,17 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
 
             {/* RECENT ACTIVITY */}
-            <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 overflow-hidden">
-              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="font-bold text-[15px] text-slate-900 dark:text-white">
+            <div className="xl:col-span-2 bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] overflow-hidden shadow-xs">
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-base-100 dark:border-[rgba(255,255,255,0.07)] flex items-center justify-between">
+                <h2 className="font-bold text-[15px] text-base-900 dark:text-white">
                   Recent Activity
                 </h2>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-base-400">
                   Real-time updates
                 </span>
               </div>
 
-              <div className="p-4 sm:p-6 divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="p-4 sm:p-6 divide-y divide-base-100 dark:divide-[rgba(255,255,255,0.07)]">
                 {activityFeed.map((item, index) => {
                   const Icon = item.icon
                   const colorConfig = activityColors[item.type] || activityColors.brand
@@ -536,15 +536,15 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">
+                        <p className="text-[14px] font-bold text-base-900 dark:text-white truncate">
                           {item.text}
                         </p>
-                        <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                        <p className="text-[12px] text-base-500 dark:text-base-400 mt-0.5 truncate">
                           {item.sub}
                         </p>
                       </div>
 
-                      <span className="text-[11px] font-medium text-slate-400 flex-shrink-0">
+                      <span className="text-[11px] font-medium text-base-400 flex-shrink-0">
                         {item.time}
                       </span>
                     </div>
@@ -557,14 +557,14 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             <div className="space-y-6">
 
               {/* DEPARTMENT DISTRIBUTION */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-4 sm:p-5">
-                <h2 className="font-bold text-[15px] text-slate-900 dark:text-white mb-4">
+              <div className="bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] p-4 sm:p-5 shadow-xs">
+                <h2 className="font-bold text-[15px] text-base-900 dark:text-white mb-4">
                   Department Distribution
                 </h2>
 
                 <div className="space-y-4">
                   {departmentData.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-4">
+                    <p className="text-sm text-base-400 text-center py-4">
                       No departments yet.
                     </p>
                   ) : (
@@ -574,15 +574,15 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                       return (
                         <div key={dept}>
                           <div className="flex justify-between text-[12px] mb-1.5">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            <span className="font-semibold text-base-700 dark:text-base-300">
                               {dept}
                             </span>
-                            <span className="text-slate-400 font-medium">
+                            <span className="text-base-400 font-medium">
                               {count.toLocaleString()}
                             </span>
                           </div>
 
-                          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-2 bg-base-100 dark:bg-base-800 rounded-full overflow-hidden">
                             <div
                               className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-700`}
                               style={{ width: `${percentage}%` }}
@@ -596,9 +596,9 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
               </div>
 
               {/* RECENT NOTICES */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-5">
+              <div className="bg-white dark:bg-base-900 rounded-xl border border-base-100 dark:border-[rgba(255,255,255,0.07)] p-5 shadow-xs">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-bold text-[15px] text-slate-900 dark:text-white">
+                  <h2 className="font-bold text-[15px] text-base-900 dark:text-white">
                     Recent Campus Notices
                   </h2>
                   <button
@@ -607,7 +607,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                       setActiveTab('Notices')
                     }}
                     onMouseEnter={handleNoticesHint}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                    className="text-xs text-accent-500 dark:text-accent-400 font-bold hover:underline"
                   >
                     Manage
                   </button>
@@ -622,10 +622,10 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                           noticesEverActive.current = true
                           setActiveTab('Notices')
                         }}
-                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border border-slate-100 dark:border-slate-800/60"
+                        className="p-3 rounded-xl bg-base-50 dark:bg-base-850/50 hover:bg-base-100 dark:hover:bg-base-800 transition-colors cursor-pointer border border-base-100 dark:border-[rgba(255,255,255,0.07)]"
                       >
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <p className="text-[13px] font-bold text-slate-900 dark:text-white truncate">
+                          <p className="text-[13px] font-bold text-base-900 dark:text-white truncate">
                             {notice.title}
                           </p>
                           {notice.pinned && (
@@ -634,14 +634,14 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center justify-between text-[11px] text-base-500 dark:text-base-400">
                           <span className="capitalize">{notice.targetAudience ? `Audience: ${notice.targetAudience}` : 'General'}</span>
                           <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
                             notice.priority === 'urgent'
                               ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
                               : notice.priority === 'high'
                               ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
-                              : 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400'
+                              : 'bg-accent-50 text-accent-700 dark:bg-accent-950/50 dark:text-accent-400'
                           }`}>
                             {notice.priority || 'Normal'}
                           </span>
@@ -650,14 +650,14 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                     ))
                   ) : (
                     <div className="text-center py-5">
-                      <p className="text-xs text-slate-400 mb-2">No notices published yet.</p>
+                      <p className="text-xs text-base-400 mb-2">No notices published yet.</p>
                       <button
                         onClick={() => {
                           noticesEverActive.current = true
                           setActiveTab('Notices')
                         }}
                         onMouseEnter={handleNoticesHint}
-                        className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                        className="text-xs text-accent-500 dark:text-accent-400 font-bold hover:underline"
                       >
                         + Create Notice
                       </button>
@@ -685,22 +685,22 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
           className="space-y-6"
         >
           {/* Search & Filter Controls */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-4 sm:p-5 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search Bar */}
               <div className="relative flex-1">
-                <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+                <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 dark:text-base-500" />
                 <input
                   type="text"
                   placeholder="Search students by name, username, roll no, or email..."
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/40 transition-all"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-750 text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-500/20 transition-all"
                 />
                 {studentSearch && (
                   <button
                     onClick={() => setStudentSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 p-1 rounded-md"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-base-400 hover:text-base-600 dark:hover:text-base-300 p-1 rounded-md"
                   >
                     <X size={15} />
                   </button>
@@ -712,7 +712,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                 <select
                   value={studentDeptFilter}
                   onChange={(e) => setStudentDeptFilter(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-750 text-base-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-accent-400 transition-all cursor-pointer"
                 >
                   <option value="all">All Departments</option>
                   {availableDepts.map(d => (
@@ -726,7 +726,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                 <select
                   value={studentYearFilter}
                   onChange={(e) => setStudentYearFilter(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-750 text-base-900 dark:text-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-accent-400 transition-all cursor-pointer"
                 >
                   <option value="all">All Years</option>
                   {availableYears.map(y => (
@@ -737,18 +737,18 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
             </div>
 
             {/* Quick Status Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] text-xs text-base-500 dark:text-base-400">
               <div className="flex items-center gap-2 flex-wrap">
                 <span>
-                  Showing <strong className="text-slate-900 dark:text-white font-semibold">{filteredRoster.length}</strong> {filteredRoster.length === 1 ? 'student' : 'students'}
+                  Showing <strong className="text-base-900 dark:text-white font-semibold">{filteredRoster.length}</strong> {filteredRoster.length === 1 ? 'student' : 'students'}
                 </span>
                 {studentDeptFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-50 text-accent-700 dark:bg-accent-950/50 dark:text-accent-300 font-medium">
                     {studentDeptFilter}
                   </span>
                 )}
                 {studentYearFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-base-100 text-base-700 dark:bg-base-800 dark:text-base-300 font-medium">
                     {studentYearFilter}
                   </span>
                 )}
@@ -761,7 +761,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                     setStudentDeptFilter('all')
                     setStudentYearFilter('all')
                   }}
-                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-accent-500 dark:text-accent-400 hover:underline flex items-center gap-1"
                 >
                   Reset filters
                 </button>
@@ -771,12 +771,12 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
 
           {/* Student Cards Grid */}
           {filteredRoster.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-12 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-base-100 dark:bg-base-800 flex items-center justify-center mx-auto mb-3 text-base-400">
                 <Users size={24} />
               </div>
-              <h3 className="text-slate-900 dark:text-white font-semibold text-base mb-1">No Students Found</h3>
-              <p className="text-slate-400 dark:text-gray-500 text-xs sm:text-sm max-w-sm mx-auto mb-4">
+              <h3 className="text-base-900 dark:text-white font-semibold text-base mb-1">No Students Found</h3>
+              <p className="text-base-400 dark:text-base-500 text-xs sm:text-sm max-w-sm mx-auto mb-4">
                 No students match your current search query or filter criteria.
               </p>
               <button
@@ -785,7 +785,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                   setStudentDeptFilter('all')
                   setStudentYearFilter('all')
                 }}
-                className="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-500/20"
+                className="px-4 py-2 bg-accent-500 text-white text-xs font-semibold rounded-xl hover:bg-accent-600 transition-colors shadow-xs"
               >
                 Clear all filters
               </button>
@@ -797,7 +797,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                 return (
                   <div
                     key={student.id || student._id}
-                    className="bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl p-4 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                    className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-xl p-4 sm:p-5 hover:border-accent-300 dark:hover:border-accent-700 hover:shadow-md transition-all duration-200 flex flex-col justify-between shadow-xs"
                   >
                     <div>
                       {/* Top: Avatar & Name */}
@@ -807,12 +807,12 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                             <img
                               src={avatarSrc}
                               alt=""
-                              className="w-11 h-11 rounded-xl object-cover ring-2 ring-slate-100 dark:ring-slate-800 group-hover:ring-indigo-400 transition-all"
+                              className="w-11 h-11 rounded-xl object-cover ring-2 ring-base-100 dark:ring-base-800 group-hover:ring-accent-400 transition-all"
                             />
                           ) : (
                             <div
-                              className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm"
-                              style={{ backgroundColor: student.avatarColor || '#6366f1' }}
+                              className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-xs"
+                              style={{ backgroundColor: student.avatarColor || '#5B5FEF' }}
                             >
                               {student.initials}
                             </div>
@@ -823,7 +823,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                           <div className="flex items-center justify-between gap-1">
                             <Link
                               to={`/profile/${student.id || student._id}`}
-                              className="text-slate-900 dark:text-white font-bold text-sm truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              className="text-base-900 dark:text-white font-bold text-sm truncate hover:text-accent-500 dark:hover:text-accent-400 transition-colors"
                             >
                               {student.name}
                             </Link>
@@ -831,7 +831,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                               student.suspended ? 'bg-rose-500' : 'bg-emerald-500'
                             }`} title={student.suspended ? 'Suspended' : 'Active'} />
                           </div>
-                          <p className="text-slate-400 dark:text-gray-500 text-xs truncate">
+                          <p className="text-base-400 dark:text-base-500 text-xs truncate">
                             @{student.username}
                           </p>
                         </div>
@@ -840,17 +840,17 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                       {/* Middle: Badges (Dept, Year, Roll No) */}
                       <div className="flex flex-wrap gap-1.5 mb-3.5">
                         {student.dept && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-base-100 dark:bg-base-800 text-base-700 dark:text-base-300">
                             {student.dept}
                           </span>
                         )}
                         {student.year && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-accent-50 dark:bg-accent-950/40 text-accent-700 dark:text-accent-300">
                             {student.year}
                           </span>
                         )}
                         {student.studentId && (
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-gray-400 border border-slate-200/50 dark:border-slate-700/50">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-base-50 dark:bg-base-800/60 text-base-500 dark:text-base-400 border border-base-200/50 dark:border-base-700/50">
                             Roll: {student.studentId}
                           </span>
                         )}
@@ -858,10 +858,10 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
                     </div>
 
                     {/* Bottom: Email & View Profile action */}
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs gap-2">
+                    <div className="pt-3 border-t border-base-100 dark:border-[rgba(255,255,255,0.07)] flex items-center justify-between text-xs gap-2">
                       <a
                         href={`mailto:${student.email}`}
-                        className="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 truncate flex items-center gap-1.5 transition-colors"
+                        className="text-base-500 hover:text-accent-500 dark:hover:text-accent-400 truncate flex items-center gap-1.5 transition-colors"
                         title={student.email}
                       >
                         <Mail size={13} className="flex-shrink-0" />
@@ -870,7 +870,7 @@ export default function FacultyPage({ defaultTab = 'Overview' }) {
 
                       <Link
                         to={`/profile/${student.id || student._id}`}
-                        className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex-shrink-0 flex items-center gap-1"
+                        className="text-accent-500 dark:text-accent-400 font-semibold hover:underline flex-shrink-0 flex items-center gap-1"
                       >
                         Profile <ExternalLink size={12} />
                       </Link>

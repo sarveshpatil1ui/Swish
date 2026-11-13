@@ -54,12 +54,12 @@ export default function CollegeOnboardingPage() {
     location: '',
     campusType: '',
     campusSize: '',
-    
+
     // Requester details
     adminName: '',
     designation: '',
     phone: '',
-    
+
     // Email details
     officialEmail: '',
     confirmEmail: '',
@@ -70,14 +70,14 @@ export default function CollegeOnboardingPage() {
 
   // OTP Verification States
   const [isEmailVerified, setIsEmailVerified] = useState(false)
-  const [verifiedEmail, setVerifiedEmail]     = useState('')
+  const [verifiedEmail, setVerifiedEmail] = useState('')
   const [verificationToken, setVerificationToken] = useState('') // server-issued short-lived token
-  const [otpSent, setOtpSent]                 = useState(false)
-  const [otp, setOtp]                         = useState('')
-  const [otpLoading, setOtpLoading]           = useState(false)
-  const [otpError, setOtpError]               = useState('')
-  const [turnstileToken, setTurnstileToken]   = useState('')
-  const [resendCooldown, setResendCooldown]   = useState(0)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
   // Conflict detection state
 
   const cooldownRef = useRef(null);
@@ -416,7 +416,7 @@ export default function CollegeOnboardingPage() {
       if (!signatureRes.ok || !signatureData.ok) {
         throw new Error(
           signatureData.error ||
-            'Could not prepare secure document upload. Please try again.'
+          'Could not prepare secure document upload. Please try again.'
         )
       }
 
@@ -449,7 +449,7 @@ export default function CollegeOnboardingPage() {
       if (!cloudinaryRes.ok || !cloudinaryData.public_id) {
         throw new Error(
           cloudinaryData.error?.message ||
-            'Proof document upload failed. Please verify the file and try again.'
+          'Proof document upload failed. Please verify the file and try again.'
         )
       }
 
@@ -484,7 +484,7 @@ export default function CollegeOnboardingPage() {
       if (!submitRes.ok || !submitData.ok) {
         throw new Error(
           submitData.error ||
-            'Failed to submit onboarding request. Please review your details and try again.'
+          'Failed to submit onboarding request. Please review your details and try again.'
         )
       }
 
@@ -501,13 +501,13 @@ export default function CollegeOnboardingPage() {
       setIsSubmitting(false)
       setSubmitError(
         err.message ||
-          'Something went wrong while submitting your application. Please check your details and try again.'
+        'Something went wrong while submitting your application. Please check your details and try again.'
       )
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300 text-slate-900 dark:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-base-25 dark:bg-base-950 transition-colors duration-300 text-base-900 dark:text-white flex flex-col justify-between">
       {/* Navigation */}
       <Navbar />
 
@@ -518,7 +518,7 @@ export default function CollegeOnboardingPage() {
           <div className="mb-6">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-slate-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 text-sm font-medium transition-colors group"
+              className="inline-flex items-center gap-1.5 text-base-500 dark:text-base-400 hover:text-accent-500 dark:hover:text-accent-400 text-sm font-medium transition-colors group"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               Back to Landing Page
@@ -534,9 +534,9 @@ export default function CollegeOnboardingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-3xl p-8 sm:p-12 text-center shadow-sm"
+                className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-8 sm:p-12 text-center shadow-xs"
               >
-                <div className="w-20 h-20 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-3xl flex items-center justify-center mx-auto mb-6 text-amber-500">
+                <div className="w-20 h-20 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-500">
                   <Shield size={38} />
                 </div>
 
@@ -546,32 +546,32 @@ export default function CollegeOnboardingPage() {
                 </div>
 
                 <h1
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-4"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                  className="text-3xl sm:text-4xl font-extrabold text-base-900 dark:text-white mb-4 tracking-tight"
                 >
                   Application Submitted!
                 </h1>
 
-                <p className="text-slate-600 dark:text-gray-400 text-base max-w-xl mx-auto leading-relaxed mb-8">
-                  Thank you for requesting to onboard <strong className="text-slate-900 dark:text-white">{form.collegeName}</strong> to SWISH. Our verification team is reviewing your details and official proof document.
+                <p className="text-base-600 dark:text-base-300 text-base max-w-xl mx-auto leading-relaxed mb-8">
+                  Thank you for requesting to onboard <strong className="text-base-900 dark:text-white">{form.collegeName}</strong> to SWISH. Our verification team is reviewing your details and official proof document.
                 </p>
 
                 {/* Summary Card */}
-                <div className="bg-slate-50 dark:bg-gray-800/60 border border-slate-200 dark:border-gray-700 rounded-2xl p-6 max-w-lg mx-auto text-left mb-8 space-y-3 text-sm">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
-                    <span className="text-slate-500 dark:text-gray-400">College Name:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">{form.collegeName} ({form.collegeCode})</span>
+                <div className="bg-base-50 dark:bg-base-800/60 border border-base-100 dark:border-base-800 rounded-xl p-6 max-w-lg mx-auto text-left mb-8 space-y-3 text-sm">
+                  <div className="flex justify-between items-center pb-3 border-b border-base-200 dark:border-base-700">
+                    <span className="text-base-500 dark:text-base-400">College Name:</span>
+                    <span className="font-semibold text-base-900 dark:text-white">{form.collegeName} ({form.collegeCode})</span>
                   </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
-                    <span className="text-slate-500 dark:text-gray-400">Email Domain:</span>
-                    <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{form.emailDomain}</span>
+                  <div className="flex justify-between items-center pb-3 border-b border-base-200 dark:border-base-700">
+                    <span className="text-base-500 dark:text-base-400">Email Domain:</span>
+                    <span className="font-mono text-accent-500 font-semibold">{form.emailDomain}</span>
                   </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700">
-                    <span className="text-slate-500 dark:text-gray-400">Applicant:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">{form.adminName} ({form.designation})</span>
+                  <div className="flex justify-between items-center pb-3 border-b border-base-200 dark:border-base-700">
+                    <span className="text-base-500 dark:text-base-400">Applicant:</span>
+                    <span className="font-semibold text-base-900 dark:text-white">{form.adminName} ({form.designation})</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-500 dark:text-gray-400">Verified Email:</span>
+                    <span className="text-base-500 dark:text-base-400">Verified Email:</span>
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                       <BadgeCheck size={15} />
                       {form.officialEmail}
@@ -579,17 +579,17 @@ export default function CollegeOnboardingPage() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-2xl max-w-lg mx-auto text-left flex items-start gap-3 mb-8">
-                  <Mail size={18} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-indigo-900 dark:text-indigo-200 leading-relaxed">
-                   Your application has been successfully submitted and is now pending verification. Our SWISH team will review your details and verification document, and you will be informed of the decision within <strong>4–5 working days</strong>.
+                <div className="p-4 bg-accent-50 dark:bg-accent-950/40 border border-accent-100 dark:border-accent-900 rounded-xl max-w-lg mx-auto text-left flex items-start gap-3 mb-8">
+                  <Mail size={18} className="text-accent-500 dark:text-accent-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-accent-900 dark:text-accent-200 leading-relaxed">
+                    Your application has been successfully submitted and is now pending verification. Our SWISH team will review your details and verification document, and you will be informed of the decision within <strong>4–5 working days</strong>.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={() => navigate('/')}
-                    className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm"
+                    className="px-6 py-3 bg-accent-500 hover:bg-accent-600 active:bg-accent-700 text-white font-semibold rounded-xl transition-colors shadow-xs text-sm"
                   >
                     Return to SWISH Homepage
                   </button>
@@ -602,7 +602,7 @@ export default function CollegeOnboardingPage() {
                       setOtpSent(false)
                       setOtp('')
                     }}
-                    className="px-6 py-3 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors text-sm"
+                    className="px-6 py-3 border border-base-200 dark:border-base-700 text-base-700 dark:text-base-300 font-semibold rounded-xl hover:bg-base-100 dark:hover:bg-base-800 transition-colors text-sm"
                   >
                     Submit Another Application
                   </button>
@@ -618,7 +618,7 @@ export default function CollegeOnboardingPage() {
                 transition={{ duration: 0.4 }}
               >
                 {/* Header Title Section */}
-                <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-violet-950 text-white rounded-3xl p-8 sm:p-10 mb-8 relative overflow-hidden shadow-md">
+                <div className="bg-gradient-to-br from-accent-600 via-accent-700 to-accent-900 text-white rounded-2xl p-8 sm:p-10 mb-8 relative overflow-hidden shadow-xs">
                   <div
                     className="absolute inset-0 pointer-events-none opacity-20"
                     style={{
@@ -626,35 +626,35 @@ export default function CollegeOnboardingPage() {
                       backgroundSize: '24px 24px',
                     }}
                   />
-                  
+
                   <div className="relative z-10 max-w-2xl">
-                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3.5 py-1 text-xs font-semibold text-indigo-200 mb-4">
+                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3.5 py-1 text-xs font-semibold text-accent-100 mb-4">
                       <Building2 size={13} />
                       Official Campus Onboarding
                     </div>
 
                     <h1
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ fontFamily: 'var(--font-heading)' }}
                       className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4"
                     >
                       Bring SWISH to Your Campus
                     </h1>
 
-                    <p className="text-indigo-100/80 text-base leading-relaxed">
+                    <p className="text-white/80 text-base leading-relaxed">
                       Register your college or university to establish a private, verified network for your campus community. Submit your details below to begin verification.
                     </p>
                   </div>
                 </div>
 
                 {/* Form Container */}
-                <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-3xl p-6 sm:p-10 shadow-sm">
-                  
+                <div className="bg-white dark:bg-base-900 border border-base-100 dark:border-[rgba(255,255,255,0.07)] rounded-2xl p-6 sm:p-10 shadow-xs">
+
                   {/* Banner notice */}
-                  <div className="flex items-start gap-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-4 mb-8">
-                    <Shield size={18} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 bg-accent-50 dark:bg-accent-950/40 border border-accent-100 dark:border-accent-900 rounded-xl p-4 mb-8">
+                    <Shield size={18} className="text-accent-500 dark:text-accent-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-indigo-950 dark:text-indigo-200 text-sm font-semibold">Strict Campus Verification</p>
-                      <p className="text-slate-600 dark:text-gray-400 text-xs mt-0.5 leading-relaxed">
+                      <p className="text-accent-950 dark:text-accent-200 text-sm font-semibold">Strict Campus Verification</p>
+                      <p className="text-base-600 dark:text-base-400 text-xs mt-0.5 leading-relaxed">
                         Every college on SWISH must be verified with an official institutional domain and valid proof of authorization. Unverified domains cannot create accounts.
                       </p>
                     </div>
@@ -681,11 +681,11 @@ export default function CollegeOnboardingPage() {
 
                     {/* ── SECTION 1: College Details ── */}
                     <div className="space-y-5">
-                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-gray-800">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-base-100 dark:border-base-800">
+                        <div className="w-8 h-8 rounded-xl bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 flex items-center justify-center text-accent-500 dark:text-accent-400">
                           <Building2 size={16} />
                         </div>
-                        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-slate-900 dark:text-white">
+                        <h2 style={{ fontFamily: 'var(--font-heading)' }} className="text-lg font-bold text-base-900 dark:text-white">
                           1. Institutional Information
                         </h2>
                       </div>
@@ -693,7 +693,7 @@ export default function CollegeOnboardingPage() {
                       <div className="grid sm:grid-cols-2 gap-4">
                         {/* College Full Name */}
                         <div className="sm:col-span-2">
-                          <label htmlFor="college-name" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="college-name" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Full College / University Name <span className="text-rose-500">*</span>
                           </label>
                           <input
@@ -702,14 +702,14 @@ export default function CollegeOnboardingPage() {
                             placeholder="e.g. K. J. Somaiya College of Engineering"
                             value={form.collegeName}
                             onChange={setField('collegeName')}
-                            className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.collegeName ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                            className={`w-full bg-base-50 dark:bg-base-800 border ${errors.collegeName ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                           />
                           {errors.collegeName && <p className="text-rose-500 text-xs mt-1">{errors.collegeName}</p>}
                         </div>
 
                         {/* Short Abbreviation */}
                         <div>
-                          <label htmlFor="college-code" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="college-code" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             College Code / Short Name <span className="text-rose-500">*</span>
                           </label>
                           <input
@@ -718,48 +718,48 @@ export default function CollegeOnboardingPage() {
                             placeholder="e.g. KJSCE"
                             value={form.collegeCode}
                             onChange={setField('collegeCode')}
-                            className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.collegeCode ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                            className={`w-full bg-base-50 dark:bg-base-800 border ${errors.collegeCode ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                           />
                           {errors.collegeCode && <p className="text-rose-500 text-xs mt-1">{errors.collegeCode}</p>}
                         </div>
 
                         {/* Official Email Domain */}
                         <div>
-                          <label htmlFor="email-domain" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="email-domain" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Official Email Domain <span className="text-rose-500">*</span>
                           </label>
                           <div className="relative">
-                            <Globe size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <Globe size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                             <input
                               id="email-domain"
                               type="text"
                               placeholder="e.g. somaiya.edu"
                               value={form.emailDomain}
                               onChange={setField('emailDomain')}
-                              className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.emailDomain ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                              className={`w-full bg-base-50 dark:bg-base-800 border ${errors.emailDomain ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                             />
                           </div>
                           {errors.emailDomain ? (
                             <p className="text-rose-500 text-xs mt-1">{errors.emailDomain}</p>
                           ) : (
-                            <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-1">Domain after the @ in campus emails (e.g. Stanford.edu)</p>
+                            <p className="text-base-400 dark:text-base-500 text-[11px] mt-1">Domain after the @ in campus emails (e.g. Stanford.edu)</p>
                           )}
                         </div>
 
                         {/* Location */}
                         <div>
-                          <label htmlFor="location" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="location" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             City & State <span className="text-rose-500">*</span>
                           </label>
                           <div className="relative">
-                            <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                             <input
                               id="location"
                               type="text"
                               placeholder="e.g. Mumbai, Maharashtra"
                               value={form.location}
                               onChange={setField('location')}
-                              className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.location ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                              className={`w-full bg-base-50 dark:bg-base-800 border ${errors.location ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                             />
                           </div>
                           {errors.location && <p className="text-rose-500 text-xs mt-1">{errors.location}</p>}
@@ -767,14 +767,14 @@ export default function CollegeOnboardingPage() {
 
                         {/* Campus Type */}
                         <div>
-                          <label htmlFor="campus-type" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="campus-type" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Institution Type <span className="text-rose-500">*</span>
                           </label>
                           <select
                             id="campus-type"
                             value={form.campusType}
                             onChange={setField('campusType')}
-                            className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.campusType ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all cursor-pointer`}
+                            className={`w-full bg-base-50 dark:bg-base-800 border ${errors.campusType ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all cursor-pointer`}
                           >
                             <option value="">Select type</option>
                             {CAMPUS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -785,12 +785,13 @@ export default function CollegeOnboardingPage() {
                     </div>
 
                     {/* ── SECTION 2: Requester / College Admin Details ── */}
+                    {/* ── SECTION 2: Requester / College Admin Details ── */}
                     <div className="space-y-5">
-                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-gray-800">
-                        <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900 flex items-center justify-center text-violet-600 dark:text-violet-400">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-base-100 dark:border-base-800">
+                        <div className="w-8 h-8 rounded-xl bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 flex items-center justify-center text-accent-500 dark:text-accent-400">
                           <User size={16} />
                         </div>
-                        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-slate-900 dark:text-white">
+                        <h2 style={{ fontFamily: 'var(--font-heading)' }} className="text-lg font-bold text-base-900 dark:text-white">
                           2. Requester & Contact Details
                         </h2>
                       </div>
@@ -798,18 +799,18 @@ export default function CollegeOnboardingPage() {
                       <div className="grid sm:grid-cols-2 gap-4">
                         {/* Admin Name */}
                         <div>
-                          <label htmlFor="admin-name" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="admin-name" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Applicant / Contact Name <span className="text-rose-500">*</span>
                           </label>
                           <div className="relative">
-                            <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                             <input
                               id="admin-name"
                               type="text"
                               placeholder="Prof. Rajesh Sharma"
                               value={form.adminName}
                               onChange={setField('adminName')}
-                              className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.adminName ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                              className={`w-full bg-base-50 dark:bg-base-800 border ${errors.adminName ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                             />
                           </div>
                           {errors.adminName && <p className="text-rose-500 text-xs mt-1">{errors.adminName}</p>}
@@ -817,14 +818,14 @@ export default function CollegeOnboardingPage() {
 
                         {/* Designation */}
                         <div>
-                          <label htmlFor="designation" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="designation" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Your Designation / Role <span className="text-rose-500">*</span>
                           </label>
                           <select
                             id="designation"
                             value={form.designation}
                             onChange={setField('designation')}
-                            className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.designation ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all cursor-pointer`}
+                            className={`w-full bg-base-50 dark:bg-base-800 border ${errors.designation ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all cursor-pointer`}
                           >
                             <option value="">Select designation</option>
                             {DESIGNATIONS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -834,18 +835,18 @@ export default function CollegeOnboardingPage() {
 
                         {/* Phone */}
                         <div>
-                          <label htmlFor="phone" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="phone" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Contact Phone Number <span className="text-rose-500">*</span>
                           </label>
                           <div className="relative">
-                            <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                             <input
                               id="phone"
                               type="tel"
                               placeholder="+91 98765 43210"
                               value={form.phone}
                               onChange={setField('phone')}
-                              className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.phone ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                              className={`w-full bg-base-50 dark:bg-base-800 border ${errors.phone ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                             />
                           </div>
                           {errors.phone && <p className="text-rose-500 text-xs mt-1">{errors.phone}</p>}
@@ -853,14 +854,14 @@ export default function CollegeOnboardingPage() {
 
                         {/* Campus Size */}
                         <div>
-                          <label htmlFor="campus-size" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="campus-size" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Approximate Student Body Size
                           </label>
                           <select
                             id="campus-size"
                             value={form.campusSize}
                             onChange={setField('campusSize')}
-                            className="w-full bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 transition-all cursor-pointer"
+                            className="w-full bg-base-50 dark:bg-base-800 border border-base-200 dark:border-base-700 text-base-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 transition-all cursor-pointer"
                           >
                             <option value="">Select size range</option>
                             {CAMPUS_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -871,12 +872,12 @@ export default function CollegeOnboardingPage() {
 
                     {/* ── SECTION 3: Official Verification Email with OTP ── */}
                     <div className="space-y-5">
-                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-gray-800">
-                        <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-base-100 dark:border-base-800">
+                        <div className="w-8 h-8 rounded-xl bg-accent-50 dark:bg-accent-950/60 border border-accent-100 dark:border-accent-900 flex items-center justify-center text-accent-500 dark:text-accent-400">
                           <Mail size={16} />
                         </div>
                         <div>
-                          <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-slate-900 dark:text-white">
+                          <h2 style={{ fontFamily: 'var(--font-heading)' }} className="text-lg font-bold text-base-900 dark:text-white">
                             3. Official Campus Email & OTP Verification
                           </h2>
                         </div>
@@ -899,25 +900,24 @@ export default function CollegeOnboardingPage() {
 
                         {/* Official Email + Send OTP action */}
                         <div className="sm:col-span-2">
-                          <label htmlFor="official-email" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="official-email" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Official Institutional Email <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex gap-2">
                             <div className="relative flex-1">
-                              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                               <input
                                 id="official-email"
                                 type="email"
                                 placeholder="r.sharma@somaiya.edu"
                                 value={form.officialEmail}
                                 onChange={setField('officialEmail')}
-                                className={`w-full bg-slate-50 dark:bg-gray-900 border ${
-                                  errors.officialEmail
+                                className={`w-full bg-base-50 dark:bg-base-800 border ${errors.officialEmail
                                     ? 'border-rose-300 dark:border-rose-700'
                                     : isEmailVerified
                                       ? 'border-emerald-500 dark:border-emerald-500'
-                                      : 'border-slate-200 dark:border-gray-800'
-                                } text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                                      : 'border-base-200 dark:border-base-700'
+                                  } text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                               />
                             </div>
 
@@ -927,7 +927,7 @@ export default function CollegeOnboardingPage() {
                                 type="button"
                                 onClick={handleSendOtp}
                                 disabled={otpLoading || !form.officialEmail.trim()}
-                                className="px-5 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm shadow-xs flex-shrink-0 flex items-center gap-1.5"
+                                className="px-5 py-3 bg-accent-500 text-white font-semibold rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm shadow-xs flex-shrink-0 flex items-center gap-1.5"
                               >
                                 {otpLoading ? (
                                   <>
@@ -960,9 +960,9 @@ export default function CollegeOnboardingPage() {
 
                           {/* Email validation & status indicators */}
                           {!isEmailVerified && !errors.officialEmail && !otpSent && form.emailDomain.trim() && (
-                            <p className="text-slate-400 dark:text-gray-500 text-[11px] mt-1.5 flex items-center gap-1">
+                            <p className="text-base-400 dark:text-base-500 text-[11px] mt-1.5 flex items-center gap-1">
                               <span>Official address must end with</span>
-                              <strong className="text-indigo-600 dark:text-indigo-400">@{form.emailDomain.trim().toLowerCase().replace(/^@/, '')}</strong>
+                              <strong className="text-accent-500">@{form.emailDomain.trim().toLowerCase().replace(/^@/, '')}</strong>
                             </p>
                           )}
                           {errors.officialEmail && (
@@ -977,27 +977,27 @@ export default function CollegeOnboardingPage() {
                           )}
 
                           {!isEmailVerified && otpSent && (
-                            <p className="text-indigo-600 dark:text-indigo-400 text-xs mt-1.5 font-medium flex items-center gap-1">
+                            <p className="text-accent-600 dark:text-accent-400 text-xs mt-1.5 font-medium flex items-center gap-1">
                               <Mail size={13} />
-                              Verification OTP code sent to <strong>{form.officialEmail}</strong>. 
+                              Verification OTP code sent to <strong>{form.officialEmail}</strong>.
                             </p>
                           )}
                         </div>
 
                         {/* Confirm Email */}
                         <div>
-                          <label htmlFor="confirm-email" className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                          <label htmlFor="confirm-email" className="block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5">
                             Confirm Official Email <span className="text-rose-500">*</span>
                           </label>
                           <div className="relative">
-                            <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base-400 pointer-events-none" />
                             <input
                               id="confirm-email"
                               type="email"
                               placeholder="Re-enter official email"
                               value={form.confirmEmail}
                               onChange={setField('confirmEmail')}
-                              className={`w-full bg-slate-50 dark:bg-gray-900 border ${errors.confirmEmail ? 'border-rose-300 dark:border-rose-700' : 'border-slate-200 dark:border-gray-800'} text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-600 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:bg-white dark:focus:bg-gray-900 focus:border-indigo-400 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all`}
+                              className={`w-full bg-base-50 dark:bg-base-800 border ${errors.confirmEmail ? 'border-rose-300 dark:border-rose-700' : 'border-base-200 dark:border-base-700'} text-base-900 dark:text-white placeholder-base-400 dark:placeholder-base-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-hidden focus:bg-white dark:focus:bg-base-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 transition-all`}
                             />
                           </div>
                           {errors.confirmEmail && <p className="text-rose-500 text-xs mt-1">{errors.confirmEmail}</p>}
@@ -1012,11 +1012,11 @@ export default function CollegeOnboardingPage() {
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-5 mt-4"
+                            className="bg-accent-50/70 dark:bg-accent-950/40 border border-accent-200 dark:border-accent-800/80 rounded-xl p-5 mt-4"
                           >
                             <div className="flex items-center gap-2 mb-3">
-                              <ShieldCheck size={18} className="text-indigo-600 dark:text-indigo-400" />
-                              <p className="text-slate-900 dark:text-white text-sm font-semibold">
+                              <ShieldCheck size={18} className="text-accent-500 dark:text-accent-400" />
+                              <p className="text-base-900 dark:text-white text-sm font-semibold">
                                 Enter 6-Digit Email Verification Code
                               </p>
                             </div>
@@ -1037,14 +1037,14 @@ export default function CollegeOnboardingPage() {
                                 placeholder="123456"
                                 value={otp}
                                 onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError('') }}
-                                className="bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-800 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-center text-lg font-mono font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-indigo-400 sm:w-48"
+                                className="bg-white dark:bg-base-900 border border-accent-200 dark:border-accent-800 text-base-900 dark:text-white rounded-xl px-4 py-2.5 text-center text-lg font-mono font-bold tracking-[0.3em] focus:outline-hidden focus:ring-2 focus:ring-accent-500 sm:w-48"
                               />
 
                               <button
                                 type="button"
                                 onClick={handleVerifyOtp}
                                 disabled={otpLoading || otp.length < 6}
-                                className="px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center gap-1.5"
+                                className="px-6 py-2.5 bg-accent-500 text-white font-semibold rounded-xl hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center gap-1.5"
                               >
                                 {otpLoading ? (
                                   <>
@@ -1063,7 +1063,7 @@ export default function CollegeOnboardingPage() {
                                 type="button"
                                 onClick={handleSendOtp}
                                 disabled={resendCooldown > 0}
-                                className="text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:underline disabled:opacity-50 disabled:no-underline px-2 text-center"
+                                className="text-accent-500 dark:text-accent-400 text-xs font-semibold hover:underline disabled:opacity-50 disabled:no-underline px-2 text-center"
                               >
                                 {resendCooldown > 0 ? (
                                   `Resend code in ${resendCooldown}s`
@@ -1079,16 +1079,16 @@ export default function CollegeOnboardingPage() {
 
                     {/* ── SECTION 4: Proof Document Upload (Cloudinary UI Mock) ── */}
                     <div className="space-y-5">
-                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-base-100 dark:border-base-800">
                         <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-400">
                           <FileCheck size={16} />
                         </div>
-                        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-slate-900 dark:text-white">
+                        <h2 style={{ fontFamily: 'var(--font-heading)' }} className="text-lg font-bold text-base-900 dark:text-white">
                           4. Authorization Proof & Document Upload
                         </h2>
                       </div>
 
-                      <p className="text-slate-500 dark:text-gray-400 text-xs leading-relaxed">
+                      <p className="text-base-500 dark:text-base-400 text-xs leading-relaxed">
                         Upload an official document proving institution affiliation (e.g. Faculty ID Card, Official Authorization Letter, AICTE/UGC Registration Document).
                       </p>
 
@@ -1099,13 +1099,12 @@ export default function CollegeOnboardingPage() {
                           onDragLeave={handleDrag}
                           onDragOver={handleDrag}
                           onDrop={handleDrop}
-                          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
-                            dragActive
-                              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30'
+                          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${dragActive
+                              ? 'border-accent-500 bg-accent-50/50 dark:bg-accent-950/30'
                               : errors.proofFile
                                 ? 'border-rose-300 dark:border-rose-700 bg-rose-50/30 dark:bg-rose-950/20'
-                                : 'border-slate-200 dark:border-gray-800 bg-slate-50/60 dark:bg-gray-900/60 hover:border-indigo-300 dark:hover:border-indigo-700'
-                          }`}
+                                : 'border-base-200 dark:border-base-700 bg-base-50/60 dark:bg-base-900/60 hover:border-accent-400 dark:hover:border-accent-600'
+                            }`}
                           onClick={() => document.getElementById('proof-upload-input').click()}
                         >
                           <input
@@ -1116,33 +1115,33 @@ export default function CollegeOnboardingPage() {
                             onChange={handleFileChange}
                           />
 
-                          <div className="w-12 h-12 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm text-indigo-600 dark:text-indigo-400">
+                          <div className="w-12 h-12 bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-xs text-accent-500">
                             <UploadCloud size={24} />
                           </div>
 
-                          <p className="text-slate-800 dark:text-gray-200 text-sm font-semibold mb-1">
+                          <p className="text-base-800 dark:text-base-200 text-sm font-semibold mb-1">
                             Click to upload or drag & drop proof document
                           </p>
-                          <p className="text-slate-400 dark:text-gray-500 text-xs mb-3">
+                          <p className="text-base-400 dark:text-base-500 text-xs mb-3">
                             Supported formats: PDF, PNG, JPG, WEBP (Max 5MB)
                           </p>
 
-                          <span className="inline-block px-3 py-1 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-slate-600 dark:text-gray-300 text-xs font-medium shadow-xs">
+                          <span className="inline-block px-3 py-1 bg-white dark:bg-base-800 border border-base-200 dark:border-base-700 rounded-lg text-base-600 dark:text-base-300 text-xs font-medium shadow-xs">
                             Select Document File
                           </span>
                         </div>
                       ) : (
                         /* Selected File Preview */
-                        <div className="flex items-center justify-between bg-slate-50 dark:bg-gray-800/80 border border-slate-200 dark:border-gray-700 rounded-2xl p-4">
+                        <div className="flex items-center justify-between bg-base-50 dark:bg-base-800/80 border border-base-200 dark:border-base-700 rounded-xl p-4">
                           <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-accent-500 flex items-center justify-center text-white flex-shrink-0">
                               <FileCheck size={20} />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-slate-900 dark:text-white text-sm font-semibold truncate">
+                              <p className="text-base-900 dark:text-white text-sm font-semibold truncate">
                                 {proofFile.name}
                               </p>
-                              <p className="text-slate-400 dark:text-gray-500 text-xs">
+                              <p className="text-base-400 dark:text-base-500 text-xs">
                                 {(proofFile.size / (1024 * 1024)).toFixed(2)} MB · Ready for secure upload
                               </p>
                             </div>
@@ -1150,7 +1149,7 @@ export default function CollegeOnboardingPage() {
                           <button
                             type="button"
                             onClick={removeFile}
-                            className="p-2 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                            className="p-2 text-base-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-xl hover:bg-white dark:hover:bg-base-700 transition-colors"
                             aria-label="Remove document"
                           >
                             <X size={18} />
@@ -1161,7 +1160,7 @@ export default function CollegeOnboardingPage() {
                     </div>
 
                     {/* ── SECTION 5: Declaration & Submission ── */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-gray-800 space-y-6">
+                    <div className="pt-4 border-t border-base-100 dark:border-base-800 space-y-6">
                       <div>
                         <div className="flex items-start gap-3">
                           <input
@@ -1172,9 +1171,9 @@ export default function CollegeOnboardingPage() {
                               setForm(p => ({ ...p, agreed: e.target.checked }))
                               setErrors(p => ({ ...p, agreed: '' }))
                             }}
-                            className="w-4 h-4 mt-0.5 rounded border-slate-300 dark:border-gray-700 accent-indigo-600 cursor-pointer flex-shrink-0"
+                            className="w-4 h-4 mt-0.5 rounded border-base-300 dark:border-base-700 accent-accent-500 cursor-pointer flex-shrink-0"
                           />
-                          <label htmlFor="terms-agreed" className="text-slate-600 dark:text-gray-400 text-xs leading-relaxed cursor-pointer select-none">
+                          <label htmlFor="terms-agreed" className="text-base-600 dark:text-base-400 text-xs leading-relaxed cursor-pointer select-none">
                             I declare that I am an authorized representative of this institution and that the details and document provided are authentic for SWISH campus verification.
                           </label>
                         </div>
@@ -1192,7 +1191,7 @@ export default function CollegeOnboardingPage() {
                       <button
                         type="submit"
                         disabled={isSubmitting || !isEmailVerified || isRegistrationPaused}
-                        className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-2xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-base shadow-sm flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-accent-500 text-white font-semibold rounded-xl hover:bg-accent-600 active:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-base shadow-xs flex items-center justify-center gap-2"
                       >
                         {isRegistrationPaused ? (
                           'Onboarding Requests Temporarily Paused'
